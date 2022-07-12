@@ -8,7 +8,8 @@ mod:RegisterCombat("combat")
 mod:RegisterEvents(
 	"SPELL_AURA_APPLIED",
 	"SPELL_AURA_REMOVED",
-	"UNIT_SPELLCAST_SUCCEEDED"
+	"UNIT_SPELLCAST_SUCCEEDED",
+	"CHAT_MSG_MONSTER_YELL"
 )
 
 local warnMark		= mod:NewTargetAnnounce(24210)
@@ -23,8 +24,6 @@ local specWarnMark	= mod:NewSpecialWarningYou(24210)
 local vanished
 
 function mod:OnCombatStart(delay)
-	vanished = false
-	timerGougeCD:Start()
 end
 
 function mod:SPELL_AURA_APPLIED(args)
@@ -60,5 +59,13 @@ function mod:SPELL_AURA_REMOVED(args)
 		timerPain:Cancel(args.destName)
 	elseif args:IsSpellID(12540) then
 		timerGouge:Cancel(args.destName)
+	end
+end
+
+
+function mod:CHAT_MSG_MONSTER_YELL(msg)
+	if msg == L.CombatStart then
+		vanished = false
+		timerGougeCD:Start()
 	end
 end

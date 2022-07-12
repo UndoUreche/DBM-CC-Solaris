@@ -96,6 +96,10 @@ L:SetGeneralLocalization{
 	name = "High Priestess Arlokk"
 }
 
+L:SetMiscLocalization({
+	CombatStart	= "Bethekk, your priestess calls upon your might!",
+})
+
 -------------------
 --  Hakkar  --
 -------------------
