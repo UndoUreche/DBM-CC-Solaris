@@ -33,7 +33,7 @@ function mod:SPELL_AURA_APPLIED(args)
 		if args:IsPlayer() then
 			specWarnGaze:Show()
 		end
-		warnGaze:Show(args.unitTarget)
+		warnGaze:Show(args.destName)
 		timerGaze:Start(args.destName)
 	elseif args:IsSpellID(24318) then
 		warnFrenzy:Show(args.destName)
