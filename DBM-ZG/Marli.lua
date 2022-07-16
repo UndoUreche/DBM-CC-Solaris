@@ -14,7 +14,7 @@ mod:RegisterEvents(
 
 local warnSpiders	= mod:NewSpellAnnounce(24083)
 local warnDrain		= mod:NewTargetAnnounce(24300)
-local warnWebs		= mod:NewTargetAnnounce(24110)
+local warnWebs		= mod:NewSpellAnnounce(24110)
 local warnCorrosive	= mod:NewTargetAnnounce(24111)
 local warnEnlarge	= mod:NewSpellAnnounce(24109)
 local warnTransform	= mod:NewSpellAnnounce(24084)
@@ -22,8 +22,10 @@ local warnTransform	= mod:NewSpellAnnounce(24084)
 local timerDrain		= mod:NewTargetTimer(7, 24300)
 local timerCorrosive	= mod:NewTargetTimer(30, 24111)
 local timerWebs	= mod:NewCDTimer(15, 24110)
+local timerTransform	= mod:NewNextTimer(60, 24084)
 
 function mod:OnCombatStart(delay)
+	timerTransform:Start()
 end
 
 function mod:SPELL_AURA_APPLIED(args)
@@ -36,7 +38,7 @@ function mod:SPELL_AURA_APPLIED(args)
 	elseif args:IsSpellID(24109) then
 		warnEnlarge:Show()
 	elseif args:IsSpellID(24110) then
-		warnWebs:Show(args.destName)
+		warnWebs:Show()
 	end
 end
 
@@ -59,6 +61,7 @@ end
 function mod:CHAT_MSG_MONSTER_YELL(msg)
 	if msg == L.Transform1 or msg == L.Transform2 then
 		warnTransform:Show()
+		timerTransform:Start()
 		timerWebs:Start(5)
 	elseif msg == L.TransformBack then
 		timerWebs:Cancel()
