@@ -21,17 +21,21 @@ local warnPhase			= mod:NewAnnounce("WarnPhase", 3)
 local warnShadowFlame	= mod:NewCastAnnounce(22539, 2)
 local warnFear			= mod:NewCastAnnounce(22686, 2)
 local warnVeilShadow	= mod:NewTargetAnnounce(22687, 3)
-local warnMC			= mod:NewTargetAnnounce(22667, 4)
+local warnMc			= mod:NewTargetAnnounce(22667, 4)
+local warnMcCD			= mod:NewSpellAnnounce("WarnMcCallSoon", 2)
 
 local timerClassCall	= mod:NewTimer(30, "TimerClassCall")
 local timerShadowFlame	= mod:NewCastTimer(2, 22539)
 local timerFearNext		= mod:NewNextTimer(30, 22686)
 local timerVeilShadow	= mod:NewTargetTimer(6, 22687)
-local timerMC			= mod:NewTargetTimer(15, 22667)
+local timerMc			= mod:NewTargetTimer(15, 22667)
+local timerMcCD			= mod:NewCDTimer(24, 22667)
 
 local prewarn_P3
 function mod:OnCombatStart(delay)
 	prewarn_P3 = false
+	timerMcCD:Start(30)
+	warnMcCD:Schedule(29)
 end
 
 function mod:SPELL_CAST_START(args)
@@ -49,8 +53,10 @@ function mod:SPELL_AURA_APPLIED(args)
 		warnVeilShadow:Show(args.destName)
 		timerVeilShadow:Start(args.destName)
 	elseif args:IsSpellID(22667) then
-		warnMC:Show(args.destName)
-		timerMC:Start(args.destName)
+		warnMc:Show(args.destName)
+		timerMc:Start(args.destName)
+		timerMcCD:Start()
+		warnMcCD:Schedule(23)
 	end
 end
 

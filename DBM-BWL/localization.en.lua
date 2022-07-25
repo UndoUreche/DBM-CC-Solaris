@@ -105,10 +105,11 @@ L:SetGeneralLocalization{
 	name = "Nefarian"
 }
 L:SetWarningLocalization{
-	WarnClassCallSoon	= "Class call soon",
+	WarnClassCallSoon	= "Class call soon!",
 	WarnClassCall		= "%s call",
 	WarnPhaseSoon		= "Phase %s soon",
 	WarnPhase			= "Phase %s"
+	WarnMcCallSoon 		= "Mind control soon!"
 }
 L:SetTimerLocalization{
 	TimerClassCall		= "%s call"
@@ -119,6 +120,7 @@ L:SetOptionLocalization{
 	WarnClassCall		= "Announce class calls",
 	WarnPhaseSoon		= "Announce when a new phase is about to start",
 	WarnPhase			= "Announce phase change"
+	WarnMcCallSoon		= "Pre-warn mind control"
 }
 L:SetMiscLocalization{
 	YellPull	= "Let the games begin!",
