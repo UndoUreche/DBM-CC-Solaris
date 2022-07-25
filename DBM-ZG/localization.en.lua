@@ -129,6 +129,10 @@ L:SetOptionLocalization{
 	TimerWhirlWind	= "Show timer for whirlwind cooldown",
 }
 
+L:SetMiscLocalization({
+	Gaze		= "I'm keeping my eye on you, "
+})
+
 -------------------
 --  Edge of Madness  --
 -------------------

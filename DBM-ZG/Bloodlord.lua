@@ -12,7 +12,8 @@ mod:SetBossHealthInfo(
 
 mod:RegisterEvents(
 	"SPELL_AURA_APPLIED",
-	"SPELL_CAST_SUCCESS"
+	"SPELL_CAST_SUCCESS",
+	"CHAT_MSG_MONSTER_YELL"
 )
 
 local warnFrenzy	= mod:NewSpellAnnounce(24318)
@@ -30,10 +31,6 @@ end
 
 function mod:SPELL_AURA_APPLIED(args)
 	if args:IsSpellID(24314) then
-		if args:IsPlayer() then
-			specWarnGaze:Show()
-		end
-		warnGaze:Show(args.destName)
 		timerGaze:Start(args.destName)
 	elseif args:IsSpellID(24318) then
 		warnFrenzy:Show(args.destName)
@@ -42,6 +39,17 @@ function mod:SPELL_AURA_APPLIED(args)
 		timerMortal:Start(args.destName)
 	end
 end
+
+function mod:CHAT_MSG_MONSTER_YELL(msg, _, _, _, player)
+	if string.find(msg, L.Gaze) ~= nil then
+		if UnitName("player") == player then
+			specWarnGaze:Show()
+		else
+			warnGaze:Show(player)
+		end
+	end
+end
+
 
 function mod:SPELL_CAST_SUCCESS(args)
 	if args:IsSpellID(13736) then
