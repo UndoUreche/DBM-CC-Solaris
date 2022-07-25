@@ -108,7 +108,7 @@ L:SetWarningLocalization{
 	WarnClassCallSoon	= "Class call soon!",
 	WarnClassCall		= "%s call",
 	WarnPhaseSoon		= "Phase %s soon",
-	WarnPhase			= "Phase %s"
+	WarnPhase			= "Phase %s",
 	WarnMcCallSoon 		= "Mind control soon!"
 }
 L:SetTimerLocalization{
@@ -119,8 +119,8 @@ L:SetOptionLocalization{
 	WarnClassCallSoon	= "Pre-warn class calls",
 	WarnClassCall		= "Announce class calls",
 	WarnPhaseSoon		= "Announce when a new phase is about to start",
-	WarnPhase			= "Announce phase change"
-	WarnMcCallSoon		= "Pre-warn mind control"
+	WarnPhase			= "Announce phase change",
+	WarnMcCallSoon		= "Pre-warn Shadow Command"
 }
 L:SetMiscLocalization{
 	YellPull	= "Let the games begin!",

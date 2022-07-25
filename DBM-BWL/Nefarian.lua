@@ -22,7 +22,7 @@ local warnShadowFlame	= mod:NewCastAnnounce(22539, 2)
 local warnFear			= mod:NewCastAnnounce(22686, 2)
 local warnVeilShadow	= mod:NewTargetAnnounce(22687, 3)
 local warnMc			= mod:NewTargetAnnounce(22667, 4)
-local warnMcCD			= mod:NewSpellAnnounce("WarnMcCallSoon", 2)
+local warnMcCD			= mod:NewSpecialWarning("WarnMcCallSoon")
 
 local timerClassCall	= mod:NewTimer(30, "TimerClassCall")
 local timerShadowFlame	= mod:NewCastTimer(2, 22539)
