@@ -11,7 +11,8 @@ mod:RegisterEvents(
 	"SPELL_AURA_APPLIED",
 	"SPELL_AURA_REMOVED",
 	"UNIT_HEALTH",
-	"CHAT_MSG_MONSTER_YELL"
+	"CHAT_MSG_MONSTER_YELL",
+	"SPELL_CAST_SUCCESS"
 )
 
 local warnClassCallSoon	= mod:NewAnnounce("WarnClassCallSoon", 2)
@@ -52,7 +53,11 @@ function mod:SPELL_AURA_APPLIED(args)
 	if args:IsSpellID(22687) then
 		warnVeilShadow:Show(args.destName)
 		timerVeilShadow:Start(args.destName)
-	elseif args:IsSpellID(22667) then
+	end
+end
+
+function mod:SPELL_CAST_SUCCESS(args)
+	if args:IsSpellID(22667) then
 		warnMc:Show(args.destName)
 		timerMc:Start(args.destName)
 		timerMcCD:Start()
