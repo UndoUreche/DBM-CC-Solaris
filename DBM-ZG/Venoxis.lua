@@ -79,6 +79,5 @@ end
 function mod:SPELL_PERIODIC_DAMAGE(args)
 	if args:IsSpellID(23861) and args:IsPlayer() then
 		specWarnPoisonCloud:Show()
-		PlaySoundFile("Sound\\Creature\\HoodWolf\\HoodWolfTransformPlayer01.wav")	
 	end
 end

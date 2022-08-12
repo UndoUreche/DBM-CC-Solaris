@@ -11,11 +11,13 @@ mod:RegisterEvents(
 	"SPELL_AURA_APPLIED",
 	"SPELL_AURA_REMOVED",
 	"CHAT_MSG_MONSTER_YELL",
-	"UNIT_HEALTH"
+	"UNIT_HEALTH",
+	"SPELL_DAMAGE"
 )
 
 local warnPhase2Soon	= mod:NewAnnounce("WarnPhase2Soon", 1)
 local warnPhase2		= mod:NewPhaseAnnounce(2)
+local specWarnFire = mod:NewSpecialWarningMove(23972)
 
 local warnSonicBurst	= mod:NewSpellAnnounce(23918)
 local warnScreech		= mod:NewSpellAnnounce(22884)
@@ -80,6 +82,12 @@ function mod:UNIT_HEALTH(uId)
 		timerHealCD:Start()
 		timerCdFlyingBats:Cancel()
 		timerCdFlyingBats:Start()
+	end
+end
+
+function mod:SPELL_DAMAGE(args)
+	if (args:IsSpellID(23972) or args:IsSpellID(23970)) and args:IsPlayer() then
+		specWarnFire:Show()	
 	end
 end
 
