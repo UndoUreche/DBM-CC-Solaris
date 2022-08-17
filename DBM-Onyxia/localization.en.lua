@@ -23,6 +23,7 @@ L:SetOptionLocalization{
 	TimerWhelps				= "Show timer for Onyxian Whelps",
 	WarnWhelpsSoon			= "Show pre-warning for Onyxian Whelps",
 	SoundWTF				= "Play some funny sounds from a legendary classic Onyxia raid",
+	SoundJames				= "Invoke the wrath of James the Bane of Ragnaros",
 	WarnPhase2Soon			= "Show pre-warning for Phase 2 (at ~67%)",
 	WarnPhase3Soon			= "Show pre-warning for Phase 3 (at ~41%)"
 }
