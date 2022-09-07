@@ -15,10 +15,12 @@ mod:RegisterEvents(
 local warnWave		= mod:NewAnnounce("WarnWave", 2)
 local warnOrder		= mod:NewTargetAnnounce(25471)
 local warnCloud		= mod:NewSpellAnnounce(26550)
+local warnCrash		= mod:NewSpellAnnounce(25599)
 
 local specWarnOrder	= mod:NewSpecialWarningYou(25471)
 
 local timerOrder	= mod:NewTargetTimer(10, 25471)
+local timerCrash	= mod:NewCastTimer(21, 25599)
 local timerCloud	= mod:NewBuffActiveTimer(15, 26550)
 
 function mod:SPELL_AURA_APPLIED(args)
@@ -35,6 +37,9 @@ function mod:SPELL_CAST_SUCCESS(args)
 	if args:IsSpellID(26550) then
 		warnCloud:Show()
 		timerCloud:Start()
+	elseif args:IsSpellID(25599) then
+		warnCrash:Show()
+		timerCrash:Start()
 	end
 end
 
@@ -53,6 +58,8 @@ function mod:CHAT_MSG_MONSTER_YELL(msg)--some of these yells have line breaks th
 		self:SendSync("Wave", 7)
 	elseif msg == L.Wave8 or msg:find(L.Wave8) then
 		self:SendSync("Wave", 8)
+		
+		timerCrash:Start(12)
 	end
 end
 

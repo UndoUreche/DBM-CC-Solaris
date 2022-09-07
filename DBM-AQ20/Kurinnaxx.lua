@@ -7,6 +7,7 @@ mod:RegisterCombat("combat")
 
 mod:RegisterEvents(
 	"SPELL_AURA_APPLIED",
+	"SPELL_DAMAGE",
 	"SPELL_AURA_APPLIED_DOSE"
 )
 
@@ -18,6 +19,8 @@ local specWarnWound	= mod:NewSpecialWarningStack(25646, nil, 5)
 local timerWound	= mod:NewTargetTimer(15, 25646)
 local timerSandTrap	= mod:NewTargetTimer(20, 25656)
 
+local sandTrapTargets = ""
+
 function mod:OnCombatStart(delay)
 end
 
@@ -28,9 +31,19 @@ function mod:SPELL_AURA_APPLIED(args)
 		end
 		warnWound:Show(args.spellName, args.destName, args.amount or 1)
 		timerWound:Start(args.destName)
-	elseif args:IsSpellID(25656) then
-		warnSandTrap:Show(args.destName)
+	elseif args:IsSpellID(25656) and sandTrapTargets ~= "" then
+		warnSandTrap:Show(sandTrapTargets)
+		sandTrapTargets = ""
+		
 		timerSandTrap:Start(args.destName)
+	end
+end
+
+function mod:SPELL_DAMAGE(args)
+	if args:IsSpellID(25656) then
+		
+		sandTrapTargets = sandTrapTargets..", "..args.destName
+		
 	end
 end
 

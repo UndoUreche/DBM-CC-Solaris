@@ -49,6 +49,11 @@ L:SetGeneralLocalization{
 	name 		= "Moam"
 }
 
+L:SetMiscLocalization {
+	StartEmote 	= "%s senses your fear.",
+	ExplodeEmote = "%s bristles with energy!"
+}
+
 ----------
 -- Buru --
 ----------
@@ -68,7 +73,7 @@ L:SetOptionLocalization{
 	WarnDismember	= DBM_CORE_AUTO_ANNOUNCE_OPTIONS.spell:format(96, GetSpellInfo(96) or "unknown"),	
 }
 L:SetMiscLocalization{
-	PursueEmote 	= "%s sets eyes on %s!"
+	PursueEmote 	= "%a+ sets eyes on (%a+)!"
 }
 
 -------------
