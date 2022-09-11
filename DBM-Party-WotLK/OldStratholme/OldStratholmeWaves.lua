@@ -1,49 +1,63 @@
 local mod	= DBM:NewMod("StratWaves", "DBM-Party-WotLK", 3)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision(("$Revision: 4345 $"):sub(12, -3))
+mod:SetRevision("20220729232625")
 
 mod:RegisterEvents(
 	"UPDATE_WORLD_STATES",
 	"UNIT_DIED",
 	"CHAT_MSG_MONSTER_SAY"
 )
+mod.noStatistics = true
 
 local warningWaveNow	= mod:NewAnnounce("WarningWaveNow", 3)
-local timerWaveIn		= mod:NewTimer(20, "TimerWaveIn")
+
+local timerWaveIn		= mod:NewTimer(20, "TimerWaveIn", 57687, nil, nil, 1)
 local timerRoleplay		= mod:NewTimer(162, "TimerRoleplay")
 
+local devouring = L.Devouring
+local meathook = L.Meathook
+local salramm = L.Salramm
+local enraged = L.Enraged
+local necro = L.Necro
+local fiend = L.Fiend
+local abom = L.Abom
+
 local wavesNormal = {
-	{2, L.Devouring},
-	{2, L.Devouring},
-	{2, L.Devouring},
-	{2, L.Devouring},
-	{L.Meathook},
-	{2, L.Devouring},
-	{2, L.Devouring},
-	{2, L.Devouring},
-	{2, L.Devouring},
-	{L.Salramm},
+	{2, devouring},
+	{2, devouring},
+	{2, devouring},
+	{2, devouring},
+	{DBM_COMMON_L.BOSS .. ": " .. meathook},
+	{2, devouring},
+	{2, devouring},
+	{2, devouring},
+	{2, devouring},
+	{DBM_COMMON_L.BOSS .. ": " .. salramm},
 }
 
 local wavesHeroic = {
-	{3, L.Devouring},
-	{1, L.Devouring, 1, L.Enraged, 1, L.Necro},
-	{1, L.Devouring, 1, L.Enraged, 1, L.Necro, 1, L.Fiend},
-	{1, L.Necro, 4, L.Acolyte, 1, L.Fiend},
-	{L.Meathook},
-	{1, L.Devouring, 1, L.Necro, 1, L.Fiend, 1, L.Stalker},
-	{1, L.Devouring, 2, L.Enraged, 1, L.Abom},
-	{1, L.Devouring, 1, L.Enraged, 1, L.Necro, 1, L.Abom},
-	{1, L.Devouring, 1, L.Necro, 1, L.Fiend, 1, L.Abom},
-	{L.Salramm},
+	{3, devouring},
+	{1, devouring, 1, enraged, 1, necro},
+	{1, devouring, 1, enraged, 1, necro, 1, fiend},
+	{1, necro, 4, L.Acolyte, 1, fiend},
+	{DBM_COMMON_L.BOSS .. ": " .. meathook},
+	{1, devouring, 1, necro, 1, fiend, 1, L.Stalker},
+	{1, devouring, 2, enraged, 1, abom},
+	{1, devouring, 1, enraged, 1, necro, 1, abom},
+	{1, devouring, 1, necro, 1, fiend, 1, abom},
+	{DBM_COMMON_L.BOSS .. ": " .. salramm},
 }
 
-local waves		= wavesNormal
-local lastWave	= 0
+local waveInfo
+local lastWave = 0
 
-local function getWaveString(wave)
-	local waveInfo = waves[wave]
+local function getWaveString(self, wave)
+	if self:IsDifficulty("heroic5") then
+		waveInfo = wavesHeroic[wave]
+	else
+		waveInfo = wavesNormal[wave]
+	end
 	if #waveInfo == 1 then
 		return L.WaveBoss:format(unpack(waveInfo))
 	elseif #waveInfo == 2 then
@@ -57,12 +71,7 @@ local function getWaveString(wave)
 	end
 end
 
-function mod:UPDATE_WORLD_STATES(args)
-	if mod:IsDifficulty("heroic5") then 
-		waves = wavesHeroic 
-	else 
-		waves = wavesNormal 
-	end
+function mod:UPDATE_WORLD_STATES()
 	local text = select(3, GetWorldStateUIInfo(2))
 	if not text then return end
 	local _, _, wave = string.find(text, L.WaveCheck)
@@ -75,15 +84,15 @@ function mod:UPDATE_WORLD_STATES(args)
 		lastWave = 0
 	end
 	if wave > lastWave then
-		warningWaveNow:Show(wave, getWaveString(wave))
+		warningWaveNow:Show(wave, getWaveString(self, wave))
 		lastWave = wave
 	end
 end
 
 function mod:UNIT_DIED(args)
 	if bit.band(args.destGUID:sub(0, 5), 0x00F) == 3 then
-		local z = mod:GetCIDFromGUID(args.destGUID)
-		if z == 26529 then
+		local cid = self:GetCIDFromGUID(args.destGUID)
+		if cid == 26529 then
 			timerWaveIn:Start()
 		end
 	end

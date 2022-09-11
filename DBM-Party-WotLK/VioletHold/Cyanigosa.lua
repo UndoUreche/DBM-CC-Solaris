@@ -1,32 +1,36 @@
 local mod	= DBM:NewMod("Cyanigosa", "DBM-Party-WotLK", 12)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision(("$Revision: 3389 $"):sub(12, -3))
+mod:SetRevision("20220518110528")
 mod:SetCreatureID(31134)
-mod:SetZone()
 
 mod:RegisterCombat("combat")
 
-local warningVacuum		= mod:NewSpellAnnounce(58694, 1)
-local warningBlizzard	= mod:NewSpellAnnounce(58693, 3)
-local warningMana		= mod:NewTargetAnnounce(59374, 2)
-local timerVacuumCD		= mod:NewCDTimer(35, 58694)
-local timerMana			= mod:NewTargetTimer(8, 59374)
-local timerCombat		= mod:NewTimer(16, "TimerCombatStart", 2457)
-
 mod:RegisterEvents(
-	"SPELL_CAST_SUCCESS",
-	"SPELL_AURA_APPLIED",
-	"SPELL_AURA_REMOVED",
 	"CHAT_MSG_MONSTER_YELL"
 )
 
+mod:RegisterEventsInCombat(
+	"SPELL_CAST_SUCCESS 58694 58693 59369",
+	"SPELL_AURA_APPLIED 59374",
+	"SPELL_AURA_REMOVED 59374"
+)
+
+local warningVacuum		= mod:NewSpellAnnounce(58694, 1)
+local warningBlizzard	= mod:NewSpellAnnounce(58693, 3)
+
+local specwarnMana		= mod:NewSpecialWarningDispel(59374, "Healer", nil, nil, 1, 2)
+
+local timerVacuumCD		= mod:NewCDTimer(35, 58694, nil, nil, nil, 2)
+local timerMana			= mod:NewTargetTimer(8, 59374, nil, "Healer", nil, 5, nil, DBM_COMMON_L.MAGIC_ICON)
+local timerCombat		= mod:NewCombatTimer(14)
+
 function mod:OnCombatStart(delay)
-	timerVacuumCD:Start(30 - delay, GetSpellInfo(58694))
+	timerVacuumCD:Start(30 - delay)
 end
 
 function mod:SPELL_CAST_SUCCESS(args)
-	if args:IsSpellID(58694) then
+	if args.spellId == 58694 then
 		warningVacuum:Show()
 		timerVacuumCD:Cancel()
 		timerVacuumCD:Start()
@@ -36,15 +40,18 @@ function mod:SPELL_CAST_SUCCESS(args)
 end
 
 function mod:SPELL_AURA_APPLIED(args)
-	if args:IsSpellID(59374) then
-		warningMana:Show(args.destName)
+	if args.spellId == 59374 then
+		if self:CheckDispelFilter() then
+			specwarnMana:Show(args.destName)
+			specwarnMana:Play("helpdispel")
+		end
 		timerMana:Start(args.destName)
 	end
 end
 
 function mod:SPELL_AURA_REMOVED(args)
-	if args:IsSpellID(59374) then
-		timerMana:Cancel()
+	if args.spellId == 59374 then
+		timerMana:Cancel(args.destName)
 	end
 end
 
@@ -54,7 +61,7 @@ function mod:CHAT_MSG_MONSTER_YELL(msg)
 	end
 end
 
-function mod:OnSync(msg, arg)
+function mod:OnSync(msg)
 	if msg == "CyanArrived" then
 		timerCombat:Start()
 	end

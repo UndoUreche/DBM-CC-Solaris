@@ -1,51 +1,57 @@
 local mod	= DBM:NewMod("Anub'Rekhan", "DBM-Naxx", 1)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision(("$Revision: 2943 $"):sub(12, -3))
+mod:SetRevision("20220629223621")
 mod:SetCreatureID(15956)
 
-mod:RegisterCombat("combat")
+mod:RegisterCombat("combat_yell", L.Pull1, L.Pull2)
 
-mod:EnableModel()
-
-mod:RegisterEvents(
-	"SPELL_CAST_START",
-	"SPELL_AURA_REMOVED",
-	"UNIT_DIED"
+mod:RegisterEventsInCombat(
+	"SPELL_CAST_START 28785 54021",
+	"SPELL_AURA_REMOVED 28785 54021"
 )
 
 local warningLocustSoon		= mod:NewSoonAnnounce(28785, 2)
-local warningLocustNow		= mod:NewSpellAnnounce(28785, 3)
-local warningLocustFaded	= mod:NewAnnounce("WarningLocustFaded", 1, 28785)
+local warningLocustFaded	= mod:NewFadesAnnounce(28785, 1)
+--local warnImpale			= mod:NewTargetNoFilterAnnounce(28783, 3)
 
-local specialWarningLocust	= mod:NewSpecialWarning("SpecialLocust")
+local specialWarningLocust	= mod:NewSpecialWarningSpell(28785, nil, nil, nil, 2, 2)
+--local yellImpale			= mod:NewYell(28783)
 
-local timerLocustIn			= mod:NewCDTimer(80, 28785)
-local timerLocustFade 		= mod:NewBuffActiveTimer(26, 28785)
+local timerLocustIn			= mod:NewCDTimer(80, 28785, nil, nil, nil, 6)
+local timerLocustFade		= mod:NewBuffActiveTimer(23, 28785, nil, nil, nil, 6)
 
-mod:AddBoolOption("ArachnophobiaTimer", true, "timer")
+mod:AddBoolOption("ArachnophobiaTimer", true, "timer", nil, nil, nil, "at1859")--Sad caveat that 10 and 25 man have own achievements and we have to show only 1 in GUI
 
 
 function mod:OnCombatStart(delay)
-	if mod:IsDifficulty("heroic25") then
-		timerLocustIn:Start(90 - delay)
-		warningLocustSoon:Schedule(80 - delay)
+	if self:IsDifficulty("normal25") then
+		timerLocustIn:Start(100 - delay)
+		warningLocustSoon:Schedule(90 - delay)
 	else
 		timerLocustIn:Start(91 - delay)
 		warningLocustSoon:Schedule(76 - delay)
 	end
 end
 
+function mod:OnCombatEnd(wipe)
+	if not wipe and self.Options.ArachnophobiaTimer then
+		DBT:CreateBar(1200, L.ArachnophobiaTimer)
+	end
+end
+
 function mod:SPELL_CAST_START(args)
 	if args:IsSpellID(28785, 54021) then  -- Locust Swarm
-		warningLocustNow:Show()
 		specialWarningLocust:Show()
+		specialWarningLocust:Play("aesoon")
 		timerLocustIn:Stop()
-		if mod:IsDifficulty("heroic25") then
-			timerLocustFade:Start(26)
+		if self:IsDifficulty("normal25") then
+			timerLocustFade:Start(23)
 		else
 			timerLocustFade:Start(19)
 		end
+--	elseif args.spellId == 28783 then  -- Impale (56090?)
+--		self:BossTargetScanner(args.sourceGUID, "ImpaleTarget", 0.1, 6)
 	end
 end
 
@@ -55,14 +61,5 @@ function mod:SPELL_AURA_REMOVED(args)
 		warningLocustFaded:Show()
 		timerLocustIn:Start()
 		warningLocustSoon:Schedule(62)
-	end
-end
-
-function mod:UNIT_DIED(args)
-	if self.Options.ArachnophobiaTimer and not DBM.Bars:GetBar(L.ArachnophobiaTimer) then
-		local guid = tonumber(args.destGUID:sub(9, 12), 16)
-		if guid == 15956 then		-- Anub'Rekhan
-			DBM.Bars:CreateBar(1200, L.ArachnophobiaTimer)
-		end
 	end
 end

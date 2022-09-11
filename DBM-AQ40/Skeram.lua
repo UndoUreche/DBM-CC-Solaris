@@ -1,71 +1,80 @@
 local mod	= DBM:NewMod("Skeram", "DBM-AQ40", 1)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision(("$Revision: 133 $"):sub(12, -3))
+mod:SetRevision("20220518110528")
 mod:SetCreatureID(15263)
+
+mod:SetModelID(15263)
+mod:SetUsedIcons(4, 5, 6, 7, 8)
+mod.noBossDeathKill = true
+
 mod:RegisterCombat("combat")
 
-mod:RegisterEvents(
-	"SPELL_AURA_APPLIED",
-	"SPELL_CAST_SUCCESS",
-	"SPELL_SUMMON",
-	"UNIT_HEALTH"
+mod:RegisterEventsInCombat(
+	"SPELL_AURA_APPLIED 785",
+	"SPELL_AURA_REMOVED 785",
+	"SPELL_CAST_SUCCESS 20449 4801 8195",
+	"SPELL_SUMMON 747",
+	"UNIT_HEALTH mouseover target"
 )
 
-local warnMindControl	= mod:NewTargetAnnounce(785, 3)
+--TODO, special warning optimizing?
+local warnMindControl	= mod:NewTargetNoFilterAnnounce(785, 4)
 local warnTeleport		= mod:NewSpellAnnounce(20449, 3)
 local warnSummon		= mod:NewSpellAnnounce(747, 3)
 local warnSummonSoon	= mod:NewSoonAnnounce(747, 2)
 
-local timerMindControl	= mod:NewBuffActiveTimer(20, 785)
+local timerMindControl	= mod:NewBuffActiveTimer(20, 785, nil, nil, nil, 3)
 
-mod:AddBoolOption("SetIconOnMC", true)
+mod:AddSetIconOption("SetIconOnMC", 785, true, false, {4, 5, 6, 7, 8})
 
-local split1
-local split2
-local split3
 local MCTargets = {}
-local MCIcon 	= 8
+mod.vb.splitCount = 0
+mod.vb.MCIcon = 8
 
-function mod:OnCombatStart(delay)
-	split1 = false
-	split2 = false
-	split3 = false
+function mod:OnCombatStart()
+	self.vb.splitCount = 0
 	table.wipe(MCTargets)
-	MCIcon = 8
+	self.vb.MCIcon = 8
 end
 
-local function warnMCTargets()
+local function warnMCTargets(self)
 	warnMindControl:Show(table.concat(MCTargets, "<, >"))
 	timerMindControl:Start()
 	table.wipe(MCTargets)
-	MCIcon = 8
+	self.vb.MCIcon = 8
 end
 
 function mod:SPELL_AURA_APPLIED(args)
-	if args:IsSpellID(785) then
+	if args.spellId == 785 then
 		MCTargets[#MCTargets + 1] = args.destName
 		self:Unschedule(warnMCTargets)
-		if #MCTargets >= 3 then
-			warnMCTargets()
-		else
-			self:Schedule(0.3, warnMCTargets)
-		end
 		if self.Options.SetIconOnMC then
-			self:SetIcon(args.destName, MCIcon, 20)
-			MCIcon = MCIcon - 1
+			self:SetIcon(args.destName, self.vb.MCIcon)
 		end
+		if #MCTargets >= 3 then
+			warnMCTargets(self)
+		else
+			self:Schedule(0.5, warnMCTargets, self)
+		end
+		self.vb.MCIcon = self.vb.MCIcon - 1
+	end
+end
+
+function mod:SPELL_AURA_REMOVED(args)
+	if args.spellId == 785 and self.Options.SetIconOnMC then
+		self:SetIcon(args.destName, 0)
 	end
 end
 
 function mod:SPELL_CAST_SUCCESS(args)
-	if args:IsSpellID(20449, 4801, 8195) then
+	if args:IsSpellID(20449, 4801, 8195) and args:IsSrcTypeHostile() and self:AntiSpam(3, 1) then
 		warnTeleport:Show()
 	end
 end
 
 function mod:SPELL_SUMMON(args)
-	if args:IsSpellID(747) then
+	if args.spellId == 747 and self:AntiSpam(3, 2) then
 		warnSummon:Show()
 	end
 end
@@ -73,15 +82,15 @@ end
 function mod:UNIT_HEALTH(uId)
 	if self:GetUnitCreatureId(uId) == 15263 then
 		local percent = UnitHealth(uId) / UnitHealthMax(uId) * 100
-		if percent <= 81 and percent >= 77 and not split1 then
+		if percent <= 81 and percent >= 77 and self.vb.splitCount < 1 then
 			warnSummonSoon:Show()
-			split1 = true
-		elseif percent <= 56 and percent >= 52 and not split2 then
+			self.vb.splitCount = 1
+		elseif percent <= 56 and percent >= 52 and self.vb.splitCount < 2 then
 			warnSummonSoon:Show()
-			split2 = true
-		elseif percent <= 31 and percent >= 27 and not split3 then
+			self.vb.splitCount = 2
+		elseif percent <= 31 and percent >= 27 and self.vb.splitCount < 3 then
 			warnSummonSoon:Show()
-			split3 = true
+			self.vb.splitCount = 3
 		end
 	end
 end

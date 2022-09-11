@@ -1,96 +1,90 @@
-local Tidewalker = DBM:NewBossMod("Tidewalker", DBM_TIDEWALKER_NAME, DBM_TIDEWALKER_DESCRIPTION, DBM_COILFANG, DBM_SERPENT_TAB, 3);
+local mod	= DBM:NewMod("Tidewalker", "DBM-Serpentshrine")
+local L		= mod:GetLocalizedStrings()
 
-Tidewalker.Version		= "1.0";
-Tidewalker.Author		= "Tandanu";
-Tidewalker.GraveTargets	= {};
-Tidewalker.GraveCounter	= 0;
-Tidewalker.MinVersionToSync  = 2.51;
+mod:SetRevision("20220812215520")
+mod:SetCreatureID(21213)
 
-Tidewalker:RegisterCombat("yell", DBM_TIDEWALKER_YELL_PULL);
+--mod:SetModelID(20739)
+mod:SetUsedIcons(5, 6, 7, 8)
 
-Tidewalker:AddOption("Murlocs", true, DBM_TIDEWALKER_OPTION_1);
-Tidewalker:AddOption("Grave", false, DBM_TIDEWALKER_OPTION_2);
+mod:RegisterCombat("combat")
 
-Tidewalker:AddBarOption("Murlocs")
-Tidewalker:AddBarOption("Watery Grave")
+mod:RegisterEventsInCombat(
+	"SPELL_CAST_START 37730",
+	"SPELL_CAST_SUCCESS 37764",
+	"SPELL_AURA_APPLIED 37850 38023 38024 38025 38049",
+	"SPELL_SUMMON 37854",
+	"CHAT_MSG_RAID_BOSS_EMOTE"
+)
 
-Tidewalker:RegisterEvents(
-	"CHAT_MSG_RAID_BOSS_EMOTE",
-	"SPELL_AURA_APPLIED" 
-);
+local warnTidal			= mod:NewSpellAnnounce(37730, 3)
+local warnGrave			= mod:NewTargetNoFilterAnnounce(38049, 4)--TODO, make run out special warning instead?
+local warnBubble		= mod:NewSpellAnnounce(37854, 4)
 
-function Tidewalker:OnCombatStart(delay)
-	self.GraveTargets	= {};
-	self.GraveCounter	= 0;
-	
-	self:StartStatusBarTimer(42 - delay, "Murlocs", "Interface\\Icons\\INV_Misc_MonsterHead_02");
-	self:ScheduleSelf(35 - delay, "MurlocWarn");
+local specWarnMurlocs	= mod:NewSpecialWarning("SpecWarnMurlocs", nil, nil, nil, nil, nil, nil, 24984, 37764)
+
+local timerGraveCD		= mod:NewCDTimer(30, 38049, nil, nil, nil, 3) -- REVIEW! variance? (25 man FM log 2022/07/27 || 25 man FM log 2022/08/11) - 30.1, 30.0, 30.0, 30.0, 30.0 || 32.0, 30.1, 30.1
+local timerMurlocs		= mod:NewTimer(51, "TimerMurlocs", 39088, nil, nil, 1, nil, nil, nil, nil, nil, nil, nil, 37764)
+local timerBubble		= mod:NewBuffActiveTimer(35, 37854, nil, nil, nil, 1)
+
+mod:AddSetIconOption("GraveIcon", 38049, true, false, {5, 6, 7, 8})
+
+local warnGraveTargets = {}
+mod.vb.graveIcon = 8
+
+local function showGraveTargets()
+	warnGrave:Show(table.concat(warnGraveTargets, "<, >"))
+	table.wipe(warnGraveTargets)
 end
 
-function Tidewalker:OnCombatEnd()
-	self.GraveTargets	= {};
-	self.GraveCounter	= 0;
+function mod:OnCombatStart(delay)
+	self.vb.graveIcon = 8
+	table.wipe(warnGraveTargets)
+	timerGraveCD:Start(19.4-delay) -- REVIEW! variance? (25 man FM log 2022/07/27 || 25 man FM log 2022/08/11) - 19.4 || 19.5
+	timerMurlocs:Start(40.4-delay) -- REVIEW! variance? (25 man FM log 2022/07/27 || 25 man FM log 2022/08/11) - 40.5 || 40.4
 end
 
-function Tidewalker:OnEvent(event, arg1)
-	if event == "SPELL_AURA_APPLIED" then
-		if arg1.spellId == 37850
-		or arg1.spellId == 38023
-		or arg1.spellId == 38024
-		or arg1.spellId == 38025
-		or arg1.spellId == 38049 then -- ???
-			self:SendSync(tostring(arg1.destName))
+function mod:SPELL_CAST_START(args)
+	if args.spellId == 37730 then
+		warnTidal:Show()
+	end
+end
+
+--[[function mod:SPELL_CAST_SUCCESS(args)
+	if args.spellId == 37764 then
+		specWarnMurlocs:Show()
+		timerMurlocs:Start()
+	end
+end]]
+
+function mod:SPELL_AURA_APPLIED(args)
+	if args:IsSpellID(37850, 38023, 38024, 38025, 38049) then -- Watery Grave. Warmane bugged this (as of 2022/08/11) and it's not triggering the ability at random intervals. The emote still fires every 30 seconds, so use that for timer
+		warnGraveTargets[#warnGraveTargets + 1] = args.destName
+		self:Unschedule(showGraveTargets)
+		if self.Options.GraveIcon then
+			self:SetIcon(args.destName, self.vb.graveIcon)
 		end
-		
-	elseif event == "GraveCheck" then
-		if self.Options.Grave and self.GraveCounter > 0 and self.GraveCounter < 4 then
-			local targetString = "";
-			if self.GraveCounter == 1 then
-				targetString = ">"..self.GraveTargets[1].."<";
-			elseif self.GraveCounter == 2 then
-				targetString = ">"..self.GraveTargets[1].."< "..DBM_AND.." >"..self.GraveTargets[2].."<";
-			elseif self.GraveCounter == 3 then
-				targetString = ">"..self.GraveTargets[1].."<, >"..self.GraveTargets[2].."< "..DBM_AND.." >"..self.GraveTargets[3].."<";
-			end
-			self:Announce(string.format(DBM_TIDEWALKER_WARN_GRAVE, targetString), 2);
-		end
-		self.GraveCounter = 0;
-		self.GraveTargets = {};
-		
-	elseif event == "CHAT_MSG_RAID_BOSS_EMOTE" then
-		if arg1 == DBM_TIDEWALKER_EMOTE_MURLOCS then
-			if self.Options.Murlocs then
-				self:Announce(DBM_TIDEWALKER_WARN_MURLOCS, 3);
-			end
-			self:StartStatusBarTimer(50, "Murlocs", "Interface\\Icons\\INV_Misc_MonsterHead_02");
-			self:UnScheduleSelf("MurlocWarn");
-			self:ScheduleSelf(45, "MurlocWarn");
-		elseif arg1 == DBM_TIDEWALKER_EMOTE_GRAVE then
-			self:StartStatusBarTimer(30, "Watery Grave", "Interface\\Icons\\Spell_Shadow_DemonBreath");
-		elseif arg1 == DBM_TIDEWALKER_EMOTE_GLOBES then
-			self:Announce(DBM_TIDEWALKER_WARN_GLOBES, 3);
-		end
-		
-	elseif event == "MurlocWarn" then
-		if self.Options.Murlocs then
-			self:Announce(DBM_TIDEWALKER_WARN_MURLOCS_SOON, 1);
+		self.vb.graveIcon = self.vb.graveIcon - 1
+		if #warnGraveTargets >= 4 then
+			showGraveTargets()
+		else
+			self:Schedule(0.3, showGraveTargets)
 		end
 	end
 end
 
-function Tidewalker:OnSync(msg)
-	if msg then
-		table.insert(self.GraveTargets, msg);
-		self.GraveCounter = self.GraveCounter + 1;
-		if self.GraveCounter == 4 then
-			if self.Options.Grave then
-				local targetString = ">"..self.GraveTargets[1].."<, >"..self.GraveTargets[2].."<, >"..self.GraveTargets[3].."< "..DBM_AND.." >"..self.GraveTargets[4].."<";
-				self:Announce(string.format(DBM_TIDEWALKER_WARN_GRAVE, targetString), 2);
-			end
-			self.GraveCounter = 0;
-			self.GraveTargets = {};
-		else
-			self:ScheduleSelf(1, "GraveCheck"); --if we miss an event...
-		end
+function mod:SPELL_SUMMON(args)
+	if args.spellId == 37854 and self:AntiSpam(30) then
+		warnBubble:Show()
+		timerBubble:Start()
+	end
+end
+
+function mod:CHAT_MSG_RAID_BOSS_EMOTE(msg)
+	if msg == L.Grave or msg:find(L.Grave) then
+		timerGraveCD:Show()
+	elseif msg == L.Murlocs or msg:find(L.Murlocs) then
+		specWarnMurlocs:Show()
+		timerMurlocs:Start()
 	end
 end

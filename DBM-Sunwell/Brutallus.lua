@@ -1,142 +1,135 @@
-local Brutallus = DBM:NewBossMod("Brutallus", DBM_BRUTALLUS_NAME, DBM_BRUTALLUS_DESCRIPTION, DBM_SUNWELL, DBM_SW_TAB, 2)
+local mod	= DBM:NewMod("Brutallus", "DBM-Sunwell")
+local L		= mod:GetLocalizedStrings()
 
-Brutallus.Version		= "1.0"
-Brutallus.Author		= "Tandanu"
-Brutallus.MinRevision	= 954
+mod:SetRevision("20220518110528")
+mod:SetCreatureID(24882)
+mod:SetUsedIcons(1, 2, 3, 4, 5, 6, 7, 8)
 
+mod:RegisterCombat("yell", L.Pull)
+mod.disableHealthCombat = true
 
-Brutallus:SetCreatureID(24882)
-Brutallus:RegisterCombat("yell", DBM_BRUTALLUS_YELL_PULL)
-
-
-Brutallus:RegisterEvents(
-	"SPELL_AURA_APPLIED",
-	"SPELL_CAST_START"
+mod:RegisterEventsInCombat(
+	"SPELL_CAST_START 45150",
+	"SPELL_AURA_APPLIED 46394 45185 45150",
+	"SPELL_AURA_APPLIED_DOSE 45150",
+	"SPELL_AURA_REMOVED 46394",
+	"SPELL_MISSED 46394"
 )
 
-Brutallus:AddOption("WarnBurn", true, DBM_BRUTALLUS_OPTION_BURN)
-Brutallus:AddOption("WarnBurn2", false, DBM_BRUTALLUS_OPTION_BURN2)
-Brutallus:AddOption("BurnIcon", false, DBM_BRUTALLUS_OPTION_BURN3)
-Brutallus:AddOption("BurnSpecWarn", true, DBM_BRUTALLUS_OPTION_BURN4)
-Brutallus:AddOption("WarnStomp", true, DBM_BRUTALLUS_OPTION_STOMP)
-Brutallus:AddOption("PreWarnStomp", false, DBM_BRUTALLUS_OPTION_PRESTOMP)
-Brutallus:AddOption("WarnMeteor", false, DBM_BRUTALLUS_OPTION_METEOR)
-Brutallus:AddOption("DelayedBurnTimer", false, DBM_BRUTALLUS_OPTION_DEL_BURN)
-Brutallus:AddOption("DelayedBurnWarn", false, DBM_BRUTALLUS_OPTION_DEL_BURN2)
+local warnMeteor		= mod:NewSpellAnnounce(45150, 3)
+local warnBurn			= mod:NewTargetAnnounce(46394, 3, nil, false, 2)
+local warnStomp			= mod:NewTargetAnnounce(45185, 3, nil, "Tank", 2)
 
-Brutallus:AddBarOption("Enrage")
-Brutallus:AddBarOption("Burn: (.*)")
-Brutallus:AddBarOption("Jumped Burn: (.*)", false)
-Brutallus:AddBarOption("Next Burn")
-Brutallus:AddBarOption("Next Meteor")
-Brutallus:AddBarOption("Next Stomp")
+local specwarnStompYou	= mod:NewSpecialWarningYou(45185, "Tank")
+local specwarnStomp		= mod:NewSpecialWarningTaunt(45185, "Tank")
+local specWarnMeteor	= mod:NewSpecialWarningStack(45150, nil, 4, nil, nil, 1, 6)
+local specWarnBurn		= mod:NewSpecialWarningYou(46394, nil, nil, nil, 1, 2)
+local yellBurn			= mod:NewYell(46394)
 
-local icons = {}
-local lastBurn = 0
+local timerMeteorCD		= mod:NewCDTimer(12, 45150, nil, nil, nil, 3)
+local timerStompCD		= mod:NewCDTimer(31, 45185, nil, nil, nil, 2)
+local timerBurn			= mod:NewTargetTimer(60, 46394, nil, "false", 2, 3)
+local timerBurnCD		= mod:NewCDTimer(20, 46394, nil, nil, nil, 3)
 
-function Brutallus:OnCombatStart(delay)
-	for i, v in pairs(icons) do
-		icons[i] = nil
-	end
-	
-	self:StartStatusBarTimer(360 - delay, "Enrage", "Interface\\Icons\\Spell_Shadow_UnholyFrenzy") 
-	self:ScheduleAnnounce(180 - delay, DBM_GENERIC_ENRAGE_WARN:format(3, DBM_MIN), 1)
-	self:ScheduleAnnounce(300 - delay, DBM_GENERIC_ENRAGE_WARN:format(1, DBM_MIN), 2)
-	self:ScheduleAnnounce(330 - delay, DBM_GENERIC_ENRAGE_WARN:format(30, DBM_SEC), 3)
-	self:ScheduleAnnounce(350 - delay, DBM_GENERIC_ENRAGE_WARN:format(10, DBM_SEC), 4)
-	self:StartStatusBarTimer(31 - delay, "Next Stomp", 45185)
-end
+local berserkTimer		= mod:NewBerserkTimer(mod:IsTimewalking() and 300 or 360)
 
-function Brutallus:OnEvent(event, args)
-	if event == "SPELL_AURA_APPLIED" then
-		if args.spellId == 46394 then
-			self:SendSync("Burn"..tostring(args.destName))
-		elseif args.spellId == 45185 then
-			self:SendSync("Stomp"..tostring(args.destName))
-		end
-	elseif event == "SPELL_CAST_START" then
-		if args.spellId == 45150 then
-			self:SendSync("Meteor")
-		end
+mod:AddSetIconOption("BurnIcon", 46394, true, false, {1, 2, 3, 4, 5, 6, 7, 8})
+mod:AddRangeFrameOption(4, 46394)
+mod:AddMiscLine(DBM_CORE_L.OPTION_CATEGORY_DROPDOWNS)
+mod:AddDropdownOption("RangeFrameActivation", {"AlwaysOn", "OnDebuff"}, "OnDebuff", "misc")
+
+mod.vb.burnIcon = 8
+local debuffName = DBM:GetSpellInfo(46394)
+
+local DebuffFilter
+do
+	DebuffFilter = function(uId)
+		return DBM:UnitDebuff(uId, debuffName)
 	end
 end
 
-local function clearIcon(id)
-	icons[id] = nil
+function mod:OnCombatStart(delay)
+	self.vb.burnIcon = 8
+	timerBurnCD:Start(-delay)
+	timerStompCD:Start(-delay)
+	berserkTimer:Start(-delay)
+	if self.Options.RangeFrame and self.Options.RangeFrameActivation == "AlwaysOn" then
+		DBM.RangeCheck:Show(4)
+	end
 end
-function Brutallus:OnSync(msg)
-	if msg:sub(0, 4) == "Burn" then
-		msg = msg:sub(5)
-		if msg == UnitName("player") and self.Options.BurnSpecWarn then
-			self:AddSpecialWarning(DBM_BRUTALLUS_WHISP_BURN)
+
+function mod:OnCombatEnd()
+	if self.Options.RangeFrame then
+		DBM.RangeCheck:Hide()
+	end
+end
+
+function mod:SPELL_AURA_APPLIED(args)
+	if args.spellId == 46394 then
+		warnBurn:Show(args.destName)
+		timerBurn:Start(args.destName)
+		if self:AntiSpam(19, 1) then
+			timerBurnCD:Start()
 		end
-		
-		local firstBurn = false
-		if (GetTime() - lastBurn) > 19 then
-			lastBurn = GetTime()
-			firstBurn = true
-		end
-		
-		if (self.Options.WarnBurn and firstBurn) or self.Options.WarnBurn2 then
-			self:Announce(DBM_BRUTALLUS_WARN_BURN:format(msg), 2)
-			self:SendHiddenWhisper(DBM_BRUTALLUS_WHISP_BURN, msg)
-		end
-		
-		self:ScheduleMethod(45, "DelayedBurn", msg)
-		
-		if firstBurn then
-			if not self.Options.DelayedBurnTimer then
-				self:StartStatusBarTimer(60, "Burn: "..msg, 46394, true)
-			end
-			self:StartStatusBarTimer(20, "Next Burn", "Interface\\Icons\\Spell_Fire_FelFire")
-		else
-			if not self.Options.DelayedBurnTimer then
-				self:StartStatusBarTimer(60, "Jumped Burn: "..msg, 46394, true)
-			end
-		end
-		
 		if self.Options.BurnIcon then
-			for i = 8, 1, -1 do
-				if icons[i] == nil then
-					icons[i] = true
-					self:SetIcon(msg, 60, i)
-					self:Schedule(60, clearIcon, i)
-					break
-				end
+			self:SetIcon(args.destName, self.vb.burnIcon)
+		end
+		if self.vb.burnIcon == 1 then
+			self.vb.burnIcon = 8
+		else
+			self.vb.burnIcon = self.vb.burnIcon - 1
+		end
+		if args:IsPlayer() then
+			specWarnBurn:Show()
+			specWarnBurn:Play("targetyou")
+			yellBurn:Yell()
+		end
+		if self.Options.RangeFrame and self.Options.RangeFrameActivation == "OnDebuff" then
+			if DBM:UnitDebuff("player", args.spellName) then--You have debuff, show everyone
+				DBM.RangeCheck:Show(4, nil)
+			else--You do not have debuff, only show players who do
+				DBM.RangeCheck:Show(4, DebuffFilter)
 			end
 		end
+	elseif args.spellId == 45185 then
+		if args:IsPlayer() then
+			specwarnStompYou:Show()
+		else
+			specwarnStomp:Show(args.destName)
+			warnStomp:Show(args.destName)
+		end
+		timerStompCD:Start()
+	elseif args.spellId == 45150 and args:IsPlayer() then
+		local amount = args.amount or 1
+		if (amount >= 4) or (amount >= 2 and self:IsTimewalking()) then
+			specWarnMeteor:Show(amount)
+			specWarnMeteor:Play("stackhigh")
+		end
+	end
+end
+mod.SPELL_AURA_APPLIED_DOSE = mod.SPELL_AURA_APPLIED
 
-	elseif msg:sub(0, 5) == "Stomp" then
-		msg = msg:sub(6)
-		if self.Options.WarnStomp then
-			self:Announce(DBM_BRUTALLUS_WARN_STOMP:format(msg), 1)
+function mod:SPELL_AURA_REMOVED(args)
+	if args.spellId == 46394 then
+		if self.Options.BurnIcon then
+			self:SetIcon(args.destName, 0)
 		end
-		if self.Options.PreWarnStomp then
-			self:ScheduleAnnounce(26, DBM_BRUTALLUS_WARN_STOMP_SOON, 1)
-		end
-		self:StartStatusBarTimer(31, "Next Stomp", 45185)
-	
-	elseif msg == "Meteor" then
-		if self.Options.WarnMeteor then
-			self:Announce(DBM_BRUTALLUS_WARN_METEOR, 3)
-		end
-		self:StartStatusBarTimer(12, "Next Meteor", 45150)
+		timerBurn:Cancel(args.destName)
 	end
 end
 
-function Brutallus:DelayedBurn(target)
-	for i = 1, GetNumRaidMembers() do
-		if UnitName("raid"..i) == target then
-			if not DBM.GetDebuff("raid"..i, GetSpellInfo(46394)) then
-				return
-			end
-			break
+function mod:SPELL_CAST_START(args)
+	if args.spellId == 45150 then
+		warnMeteor:Show()
+		timerMeteorCD:Start()
+	end
+end
+
+function mod:SPELL_MISSED(_, _, _, _, _, _, spellId)
+	if spellId == 46394 then
+		warnBurn:Show("MISSED")
+		if self:AntiSpam(19, 1) then
+			timerBurnCD:Start()
 		end
-	end
-	if self.Options.DelayedBurnWarn then
-		self:Announce(DBM_BRUTALLUS_WARN_DEL_BURN:format(target), 4)
-	end
-	if self.Options.DelayedBurnTimer then
-		self:StartStatusBarTimer(15, "Burn: "..target, 46394, true)
 	end
 end

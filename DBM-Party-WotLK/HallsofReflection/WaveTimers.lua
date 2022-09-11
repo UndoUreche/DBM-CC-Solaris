@@ -1,7 +1,7 @@
 local mod = DBM:NewMod("HoRWaveTimer", "DBM-Party-WotLK", 16)
 local L = mod:GetLocalizedStrings()
 
-mod:SetRevision(("$Revision: 2153 $"):sub(12, -3))
+mod:SetRevision("20220729232007")
 mod:SetCreatureID(30658)
 mod:SetZone()
 
@@ -11,8 +11,9 @@ mod:RegisterEvents(
 )
 
 local warnNewWaveSoon	= mod:NewAnnounce("WarnNewWaveSoon", 2)
-local warnNewWave	= mod:NewAnnounce("WarnNewWave", 3)
-local timerNextWave	= mod:NewTimer(150, "TimerNextWave")
+local warnNewWave		= mod:NewAnnounce("WarnNewWave", 3)
+
+local timerNextWave		= mod:NewTimer(150, "TimerNextWave")
 
 mod:AddBoolOption("ShowAllWaveWarnings", true, "announce")
 mod:AddBoolOption("ShowAllWaveTimers", false, "timer")
@@ -22,7 +23,7 @@ mod:RemoveOption("HealthFrame")
 local lastWave = 0
 local FalricDead = false
 
-function mod:UPDATE_WORLD_STATES(args)
+function mod:UPDATE_WORLD_STATES()
 	local text = select(3, GetWorldStateUIInfo(1))
 	if not text then return end
 	local _, _, wave = string.find(text, L.WaveCheck)
@@ -59,7 +60,8 @@ function mod:UPDATE_WORLD_STATES(args)
 end
 
 function mod:UNIT_DIED(args)
-	if args.sourceName == L.Falric then
+	local cid = self:GetCIDFromGUID(args.destGUID)
+	if cid == 38112 then--falric
 		timerNextWave:Start(60)
 		warnNewWaveSoon:Schedule(50)
 		FalricDead = true

@@ -1,93 +1,134 @@
-local Bloodboil = DBM:NewBossMod("Bloodboil", DBM_BLOODBOIL_NAME, DBM_BLOODBOIL_DESCRIPTION, DBM_BLACK_TEMPLE, DBM_BT_TAB, 5)
+local mod	= DBM:NewMod("Bloodboil", "DBM-BlackTemple")
+local L		= mod:GetLocalizedStrings()
 
-Bloodboil.Version	= "1.0"
-Bloodboil.Author	= "Tandanu"
+mod:SetRevision("20220518110528")
+mod:SetCreatureID(22948)
 
-local boilCounter = 0
+mod:SetModelID(21443)
 
-Bloodboil:SetCreatureID(22948)
-Bloodboil:RegisterCombat("yell", DBM_BLOODBOIL_YELL_PULL)
+mod:RegisterCombat("combat")
 
-Bloodboil:RegisterEvents(
-	"SPELL_AURA_APPLIED",
-	"SPELL_AURA_REMOVED"
+mod:RegisterEventsInCombat(
+	"SPELL_CAST_SUCCESS 42005",
+	"SPELL_AURA_APPLIED 42005 40481 40491 40604",
+	"SPELL_AURA_APPLIED_DOSE 40481 42005",
+	"SPELL_AURA_REFRESH 42005 40481",
+	"SPELL_AURA_REMOVED 42005",
+	"SPELL_AURA_REMOVED_DOSE 42005"
 )
 
-Bloodboil:AddOption("WarnSmash", false, DBM_BLOODBOIL_OPTION_SMASH)
+--TODO, verify blood is in combat log like that, otherwise have to use playerdebuffstacks frame instead
+local warnBlood			= mod:NewTargetAnnounce(42005, 3)
+local warnWound			= mod:NewStackAnnounce(40481, 2, nil, "Tank", 2)
+local warnStrike		= mod:NewTargetNoFilterAnnounce(40491, 3, nil, "Tank", 2)
+local warnRage			= mod:NewTargetAnnounce(40604, 4)
+local warnRageSoon		= mod:NewSoonAnnounce(40604, 3)
+local warnRageEnd		= mod:NewEndAnnounce(40604, 4)
 
-Bloodboil:AddBarOption("Enrage")
-Bloodboil:AddBarOption("Bloodboil")
-Bloodboil:AddBarOption("Fel Rage")
-Bloodboil:AddBarOption("Normal Phase")
-Bloodboil:AddBarOption("Arcing Smash")
+local specWarnBlood		= mod:NewSpecialWarningStack(42005, nil, 1, nil, nil, 1, 2)
+local specWarnRage		= mod:NewSpecialWarningYou(40604, nil, nil, nil, 1, 2)
+local yellRage			= mod:NewYell(40604)
 
+local timerBlood		= mod:NewCDTimer(10, 42005, nil, nil, nil, 5)--10-12. Most of time it's 11 but I have seen as low as 10.1
+local timerStrikeCD		= mod:NewCDTimer(25, 40491, nil, "Tank", 2, 5, nil, DBM_COMMON_L.TANK_ICON)--25-82? Is this even a CD timer?
+local timerRageCD		= mod:NewCDTimer(52, 40604, nil, nil, nil, 3)--Verify?
+local timerRageEnd		= mod:NewBuffActiveTimer(28, 40604, nil, nil, nil, 5, nil, DBM_COMMON_L.HEALER_ICON)
 
-function Bloodboil:OnCombatStart(delay)
-	boilCounter = 0
-	
-	self:StartStatusBarTimer(600 - delay, "Enrage", "Interface\\Icons\\Spell_Shadow_UnholyFrenzy")
-	self:ScheduleSelf(300 - delay, "EnrageWarn", 300)
-	self:ScheduleSelf(480 - delay, "EnrageWarn", 120)
-	self:ScheduleSelf(540 - delay, "EnrageWarn", 60)
-	self:ScheduleSelf(570 - delay, "EnrageWarn", 30)
-	self:ScheduleSelf(590 - delay, "EnrageWarn", 10)
-	
-	self:StartStatusBarTimer(57.5, "Fel Rage", "Interface\\Icons\\Spell_Fire_ElementalDevastation")
-	self:ScheduleSelf(52.5, "FelRageWarn")
-	self:StartStatusBarTimer(11.5, "Bloodboil", "Interface\\Icons\\Spell_Shadow_BloodBoil")
+local berserkTimer		= mod:NewBerserkTimer(600)
+
+mod:AddInfoFrameOption(42005)
+
+mod.vb.rage = false
+local bloodStacks = {}
+
+local function nextRage(self)
+	self.vb.rage = false
+	warnRageEnd:Show()
+	timerRageCD:Start()
+	warnRageSoon:Schedule(47)
+	timerBlood:Start(10.9)
 end
 
+function mod:OnCombatStart(delay)
+	table.wipe(bloodStacks)
+	self.vb.rage = false
+	berserkTimer:Start(-delay)
+	warnRageSoon:Schedule(47-delay)
+	timerBlood:Start(10.9-delay)
+	timerStrikeCD:Start(26.8-delay)
+	timerRageCD:Start(-delay)
+	if self.Options.InfoFrame then
+		DBM.InfoFrame:SetHeader(DBM:GetSpellInfo(42005))
+		--DBM.InfoFrame:Show(30, "playerdebuffstacks", 42005, 1)
+		DBM.InfoFrame:Show(30, "table", bloodStacks, 1)--Maybe sort lowest to highest instead of highest to lowest?
+	end
+end
 
-function Bloodboil:OnEvent(event, arg1)
-	if event == "SPELL_AURA_APPLIED" then
-		if arg1.spellId == 42005 then
-			self:SendSync("Bloodboil")
-		elseif arg1.spellId == 40604 then
-			self:SendSync("FelRage"..tostring(arg1.destName))
-		elseif arg1.spellId == 40599 then
-			self:SendSync("ArcingSmash"..tostring(arg1.destName))
+function mod:OnCombatEnd()
+	if self.Options.InfoFrame then
+		DBM.InfoFrame:Hide()
+	end
+end
+
+function mod:SPELL_CAST_SUCCESS(args)
+	if args.spellId == 42005 then
+		timerBlood:Start()
+	end
+end
+
+function mod:SPELL_AURA_APPLIED(args)
+	local spellId = args.spellId
+	if spellId == 42005 then
+		local amount = args.amount or 1
+		bloodStacks[args.destName] = amount
+		warnBlood:CombinedShow(0.8, args.destName)
+		if args:IsPlayer() then
+			specWarnBlood:Show(amount)
+			specWarnBlood:Play("targetyou")
 		end
-	elseif event == "SPELL_AURA_REMOVED" then
-		if arg1.spellId == 40594 then
-			boilCounter = 0
-			self:Announce(DBM_BLOODBOIL_WARN_NORMALPHASE, 3)
-			self:ScheduleSelf(52, "FelRageWarn")
-			self:StartStatusBarTimer(57, "Fel Rage", "Interface\\Icons\\Spell_Fire_ElementalDevastation")
-			self:StartStatusBarTimer(10, "Bloodboil", "Interface\\Icons\\Spell_Shadow_BloodBoil")
+		if self.Options.InfoFrame then
+			DBM.InfoFrame:UpdateTable(bloodStacks)
 		end
-	elseif event == "FelRageWarn" then
-		self:Announce(DBM_BLOODBOIL_WARN_FELRAGE_SOON, 2)
-	elseif event == "NormalWarn" then
-		self:Announce(DBM_BLOODBOIL_WARN_NORMAL_SOON, 2)
-	elseif event == "SmashWarn" then
-		self:Announce(DBM_BLOODBOIL_WARN_SMASH_SOON, 2)
-	elseif event == "EnrageWarn" and type(arg1) == "number" then
-		if arg1 >= 60 then
-			self:Announce(string.format(DBM_BLOODBOIL_WARN_ENRAGE, (arg1/60), DBM_MIN), 1)
-		else
-			self:Announce(string.format(DBM_BLOODBOIL_WARN_ENRAGE, arg1, DBM_SEC), 3)
+	elseif spellId == 40481 and not self.vb.rage then
+		local amount = args.amount or 1
+		if (amount % 5 == 0) then
+			warnWound:Show(args.destName, amount)
+		end
+	elseif spellId == 40491 then
+		warnStrike:Show(args.destName)
+		timerStrikeCD:Start()
+	elseif spellId == 40604 then
+		self.vb.rage = true
+		warnRage:Show(args.destName)
+		timerBlood:Stop()
+		timerRageEnd:Start()
+		self:Schedule(28, nextRage, self)
+		if args:IsPlayer() then
+			specWarnRage:Show()
+			specWarnRage:Play("targetyou")
+			yellRage:Yell()
+		end
+	end
+end
+mod.SPELL_AURA_APPLIED_DOSE = mod.SPELL_AURA_APPLIED
+mod.SPELL_AURA_REFRESH = mod.SPELL_AURA_APPLIED
+
+function mod:SPELL_AURA_REMOVED(args)
+	local spellId = args.spellId
+	if spellId == 42005 then
+		bloodStacks[args.destName] = nil
+		if self.Options.InfoFrame then
+			DBM.InfoFrame:UpdateTable(bloodStacks)
 		end
 	end
 end
 
-function Bloodboil:OnSync(msg)
-	if msg == "Bloodboil" then
-		boilCounter = boilCounter + 1
-		self:Announce(DBM_BLOODBOIL_WARN_BLOODBOIL:format(boilCounter), 1)
-		self:StartStatusBarTimer(10, "Bloodboil", "Interface\\Icons\\Spell_Shadow_BloodBoil")
-	elseif msg:sub(0, 7) == "FelRage" then
-		msg = msg:sub(8)
-		self:EndStatusBarTimer("Bloodboil")
-		self:StartStatusBarTimer(28, "Normal Phase", "Interface\\Icons\\Spell_Nature_WispSplode")
-		self:ScheduleSelf(23, "NormalWarn")
-		self:Announce(DBM_BLOODBOIL_WARN_FELRAGE:format(msg), 4)
-		boilCounter = 0
-	elseif msg:sub(0, 11) == "ArcingSmash" then
-		msg = msg:sub(12)
-		self:StartStatusBarTimer(4, "Arcing Smash", "Interface\\Icons\\Ability_Warrior_Cleave")
-		if self.Options.WarnSmash then
-			self:ScheduleSelf(3, "SmashWarn")		
-			self:Announce(DBM_BLOODBOIL_WARN_SMASH, 4)
+function mod:SPELL_AURA_REMOVED_DOSE(args)
+	local spellId = args.spellId
+	if spellId == 42005 then
+		bloodStacks[args.destName] = args.amount or 1
+		if self.Options.InfoFrame then
+			DBM.InfoFrame:UpdateTable(bloodStacks)
 		end
 	end
 end

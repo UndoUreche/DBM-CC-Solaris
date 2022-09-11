@@ -1,410 +1,519 @@
 local mod	= DBM:NewMod("LichKing", "DBM-Icecrown", 5)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision(("$Revision: 4425 $"):sub(12, -3))
+local UnitGUID, UnitName, GetSpellInfo = UnitGUID, UnitName, GetSpellInfo
+
+mod:SetRevision("20220909005309")
 mod:SetCreatureID(36597)
+mod:SetUsedIcons(1, 2, 3, 4, 5, 6, 7)
+mod:SetMinSyncRevision(20220904000000)
+
 mod:RegisterCombat("combat")
-mod:SetMinSyncRevision(3913)
-mod:SetUsedIcons(2, 3, 4, 5, 6, 7, 8)
 
 mod:RegisterEvents(
-	"SPELL_CAST_START",
-	"SPELL_CAST_SUCCESS",
-	"SPELL_DISPEL",
-	"SPELL_AURA_APPLIED",
-	"SPELL_AURA_APPLIED_DOSE",
-	"SPELL_SUMMON",
-	"SPELL_DAMAGE",
-	"UNIT_HEALTH",
-	"CHAT_MSG_MONSTER_YELL",
-	"CHAT_MSG_RAID_BOSS_WHISPER",
-	"SWING_DAMAGE",
-	"SWING_MISSED"
+	"CHAT_MSG_MONSTER_YELL"
 )
 
-local isPAL = select(2, UnitClass("player")) == "PALADIN"
-local isPRI = select(2, UnitClass("player")) == "PRIEST"
+mod:RegisterEventsInCombat(
+	"SPELL_CAST_START 68981 74270 74271 74272 72259 74273 74274 74275 72143 72146 72147 72148 72262 70358 70498 70541 73779 73780 73781 72762 73539 73650 72350 69242 73800 73801 73802",
+	"SPELL_CAST_SUCCESS 70337 73912 73913 73914 69409 73797 73798 73799 69200 68980 74325 74326 74327 73654 74295 74296 74297",
+	"SPELL_DISPEL",
+	"SPELL_AURA_APPLIED 28747 72754 73708 73709 73710 73650",
+	"SPELL_AURA_APPLIED_DOSE 70338 73785 73786 73787",
+	"SPELL_SUMMON 69037 70372",
+	"SPELL_DAMAGE 68983 73791 73792 73793",
+	"SPELL_MISSED 68983 73791 73792 73793",
+	"UNIT_HEALTH target focus",
+	"UNIT_AURA_UNFILTERED",
+	"UNIT_ENTERING_VEHICLE",
+	"UNIT_EXITING_VEHICLE",
+	"UNIT_DIED"
+--	"UNIT_SPELLCAST_SUCCEEDED"
+)
 
-local warnRemorselessWinter = mod:NewSpellAnnounce(74270, 3) --Phase Transition Start Ability
-local warnQuake				= mod:NewSpellAnnounce(72262, 4) --Phase Transition End Ability
-local warnRagingSpirit		= mod:NewTargetAnnounce(69200, 3) --Transition Add
-local warnShamblingSoon		= mod:NewSoonAnnounce(70372, 2) --Phase 1 Add
-local warnShamblingHorror	= mod:NewSpellAnnounce(70372, 3) --Phase 1 Add
-local warnDrudgeGhouls		= mod:NewSpellAnnounce(70358, 2) --Phase 1 Add
-local warnShamblingEnrage	= mod:NewTargetAnnounce(72143, 3, nil, mod:IsHealer() or mod:IsTank() or mod:CanRemoveEnrage()) --Phase 1 Add Ability
-local warnNecroticPlague	= mod:NewTargetAnnounce(73912, 4) --Phase 1+ Ability
-local warnNecroticPlagueJump= mod:NewAnnounce("WarnNecroticPlagueJump", 4, 73912) --Phase 1+ Ability
-local warnInfest			= mod:NewSpellAnnounce(73779, 3, nil, mod:IsHealer()) --Phase 1 & 2 Ability
-local warnPhase2Soon		= mod:NewAnnounce("WarnPhase2Soon", 1)
-local valkyrWarning			= mod:NewAnnounce("ValkyrWarning", 3, 71844)--Phase 2 Ability
-local warnDefileSoon		= mod:NewSoonAnnounce(73708, 3)	--Phase 2+ Ability
-local warnSoulreaper		= mod:NewSpellAnnounce(73797, 4, nil, mod:IsTank() or mod:IsHealer()) --Phase 2+ Ability
-local warnDefileCast		= mod:NewTargetAnnounce(72762, 4) --Phase 2+ Ability
-local warnSummonValkyr		= mod:NewSpellAnnounce(69037, 3, 71844) --Phase 2 Add
-local warnPhase3Soon		= mod:NewAnnounce("WarnPhase3Soon", 1)
-local warnSummonVileSpirit	= mod:NewSpellAnnounce(70498, 2) --Phase 3 Add
-local warnHarvestSoul		= mod:NewTargetAnnounce(74325, 4) --Phase 3 Ability
-local warnTrapCast			= mod:NewTargetAnnounce(73539, 3) --Phase 1 Heroic Ability
-local warnRestoreSoul		= mod:NewCastAnnounce(73650, 2) --Phase 3 Heroic
+--TODO, possibly switch to faster less cpu wasting UNIT_TARGET scanning method
+--Shadow Trap UNIT_TARGET looks reliable
+-- "<29.57 21:04:20> [UNIT_SPELLCAST_START] The Lich King(player1) - Summon Shadow Trap - 0.5s [[boss1:Summon Shadow Trap::0:]]", -- [2616]
+-- "<29.57 21:04:20> [DBM_Debug] Boss target scan started for 36597:2:", -- [2617]
+-- "<29.57 21:04:20> [DBM_TimerStart] Timer73539next:Next Summon Shadow Trap:15.5:Interface\\Icons\\Spell_Shadow_GatherShadows:next:73539:3:LichKing:nil:nil:Summon Shadow Trap:nil:", -- [2618]
+-- "<29.58 21:04:20> [CLEU] SPELL_CAST_START:0xF130008EF5000861:The Lich King:0x0000000000000000:nil:73539:Summon Shadow Trap:nil:nil:", -- [2619]
+-- "<29.58 21:04:20> [UNIT_TARGET] boss1#The Lich King#Target: player2#TargetOfTarget: The Lich King", -- [2621]
+-- "<29.60 21:04:20> [DBM_Debug] BossTargetScanner has ended for 36597:2:", -- [2622]
 
-local specWarnSoulreaper	= mod:NewSpecialWarningYou(73797) --Phase 1+ Ability
-local specWarnNecroticPlague= mod:NewSpecialWarningYou(73912) --Phase 1+ Ability
-local specWarnRagingSpirit	= mod:NewSpecialWarningYou(69200) --Transition Add
-local specWarnYouAreValkd	= mod:NewSpecialWarning("SpecWarnYouAreValkd") --Phase 2+ Ability
-local specWarnPALGrabbed	= mod:NewSpecialWarning("SpecWarnPALGrabbed", nil, false) --Phase 2+ Ability
-local specWarnPRIGrabbed	= mod:NewSpecialWarning("SpecWarnPRIGrabbed", nil, false) --Phase 2+ Ability
-local specWarnDefileCast	= mod:NewSpecialWarning("SpecWarnDefileCast") --Phase 2+ Ability
-local specWarnDefileNear	= mod:NewSpecialWarning("SpecWarnDefileNear", false) --Phase 2+ Ability
-local specWarnDefile		= mod:NewSpecialWarningMove(73708) --Phase 2+ Ability
-local specWarnWinter		= mod:NewSpecialWarningMove(73791) --Transition Ability
-local specWarnHarvestSoul	= mod:NewSpecialWarningYou(74325) --Phase 3+ Ability
-local specWarnInfest		= mod:NewSpecialWarningSpell(73779, false) --Phase 1+ Ability
-local specwarnSoulreaper	= mod:NewSpecialWarningTarget(73797, mod:IsTank()) --phase 2+
-local specWarnTrap			= mod:NewSpecialWarningYou(73539) --Heroic Ability
-local specWarnTrapNear		= mod:NewSpecialWarning("SpecWarnTrapNear") --Heroic Ability
-local specWarnHarvestSouls	= mod:NewSpecialWarningSpell(74297) --Heroic Ability
-local specWarnValkyrLow		= mod:NewSpecialWarning("SpecWarnValkyrLow")
+--Defile UNIT_TARGET is NOT reliable (one log only fired 2 UNIT_TARGET out of 7 defiles)
+--no UNIT_TARGET for defile
+-- "<247.54 21:12:30> [UNIT_SPELLCAST_START] The Lich King(player1) - Defile - 2s [[boss1:Defile::0:]]", -- [20743]
+-- "<247.54 21:12:30> [DBM_Debug] Boss target scan started for 36597:2:", -- [20744]
+-- "<247.54 21:12:30> [DBM_TimerStart] Timer72762next:Next Defile:32.5:Interface\\Icons\\Ability_Rogue_EnvelopingShadows:next:72762:3:LichKing:nil:nil:Defile:nil:", -- [20745]
+-- "<247.54 21:12:30> [CLEU] SPELL_CAST_START:0xF130008EF5000861:The Lich King:0x0000000000000000:nil:72762:Defile:nil:nil:", -- [20746]
+-- "<247.57 21:12:30> [DBM_Announce] Defile on >player3<:Interface\\Icons\\Ability_Rogue_EnvelopingShadows:target:72762:LichKing:false:", -- [20747]
+-- "<247.57 21:12:30> [DBM_Debug] BossTargetScanner has ended for 36597:2:", -- [20748]
 
-local timerCombatStart		= mod:NewTimer(53.5, "TimerCombatStart", 2457)
-local timerPhaseTransition	= mod:NewTimer(62, "PhaseTransition", 72262)
-local timerSoulreaper	 	= mod:NewTargetTimer(5.1, 73797, nil, mod:IsTank() or mod:IsHealer())
-local timerSoulreaperCD	 	= mod:NewCDTimer(30.5, 73797, nil, mod:IsTank() or mod:IsHealer())
-local timerHarvestSoul	 	= mod:NewTargetTimer(6, 74325)
-local timerHarvestSoulCD	= mod:NewCDTimer(75, 74325)
-local timerInfestCD			= mod:NewCDTimer(22.5, 73779, nil, mod:IsHealer())
-local timerNecroticPlagueCleanse = mod:NewTimer(5, "TimerNecroticPlagueCleanse", 73912, false)
-local timerNecroticPlagueCD	= mod:NewCDTimer(30, 73912)
-local timerDefileCD			= mod:NewCDTimer(32.5, 72762)
-local timerEnrageCD			= mod:NewCDTimer(20, 72143, nil, mod:IsTank() or mod:CanRemoveEnrage())
-local timerShamblingHorror 	= mod:NewNextTimer(60, 70372)
-local timerDrudgeGhouls 	= mod:NewNextTimer(20, 70358)
-local timerRagingSpiritCD	= mod:NewCDTimer(22, 69200)
-local timerSummonValkyr 	= mod:NewCDTimer(45, 71844)
-local timerVileSpirit 		= mod:NewNextTimer(30.5, 70498)
-local timerTrapCD		 	= mod:NewCDTimer(15.5, 73539)
-local timerRestoreSoul 		= mod:NewCastTimer(40, 73650)
-local timerRoleplay			= mod:NewTimer(162, "TimerRoleplay", 72350)
+--with UNIT_TARGET for defile
+-- "<529.67 21:17:12> [UNIT_SPELLCAST_START] The Lich King(player1) - Defile - 2s [[boss1:Defile::0:]]", -- [42820]
+-- "<529.67 21:17:12> [DBM_Debug] Boss target scan started for 36597:2:", -- [42821]
+-- "<529.67 21:17:12> [DBM_TimerStart] Timer72762next:Next Defile:32.5:Interface\\Icons\\Ability_Rogue_EnvelopingShadows:next:72762:3:LichKing:nil:nil:Defile:nil:", -- [42822]
+-- "<529.67 21:17:12> [CLEU] SPELL_CAST_START:0xF130008EF5000861:The Lich King:0x0000000000000000:nil:72762:Defile:nil:nil:", -- [42823]
+-- "<529.67 21:17:12> [UNIT_TARGET] boss1#The Lich King#Target: player4#TargetOfTarget: The Lich King", -- [42825]
+-- "<529.70 21:17:12> [DBM_Announce] Defile on >player4<:Interface\\Icons\\Ability_Rogue_EnvelopingShadows:target:72762:LichKing:false:", -- [42826]
+-- "<529.70 21:17:12> [DBM_Debug] BossTargetScanner has ended for 36597:2:", -- [42827]
 
+local myRealm = select(3, DBM:GetMyPlayerInfo())
+
+-- General
+local timerCombatStart		= mod:NewCombatTimer(55)
 local berserkTimer			= mod:NewBerserkTimer(900)
 
-local soundDefile			= mod:NewSound(72762)
+mod:AddBoolOption("RemoveImmunes")
+mod:AddMiscLine(L.FrameGUIDesc)
+mod:AddBoolOption("ShowFrame", true)
+mod:AddBoolOption("FrameLocked", false)
+mod:AddBoolOption("FrameClassColor", true, nil, function()
+	mod:UpdateColors()
+end)
+mod:AddBoolOption("FrameUpwards", false, nil, function()
+	mod:ChangeFrameOrientation()
+end)
+mod:AddButton(L.FrameGUIMoveMe, function() mod:CreateFrame() end, nil, 130, 20)
 
-mod:AddBoolOption("SpecWarnHealerGrabbed", mod:IsTank() or mod:IsHealer(), "announce")
-mod:AddBoolOption("DefileIcon")
-mod:AddBoolOption("NecroticPlagueIcon")
-mod:AddBoolOption("RagingSpiritIcon")
-mod:AddBoolOption("TrapIcon")
-mod:AddBoolOption("ValkyrIcon")
-mod:AddBoolOption("HarvestSoulIcon")
-mod:AddBoolOption("YellOnDefile", true, "announce")
-mod:AddBoolOption("YellOnTrap", true, "announce")
-mod:AddBoolOption("AnnounceValkGrabs", false)
-mod:AddBoolOption("AnnouncePlagueStack", false, "announce")
---mod:AddBoolOption("DefileArrow")
-mod:AddBoolOption("TrapArrow")
-mod:AddBoolOption("LKBugWorkaround", true)--Use old scan method without syncing or latency check (less reliable but not dependant on other DBM users in raid)
+-- Stage One
+mod:AddTimerLine(DBM_CORE_L.SCENARIO_STAGE:format(1))
+local warnShamblingSoon				= mod:NewSoonAnnounce(70372, 2) --Phase 1 Add
+local warnShamblingHorror			= mod:NewSpellAnnounce(70372, 3) --Phase 1 Add
+local warnDrudgeGhouls				= mod:NewSpellAnnounce(70358, 2) --Phase 1 Add
+local warnShamblingEnrage			= mod:NewTargetNoFilterAnnounce(72143, 3, nil, "Tank|Healer|RemoveEnrage") --Phase 1 Add Ability
+local warnNecroticPlague			= mod:NewTargetNoFilterAnnounce(70337, 3) --Phase 1+ Ability
+local warnNecroticPlagueJump		= mod:NewAnnounce("WarnNecroticPlagueJump", 4, 70337, nil, nil, nil, 70337) --Phase 1+ Ability
+local warnInfest					= mod:NewCountAnnounce(70541, 3, nil, "Healer|RaidCooldown") --Phase 1 & 2 Ability
+local warnTrapCast					= mod:NewTargetDistanceAnnounce(73539, 4, nil, nil, nil, nil, nil, nil, true) --Phase 1 Heroic Ability
 
-local phase	= 0
-local lastPlagueCast = 0
-local warned_preP2 = false
-local warned_preP3 = false
+local specWarnNecroticPlague		= mod:NewSpecialWarningMoveAway(70337, nil, nil, nil, 1, 2) --Phase 1+ Ability
+local specWarnInfest				= mod:NewSpecialWarningCount(70541, nil, nil, nil, 1) --Phase 1+ Ability
+local specWarnTrap					= mod:NewSpecialWarningYou(73539, nil, nil, nil, 3, 2, 3) --Heroic Ability
+local yellTrap						= mod:NewYellMe(73539)
+local specWarnTrapNear				= mod:NewSpecialWarningClose(73539, nil, nil, nil, 3, 2, 3) --Heroic Ability
+local specWarnEnrage				= mod:NewSpecialWarningSpell(72143, "Tank")
+local specWarnEnrageLow				= mod:NewSpecialWarningSpell(28747, false)
+
+local timerInfestCD					= mod:NewCDCountTimer(21.2, 70541, nil, "Healer|RaidCooldown", nil, 5, nil, DBM_COMMON_L.HEALER_ICON, true) -- 4s variance [21-25] Added "keep" arg. (10N Icecrown 2022/08/25 || 25H Lordaeron 2022/09/03) - 23.1, 22.9, 22.8, Stage 2/84.3, 12.4/96.8, 23.6, 22.2, 21.7, 22.1, 22.7, 22.0, 23.5, 22.0 || 23.0, 21.2, 24.5, 22.8, 22.1, Stage 2/72.4, 12.5/84.9, 22.1, 21.2, 23.9, 23.3, 22.7, 23.1, 22.9, 23.5 ; 22.6, 21.2, 24.8, 22.9, 22.5, Stage 2/72.4, 12.5/84.9, 21.3, 21.6, 22.4, 21.5
+local timerNecroticPlagueCleanse	= mod:NewTimer(5, "TimerNecroticPlagueCleanse", 70337, "Healer", nil, 5, DBM_COMMON_L.HEALER_ICON, nil, nil, nil, nil, nil, nil, 70337)
+local timerNecroticPlagueCD			= mod:NewCDTimer(30, 70337, nil, nil, nil, 3, nil, DBM_COMMON_L.DISEASE_ICON, true) -- 3s variance [30.1-32.9] Added "keep" arg. (10N Icecrown 2022/08/20 || 10N Icecrown 2022/08/25 || 25H Lordaeron 2022/09/03) - 32.8, 31.6 ; 32.7 ; 31.2;  31.7, 32.7 || 30.2 || 32.3, 32.9 ; 31.3, 31.9 ; 32.9, 30.4 ; 30.7, 31.7 ; 30.1, 30.2 ; 32.6, 31.2 ; 31.1 ; 32.5, 30.3, 31.7
+local timerEnrageCD					= mod:NewCDCountTimer("d20", 72143, nil, "Tank|RemoveEnrage", nil, 5, nil, DBM_COMMON_L.ENRAGE_ICON, true) -- String timer starting with "d" means "allowDouble". 5s variance [20.1-24.7] Added "keep" arg. (25H Lordaeron 2022/09/03) - 20.5, 24.7
+local timerShamblingHorror			= mod:NewNextTimer(60, 70372, nil, nil, nil, 1)
+local timerDrudgeGhouls				= mod:NewNextTimer(30, 70358, nil, nil, nil, 1)
+local timerTrapCD					= mod:NewNextTimer(15.5, 73539, nil, nil, nil, 3, nil, DBM_COMMON_L.DEADLY_ICON, nil, 1, 4) -- Fixed timer, confirmed on log review 2022/09/03
+
+local soundInfestSoon				= mod:NewSoundSoon(70541, nil, "Healer|RaidCooldown")
+local soundNecroticOnYou			= mod:NewSoundYou(70337)
+
+mod:AddSetIconOption("NecroticPlagueIcon", 70337, true, 0, {4})
+mod:AddSetIconOption("TrapIcon", 73539, true, 0, {7})
+mod:AddArrowOption("TrapArrow", 73539, true)
+mod:AddBoolOption("AnnouncePlagueStack", false, nil, nil, nil, nil, 70337)
+
+-- Stage Two
+mod:AddTimerLine(DBM_CORE_L.SCENARIO_STAGE:format(2))
+local warnPhase2					= mod:NewPhaseAnnounce(2, 2, nil, nil, nil, nil, nil, 2)
+local valkyrWarning					= mod:NewAnnounce("ValkyrWarning", 3, 71844, nil, nil, nil, 69037)--Phase 2 Ability
+local warnDefileSoon				= mod:NewSoonCountAnnounce(72762, 3)	--Phase 2+ Ability
+local warnSoulreaper				= mod:NewTargetCountAnnounce(69409, 4) --Phase 2+ Ability
+local warnDefileCast				= mod:NewTargetCountDistanceAnnounce(72762, 4, nil, nil, nil, nil, nil, nil, true) --Phase 2+ Ability
+local warnSummonValkyr				= mod:NewCountAnnounce(69037, 3, 71844) --Phase 2 Add
+
+local specWarnYouAreValkd			= mod:NewSpecialWarning("SpecWarnYouAreValkd", nil, nil, nil, 1, 2, nil, 71844, 69037) --Phase 2+ Ability
+local specWarnDefileCast			= mod:NewSpecialWarningMoveAway(72762, nil, nil, nil, 3, 2) --Phase 2+ Ability
+local yellDefile					= mod:NewYellMe(72762)
+local specWarnDefileNear			= mod:NewSpecialWarningClose(72762, nil, nil, nil, 1, 2) --Phase 2+ Ability
+local specWarnSoulreaper			= mod:NewSpecialWarningDefensive(69409, nil, nil, nil, 1, 2) --Phase 2+ Ability
+local specwarnSoulreaper			= mod:NewSpecialWarningTarget(69409, true) --phase 2+
+local specWarnSoulreaperOtr			= mod:NewSpecialWarningTaunt(69409, false, nil, nil, 1, 2) --phase 2+; disabled by default, not standard tactic
+local specWarnValkyrLow				= mod:NewSpecialWarning("SpecWarnValkyrLow", nil, nil, nil, 1, 2, nil, 71844, 69037)
+
+local timerSoulreaper				= mod:NewTargetTimer(5.1, 69409, nil, "Tank|Healer|TargetedCooldown")
+local timerSoulreaperCD				= mod:NewCDCountTimer(30.5, 69409, nil, "Tank|Healer|TargetedCooldown", nil, 5, nil, DBM_COMMON_L.TANK_ICON)
+local timerDefileCD					= mod:NewCDCountTimer(32.5, 72762, nil, nil, nil, 3, nil, DBM_COMMON_L.DEADLY_ICON, nil, 1, 4)
+local timerSummonValkyr				= mod:NewCDCountTimer(45, 69037, nil, nil, nil, 1, 71844, DBM_COMMON_L.DAMAGE_ICON, nil, 2, 3)
+
+local soundDefileOnYou				= mod:NewSoundYou(72762)
+local soundSoulReaperSoon			= mod:NewSoundSoon(69409, nil, "Tank|Healer|TargetedCooldown")
+
+mod:AddSetIconOption("DefileIcon", 72762, true, 0, {7})
+mod:AddSetIconOption("ValkyrIcon", 69037, true, 5, {1, 2, 3})
+mod:AddArrowOption("DefileArrow", 72762, true)
+mod:AddBoolOption("AnnounceValkGrabs", false, nil, nil, nil, nil, 69037)
+
+-- Stage Three
+mod:AddTimerLine(DBM_CORE_L.SCENARIO_STAGE:format(3))
+local warnPhase3					= mod:NewPhaseAnnounce(3, 2, nil, nil, nil, nil, nil, 2)
+local warnSummonVileSpirit			= mod:NewSpellAnnounce(70498, 2) --Phase 3 Add
+local warnHarvestSoul				= mod:NewTargetNoFilterAnnounce(68980, 3) --Phase 3 Ability
+local warnRestoreSoul				= mod:NewCastAnnounce(73650, 2) --Phase 3 Heroic
+
+local specWarnHarvestSoul			= mod:NewSpecialWarningYou(68980, nil, nil, nil, 1, 2) --Phase 3+ Ability
+local specWarnHarvestSouls			= mod:NewSpecialWarningSpell(73654, nil, nil, nil, 1, 2, 3) --Heroic Ability
+
+local timerHarvestSoul				= mod:NewTargetTimer(6, 68980)
+local timerHarvestSoulCD			= mod:NewNextTimer(75, 68980, nil, nil, nil, 6)
+local timerVileSpirit				= mod:NewNextTimer(30.5, 70498, nil, nil, nil, 1)
+local timerRestoreSoul				= mod:NewCastTimer(40, 73650, nil, nil, nil, 6)
+local timerRoleplay					= mod:NewTimer(162, "TimerRoleplay", 72350, nil, nil, 6)
+
+mod:AddSetIconOption("HarvestSoulIcon", 68980, false, 0, {5})
+
+-- Intermission
+mod:AddTimerLine(DBM_COMMON_L.INTERMISSION)
+local warnRemorselessWinter			= mod:NewSpellAnnounce(68981, 3) --Phase Transition Start Ability
+local warnQuake						= mod:NewSpellAnnounce(72262, 4) --Phase Transition End Ability
+local warnRagingSpirit				= mod:NewTargetNoFilterAnnounce(69200, 3) --Transition Add
+local warnIceSpheresTarget			= mod:NewTargetAnnounce(69103, 3, 69712, nil, 69090) -- icon: spell_frost_frozencore; shortText "Ice Sphere"
+local warnPhase2Soon				= mod:NewPrePhaseAnnounce(2)
+local warnPhase3Soon				= mod:NewPrePhaseAnnounce(3)
+
+local specWarnRagingSpirit			= mod:NewSpecialWarningYou(69200, nil, nil, nil, 1, 2) --Transition Add
+local specWarnIceSpheresYou			= mod:NewSpecialWarningMoveAway(69103, nil, 69090, nil, 1, 2) -- shortText "Ice Sphere"
+local specWarnGTFO					= mod:NewSpecialWarningGTFO(68983, nil, nil, nil, 1, 8)
+
+local timerPhaseTransition			= mod:NewTimer(62.5, "PhaseTransition", 72262, nil, nil, 6)
+local timerRagingSpiritCD			= mod:NewNextCountTimer(20, 69200, nil, nil, nil, 1)
+local timerSoulShriekCD				= mod:NewCDTimer(12, 69242, nil, nil, nil, 1)
+
+mod:AddRangeFrameOption(8, 72133)
+mod:AddSetIconOption("RagingSpiritIcon", 69200, false, 0, {6})
+
+-- P1 variables
+mod.vb.warned_preP2 = false
+mod.vb.infestCount = 0
+-- Intermission variables
+mod.vb.ragingSpiritCount = 0
+-- P2 variables
+mod.vb.warned_preP3 = false
+mod.vb.defileCount = 0
+mod.vb.soulReaperCount = 0
+mod.vb.valkyrWaveCount = 0
+mod.vb.valkIcon = 1
+local shamblingHorrorsGUIDs = {}
+local iceSpheresGUIDs = {}
 local warnedValkyrGUIDs = {}
-local LKTank
+local plagueHop = DBM:GetSpellInfo(70338)--Hop spellID only, not cast one.
+-- local soulshriek = GetSpellInfo(69242)
+local plagueExpires = {}
+local warnedAchievement = false
+local lastPlague
 
-function mod:OnCombatStart(delay)
-	phase = 0
-	lastPlagueCast = 0
-	warned_preP2 = false
-	warned_preP3 = false
-	LKTank = nil
-	self:NextPhase()
+
+local function RemoveImmunes(self)
+	if self.Options.RemoveImmunes then -- cancelaura bop bubble iceblock Dintervention
+		CancelUnitBuff("player", (GetSpellInfo(10278)))
+		CancelUnitBuff("player", (GetSpellInfo(642)))
+		CancelUnitBuff("player", (GetSpellInfo(45438)))
+		CancelUnitBuff("player", (GetSpellInfo(19752)))
+	end
+end
+
+local function NextPhase(self)
+	self.vb.infestCount = 0
+	self.vb.defileCount = 0
+	self.vb.valkyrWaveCount = 0
+	self.vb.soulReaperCount = 0
+	if self.vb.phase == 1 then
+		if myRealm == "Lordaeron" and self:IsDifficulty("normal10", "heroic10") then -- only normal10 confirmed, but added heroic10 just in case
+			berserkTimer:Start(720)
+		else
+			berserkTimer:Start()
+		end
+		warnShamblingSoon:Schedule(15)
+		timerShamblingHorror:Start(20)
+		timerDrudgeGhouls:Start(10)
+		if self:IsHeroic() then
+			timerTrapCD:Start()
+		end
+		timerNecroticPlagueCD:Start() -- no difference between N and H. (10N Icecrown 2022/08/20 || 10N Icecrown 2022/08/25 || 25H Lordaeron 2022/09/03) - 31.1; 32.6 || 31.6 || 30.7; 32.1; 31.0; 32.7; 30.4; 31.7; 31.5; 32.8; 30.8
+		timerInfestCD:Start(5.0, self.vb.infestCount+1) -- Fixed timer, confirmed on log review 2022/09/03
+	elseif self.vb.phase == 2 then
+		warnPhase2:Show()
+		warnPhase2:Play("ptwo")
+		if self.Options.ShowFrame then
+			self:CreateFrame()
+		end
+		timerSummonValkyr:Start(18.5, self.vb.valkyrWaveCount+1)
+		timerSoulreaperCD:Start(40, self.vb.soulReaperCount+1)
+		soundSoulReaperSoon:Schedule(40-2.5, "Interface\\AddOns\\DBM-Core\\sounds\\RaidAbilities\\soulreaperSoon.mp3")
+		timerDefileCD:Start(37.5, self.vb.defileCount+1)
+		timerInfestCD:Start(12.2, self.vb.infestCount+1) -- 0.3s variance [12.2-12.5] (10N Icecrown 2022/08/25 || 25H Lordaeron 2022/09/03) - 12.4 || 12.5; 12.5; 12.5; 12.2; 12.5; 12.5; 12.5
+		soundInfestSoon:Schedule(14-2, "Interface\\AddOns\\DBM-Core\\sounds\\RaidAbilities\\infestSoon.mp3")
+		warnDefileSoon:Schedule(33, self.vb.defileCount+1)
+		warnDefileSoon:ScheduleVoice(33, "scatter") -- Voice Pack - Scatter.ogg: "Spread!"
+	elseif self.vb.phase == 3 then
+		warnPhase3:Show()
+		warnPhase3:Play("pthree")
+		timerVileSpirit:Start(17)
+		timerSoulreaperCD:Start(37.5, self.vb.soulReaperCount+1)
+		soundSoulReaperSoon:Schedule(37.5-2.5, "Interface\\AddOns\\DBM-Core\\sounds\\RaidAbilities\\soulreaperSoon.mp3")
+		timerDefileCD:Start(33.5, self.vb.defileCount+1)
+		timerHarvestSoulCD:Start(14)
+		warnDefileSoon:Schedule(30, self.vb.defileCount+1)
+		warnDefileSoon:ScheduleVoice(30, "scatter")
+	end
+end
+
+local function RestoreWipeTime(self)
+	self:SetWipeTime(5) --Restore it after frostmourn room.
+end
+
+function mod:OnCombatStart()
+	self:DestroyFrame()
+	self:SetStage(1)
+	self.vb.valkIcon = 1
+	self.vb.warned_preP2 = false
+	self.vb.warned_preP3 = false
+	self.vb.ragingSpiritCount = 0
+	NextPhase(self)
+	table.wipe(shamblingHorrorsGUIDs)
+	table.wipe(iceSpheresGUIDs)
 	table.wipe(warnedValkyrGUIDs)
+	table.wipe(plagueExpires)
 end
 
-function mod:DefileTarget()
-	local target = self:GetBossTarget(36597)
-	if not target then return end
-	if mod:LatencyCheck() then--Only send sync if you have low latency.
-		self:SendSync("DefileOn", target)
+function mod:OnCombatEnd()
+	self:UnregisterShortTermEvents()
+	self:DestroyFrame()
+	if self.Options.RangeFrame then
+		DBM.RangeCheck:Hide()
 	end
 end
 
-function mod:TankTrap()
-	if mod:LatencyCheck() then
-		self:SendSync("TrapOn", LKTank)
+function mod:DefileTarget(targetname, uId)
+	if not targetname and not uId then return end
+	if self.Options.DefileIcon then
+		self:SetIcon(targetname, 7, 4)
 	end
-end
-
-function mod:TrapTarget()
-	local targetname = self:GetBossTarget(36597)
-	if not targetname then return end
-	if targetname ~= LKTank then--If scan doesn't return tank abort other scans and do other warnings.
-		self:UnscheduleMethod("TrapTarget")
-		self:UnscheduleMethod("TankTrap")--Also unschedule tanktrap since we got a scan that returned a non tank.
-		if mod:LatencyCheck() then
-			self:SendSync("TrapOn", targetname)
-		end
-	else
-		self:UnscheduleMethod("TankTrap")
-		self:ScheduleMethod(1, "TankTrap") --If scan returns tank schedule warnings for tank after all other scans have completed. If none of those scans return another player this will be allowed to fire.
-	end
-end
-
---for those that want to avoid latency check.
-function mod:OldDefileTarget()
-	local targetname = self:GetBossTarget(36597)
-	if not targetname then return end
-		warnDefileCast:Show(targetname)
-		if self.Options.DefileIcon then
-			self:SetIcon(targetname, 8, 10)
-		end
 	if targetname == UnitName("player") then
 		specWarnDefileCast:Show()
-		soundDefile:Play()
-		if self.Options.YellOnDefile then
-			SendChatMessage(L.YellDefile, "SAY")
-		end
-	elseif targetname then
-		local uId = DBM:GetRaidUnitId(targetname)
-		if uId then
-			local inRange = CheckInteractDistance(uId, 2)
-			local x, y = GetPlayerMapPosition(uId)
-			if x == 0 and y == 0 then
-				SetMapToCurrentZone()
-				x, y = GetPlayerMapPosition(uId)
-			end
-			if inRange then
-				specWarnDefileNear:Show()
---				if self.Options.DefileArrow then
---					DBM.Arrow:ShowRunAway(x, y, 15, 5)
---				end
-			end
-		end
+		specWarnDefileCast:Play("runout")
+		soundDefileOnYou:Play("Interface\\AddOns\\DBM-Core\\sounds\\RaidAbilities\\defileOnYou.mp3")
+		yellDefile:Yell()
+	elseif self:CheckNearby(11, targetname) then
+		specWarnDefileNear:Show(targetname)
 	end
-end
-
-function mod:OldTankTrap()
-	warnTrapCast:Show(LKTank)
-	if self.Options.TrapIcon then
-		self:SetIcon(LKTank, 8, 10)
-	end
-	if LKTank == UnitName("player") then
-		specWarnTrap:Show()
-		if self.Options.YellOnTrap then
-			SendChatMessage(L.YellTrap, "SAY")
-		end
-	end
-	local uId = DBM:GetRaidUnitId(LKTank)
-	if uId ~= "none" then
-		local inRange = CheckInteractDistance(uId, 2)
+	warnDefileCast:Show(self.vb.defileCount, targetname, DBM.RangeCheck:GetDistance(uId)) -- Always show announcement, regardless of distance
+	if self.Options.DefileArrow then
 		local x, y = GetPlayerMapPosition(uId)
-		if x == 0 and y == 0 then
-			SetMapToCurrentZone()
-			x, y = GetPlayerMapPosition(uId)
-		end
-		if inRange then
-			specWarnTrapNear:Show()
-			if self.Options.TrapArrow then
-				DBM.Arrow:ShowRunAway(x, y, 10, 5)
-			end
-		end
-	end
-end
-
-function mod:OldTrapTarget()
-	local targetname = self:GetBossTarget(36597)
-	if not targetname then return end
-	if targetname ~= LKTank then--If scan doesn't return tank abort other scans and do other warnings.
-		self:UnscheduleMethod("OldTrapTarget")
-		self:UnscheduleMethod("OldTankTrap")--Also unschedule tanktrap since we got a scan that returned a non tank.
-		warnTrapCast:Show(targetname)
-		if self.Options.TrapIcon then
-			self:SetIcon(targetname, 8, 10)
-		end
-		if targetname == UnitName("player") then
-			specWarnTrap:Show()
-			if self.Options.YellOnTrap then
-				SendChatMessage(L.YellTrap, "SAY")
-			end
-		end
-		local uId = DBM:GetRaidUnitId(targetname)
-		if uId then
-			local inRange = CheckInteractDistance(uId, 2)
-			local x, y = GetPlayerMapPosition(uId)
 			if x == 0 and y == 0 then
 				SetMapToCurrentZone()
 				x, y = GetPlayerMapPosition(uId)
 			end
-			if inRange then
-				specWarnTrapNear:Show()
-				if self.Options.TrapArrow then
-					DBM.Arrow:ShowRunAway(x, y, 10, 5)
-				end
+		DBM.Arrow:ShowRunAway(x, y, 10, 5)
+	end
+end
+
+function mod:TrapTarget(targetname, uId)
+	if not targetname and not uId then return end
+	if self.Options.TrapIcon then
+		self:SetIcon(targetname, 7, 4)
+	end
+	if targetname == UnitName("player") then
+		specWarnTrap:Show()
+		specWarnTrap:Play("watchstep")
+		yellTrap:Yell()
+	elseif self:CheckNearby(15, targetname) then
+		specWarnTrapNear:Show(targetname)
+		specWarnTrapNear:Play("watchstep")
+	end
+	warnTrapCast:Show(targetname, DBM.RangeCheck:GetDistance(uId)) -- Always show announcement, regardless of distance
+	if self.Options.TrapArrow then
+		local x, y = GetPlayerMapPosition(uId)
+			if x == 0 and y == 0 then
+				SetMapToCurrentZone()
+				x, y = GetPlayerMapPosition(uId)
 			end
-		end
-	else
-		self:UnscheduleMethod("OldTankTrap")
-		self:ScheduleMethod(1, "OldTankTrap") --If scan returns tank schedule warnings for tank after all other scans have completed. If none of those scans return another player this will be allowed to fire.
+		DBM.Arrow:ShowRunAway(x, y, 10, 5)
 	end
 end
 
 function mod:SPELL_CAST_START(args)
+	local spellId = args.spellId
 	if args:IsSpellID(68981, 74270, 74271, 74272) or args:IsSpellID(72259, 74273, 74274, 74275) then -- Remorseless Winter (phase transition start)
+		self:SetStage(self.vb.phase + 0.5) -- Intermission. Use + 0.5 workaround to differentiate between intermissions.
+		self.vb.ragingSpiritCount = 1
 		warnRemorselessWinter:Show()
 		timerPhaseTransition:Start()
-		timerRagingSpiritCD:Start(6)
+		timerRagingSpiritCD:Start(6, self.vb.ragingSpiritCount)
 		warnShamblingSoon:Cancel()
 		timerShamblingHorror:Cancel()
 		timerDrudgeGhouls:Cancel()
 		timerSummonValkyr:Cancel()
 		timerInfestCD:Cancel()
+		soundInfestSoon:Cancel()
 		timerNecroticPlagueCD:Cancel()
 		timerTrapCD:Cancel()
 		timerDefileCD:Cancel()
 		warnDefileSoon:Cancel()
-	elseif args:IsSpellID(72262) then -- Quake (phase transition end)
+		warnDefileSoon:CancelVoice()
+		timerSoulreaperCD:Cancel()
+		soundSoulReaperSoon:Cancel()
+		self:RegisterShortTermEvents(
+			"UPDATE_MOUSEOVER_UNIT",
+			"UNIT_TARGET_UNFILTERED"
+		)
+		self:DestroyFrame()
+		if self.Options.RangeFrame then
+			DBM.RangeCheck:Show(8)
+		end
+	elseif args:IsSpellID(72143, 72146, 72147, 72148) then -- Shambling Horror enrage effect.
+		local shamblingCount = DBM:tIndexOf(shamblingHorrorsGUIDs, args.sourceGUID)
+		warnShamblingEnrage:Show(args.sourceName)
+		specWarnEnrage:Show()
+		timerEnrageCD:Stop(shamblingCount, args.sourceGUID) -- Stop/Unschedule required for multi arg timers, instead of Restart/Cancel - Core bug with mismatched args
+		timerEnrageCD:Unschedule(nil, shamblingCount, args.sourceGUID)
+		timerEnrageCD:Start(nil, shamblingCount, args.sourceGUID)
+		timerEnrageCD:Schedule(21, nil, shamblingCount, args.sourceGUID)
+	elseif spellId == 72262 then -- Quake (phase transition end)
+		self.vb.ragingSpiritCount = 0
 		warnQuake:Show()
 		timerRagingSpiritCD:Cancel()
-		self:NextPhase()
-	elseif args:IsSpellID(70372) then -- Shambling Horror
-		warnShamblingSoon:Cancel()
-		warnShamblingHorror:Show()
-		warnShamblingSoon:Schedule(55)
-		timerShamblingHorror:Start()
-	elseif args:IsSpellID(70358) then -- Drudge Ghouls
+		self:SetStage(self.vb.phase + 0.5) -- Return back to whole number
+		NextPhase(self)
+		self:UnregisterShortTermEvents()
+		if self.Options.RangeFrame then
+			DBM.RangeCheck:Hide()
+		end
+	elseif spellId == 70358 then -- Drudge Ghouls
 		warnDrudgeGhouls:Show()
 		timerDrudgeGhouls:Start()
-	elseif args:IsSpellID(70498) then -- Vile Spirits
+	elseif spellId == 70498 then -- Vile Spirits
 		warnSummonVileSpirit:Show()
 		timerVileSpirit:Start()
 	elseif args:IsSpellID(70541, 73779, 73780, 73781) then -- Infest
-		warnInfest:Show()
-		specWarnInfest:Show()
-		timerInfestCD:Start()
-	elseif args:IsSpellID(72762) then -- Defile
-		if self.Options.LKBugWorkaround then
-			self:ScheduleMethod(0.1, "OldDefileTarget")
-		else
-			self:ScheduleMethod(0.1, "DefileTarget")
-		end
+		self.vb.infestCount = self.vb.infestCount + 1
+		warnInfest:Show(self.vb.infestCount)
+		specWarnInfest:Show(self.vb.infestCount)
+		timerInfestCD:Start(nil, self.vb.infestCount+1)
+		soundInfestSoon:Cancel()
+		soundInfestSoon:Schedule(22.5-2, "Interface\\AddOns\\DBM-Core\\sounds\\RaidAbilities\\infestSoon.mp3")
+	elseif spellId == 72762 then -- Defile
+		self.vb.defileCount = self.vb.defileCount + 1
+		self:BossTargetScanner(36597, "DefileTarget", 0.02, 15)
 		warnDefileSoon:Cancel()
-		warnDefileSoon:Schedule(27)
-		timerDefileCD:Start()
-	elseif args:IsSpellID(73539) then -- Shadow Trap (Heroic)
+		warnDefileSoon:CancelVoice()
+		warnDefileSoon:Schedule(27, self.vb.defileCount+1)
+		warnDefileSoon:ScheduleVoice(27, "scatter")
+		timerDefileCD:Start(nil, self.vb.defileCount+1)
+	elseif spellId == 73539 then -- Shadow Trap (Heroic)
+		self:BossTargetScanner(36597, "TrapTarget", 0.02, 15)
 		timerTrapCD:Start()
-		if self.Options.LKBugWorkaround then
-			self:ScheduleMethod(0.01, "OldTrapTarget")
-			self:ScheduleMethod(0.02, "OldTrapTarget")
-			self:ScheduleMethod(0.03, "OldTrapTarget")
-			self:ScheduleMethod(0.04, "OldTrapTarget")
-			self:ScheduleMethod(0.05, "OldTrapTarget")
-			self:ScheduleMethod(0.06, "OldTrapTarget")
-			self:ScheduleMethod(0.07, "OldTrapTarget")
-			self:ScheduleMethod(0.08, "OldTrapTarget")
-			self:ScheduleMethod(0.09, "OldTrapTarget")
-			self:ScheduleMethod(0.1, "OldTrapTarget")
-		else
-			self:ScheduleMethod(0.01, "TrapTarget")
-			self:ScheduleMethod(0.02, "TrapTarget")
-			self:ScheduleMethod(0.03, "TrapTarget")
-			self:ScheduleMethod(0.04, "TrapTarget")
-			self:ScheduleMethod(0.05, "TrapTarget")
-			self:ScheduleMethod(0.06, "TrapTarget")
-			self:ScheduleMethod(0.07, "TrapTarget")
-			self:ScheduleMethod(0.08, "TrapTarget")
-			self:ScheduleMethod(0.09, "TrapTarget")
-			self:ScheduleMethod(0.1, "TrapTarget")
-		end
-	elseif args:IsSpellID(73650) then -- Restore Soul (Heroic)
+	elseif spellId == 73650 then -- Restore Soul (Heroic)
 		warnRestoreSoul:Show()
 		timerRestoreSoul:Start()
-	elseif args:IsSpellID(72350) then -- Fury of Frostmourne
-		mod:SetWipeTime(160)--Change min wipe time mid battle to force dbm to keep module loaded for this long out of combat roleplay, hopefully without breaking mod.
+		if self.Options.RemoveImmunes then
+			self:Schedule(39.99, RemoveImmunes, self)
+		end
+	elseif spellId == 72350 then -- Fury of Frostmourne
+		self:SetWipeTime(190) --Change min wipe time mid battle to force dbm to keep module loaded for this long out of combat roleplay, hopefully without breaking mod.
+		self:Stop()
+		self:ClearIcons()
 		timerRoleplay:Start()
-		timerVileSpirit:Cancel()
-		timerSoulreaperCD:Cancel()
-		timerDefileCD:Cancel()
-		timerHarvestSoulCD:Cancel()
-		berserkTimer:Cancel()
-		warnDefileSoon:Cancel()
+	elseif args:IsSpellID(69242, 73800, 73801, 73802) then -- Soul Shriek Raging spirits
+		timerSoulShriekCD:Start(args.sourceGUID)
 	end
 end
 
 function mod:SPELL_CAST_SUCCESS(args)
+	local spellId = args.spellId
 	if args:IsSpellID(70337, 73912, 73913, 73914) then -- Necrotic Plague (SPELL_AURA_APPLIED is not fired for this spell)
-		warnNecroticPlague:Show(args.destName)
+		lastPlague = args.destName
+		warnNecroticPlague:Show(lastPlague)
 		timerNecroticPlagueCD:Start()
 		timerNecroticPlagueCleanse:Start()
-		lastPlagueCast = GetTime()
 		if args:IsPlayer() then
 			specWarnNecroticPlague:Show()
+			soundNecroticOnYou:Play("Interface\\AddOns\\DBM-Core\\sounds\\RaidAbilities\\necroticOnYou.mp3")
 		end
 		if self.Options.NecroticPlagueIcon then
-			self:SetIcon(args.destName, 5, 5)
+			self:SetIcon(lastPlague, 4, 5)
 		end
 	elseif args:IsSpellID(69409, 73797, 73798, 73799) then -- Soul reaper (MT debuff)
-		warnSoulreaper:Show(args.destName)
+		self.vb.soulReaperCount = self.vb.soulReaperCount + 1
+		timerSoulreaperCD:Cancel()
+		warnSoulreaper:Show(self.vb.soulReaperCount, args.destName)
 		specwarnSoulreaper:Show(args.destName)
 		timerSoulreaper:Start(args.destName)
-		timerSoulreaperCD:Start()
+		timerSoulreaperCD:Start(nil, self.vb.soulReaperCount+1)
+		soundSoulReaperSoon:Schedule(30.5-2.5, "Interface\\AddOns\\DBM-Core\\sounds\\RaidAbilities\\soulreaperSoon.mp3")
 		if args:IsPlayer() then
 			specWarnSoulreaper:Show()
+			specWarnSoulreaper:Play("defensive")
+		else
+			specWarnSoulreaperOtr:Show(args.destName)
+			specWarnSoulreaperOtr:Play("tauntboss")
 		end
-	elseif args:IsSpellID(69200) then -- Raging Spirit
-		warnRagingSpirit:Show(args.destName)
+	elseif spellId == 69200 then -- Raging Spirit
+		self.vb.ragingSpiritCount = self.vb.ragingSpiritCount + 1
+		timerSoulShriekCD:Start(20, args.destName)
 		if args:IsPlayer() then
 			specWarnRagingSpirit:Show()
-		end
-		if phase == 1 then
-			timerRagingSpiritCD:Start()
+			specWarnRagingSpirit:Play("targetyou")
 		else
-			timerRagingSpiritCD:Start(17)
+			warnRagingSpirit:Show(args.destName)
+		end
+		if self.vb.phase == 1.5 then
+			timerRagingSpiritCD:Start(nil, self.vb.ragingSpiritCount) -- Fixed timer, confirmed after log review 2022/09/03: 20.0 for first intermission
+		else
+			timerRagingSpiritCD:Start(15.0, self.vb.ragingSpiritCount) -- Fixed timer, confirmed after log review 2022/09/03: 15.0 for second intermission
 		end
 		if self.Options.RagingSpiritIcon then
-			self:SetIcon(args.destName, 7, 5)
+			self:SetIcon(args.destName, 6, 5)
 		end
 	elseif args:IsSpellID(68980, 74325, 74326, 74327) then -- Harvest Soul
-		warnHarvestSoul:Show(args.destName)
 		timerHarvestSoul:Start(args.destName)
 		timerHarvestSoulCD:Start()
 		if args:IsPlayer() then
 			specWarnHarvestSoul:Show()
+			specWarnHarvestSoul:Play("targetyou")
+		else
+			warnHarvestSoul:Show(args.destName)
 		end
 		if self.Options.HarvestSoulIcon then
-			self:SetIcon(args.destName, 6, 6)
+			self:SetIcon(args.destName, 5, 5)
 		end
 	elseif args:IsSpellID(73654, 74295, 74296, 74297) then -- Harvest Souls (Heroic)
 		specWarnHarvestSouls:Show()
+		--specWarnHarvestSouls:Play("phasechange")
+		timerHarvestSoulCD:Start(106.4) -- Custom edit to make Harvest Souls timers work again. REVIEW! 1s variance? (25H Lordaeron 2022/09/03) - 106.4, 107.5, 106.5
 		timerVileSpirit:Cancel()
 		timerSoulreaperCD:Cancel()
+		soundSoulReaperSoon:Cancel()
 		timerDefileCD:Cancel()
 		warnDefileSoon:Cancel()
+		warnDefileSoon:CancelVoice()
+		self:SetWipeTime(50)--We set a 45 sec min wipe time to keep mod from ending combat if you die while rest of raid is in frostmourn
+		self:Schedule(50, RestoreWipeTime, self)
 	end
 end
 
 function mod:SPELL_DISPEL(args)
-	if type(args.extraSpellId) == "number" and (args.extraSpellId == 70337 or args.extraSpellId == 73912 or args.extraSpellId == 73913 or args.extraSpellId == 73914 or args.extraSpellId == 70338 or args.extraSpellId == 73785 or args.extraSpellId == 73786 or args.extraSpellId == 73787) then
+	local extraSpellId = args.extraSpellId
+	if type(extraSpellId) == "number" and (extraSpellId == 70337 or extraSpellId == 73912 or extraSpellId == 73913 or extraSpellId == 73914 or extraSpellId == 70338 or extraSpellId == 73785 or extraSpellId == 73786 or extraSpellId == 73787) then
 		if self.Options.NecroticPlagueIcon then
 			self:SetIcon(args.destName, 0)
 		end
 	end
 end
 
-do
-	local lastDefile = 0
-	local lastRestore = 0
-	function mod:SPELL_AURA_APPLIED(args)
-		if args:IsSpellID(72143, 72146, 72147, 72148) then -- Shambling Horror enrage effect.
-			warnShamblingEnrage:Show(args.destName)
-			timerEnrageCD:Start()
-		elseif args:IsSpellID(72754, 73708, 73709, 73710) and args:IsPlayer() and time() - lastDefile > 2 then		-- Defile Damage
-			specWarnDefile:Show()
-			lastDefile = time()
-		elseif args:IsSpellID(73650) and time() - lastRestore > 3 then		-- Restore Soul (Heroic)
-			lastRestore = time()
-			timerHarvestSoulCD:Start(60)
-			timerVileSpirit:Start(10)--May be wrong too but we'll see, didn't have enough log for this one.
-		end
+function mod:SPELL_AURA_APPLIED(args)
+	local spellId = args.spellId
+--	if args:IsSpellID(72143, 72146, 72147, 72148) then -- Shambling Horror enrage effect. Disabled on AURA_APPLIED since it is earlier (and therefore better) on CAST_START. Also prevents double announce
+--		timerEnrageCD:Cancel(args.sourceGUID)
+--		warnShamblingEnrage:Show(args.destName)
+--		timerEnrageCD:Start(args.sourceGUID)
+	if spellId == 28747 then -- Shambling Horror enrage effect on low hp
+		specWarnEnrageLow:Show()
+	elseif args:IsSpellID(72754, 73708, 73709, 73710) and args:IsPlayer() and self:AntiSpam(2, 1) then		-- Defile Damage
+		specWarnGTFO:Show(args.spellName)
+		specWarnGTFO:Play("watchfeet")
+		soundDefileOnYou:Play("Interface\\AddOns\\DBM-Core\\sounds\\RaidAbilities\\defileOnYou.mp3")
+	elseif spellId == 73650 and self:AntiSpam(3, 2) then		-- Restore Soul (Heroic)
+		timerHarvestSoulCD:Start(60)
+		timerVileSpirit:Start(10)--May be wrong too but we'll see, didn't have enough log for this one.
 	end
 end
 
@@ -419,239 +528,215 @@ function mod:SPELL_AURA_APPLIED_DOSE(args)
 			end
 		end
 	end
-end	
+end
 
 do
-	local valkIcons = {}
 	local valkyrTargets = {}
-	local currentIcon = 2
-	local grabIcon = 2
-	local iconsSet = 0
+	local grabIcon = 1
 	local lastValk = 0
-	
-	local function resetValkIconState()
-		table.wipe(valkIcons)
-		currentIcon = 2
-		iconsSet = 0
+	local maxValks = mod:IsDifficulty("normal25", "heroic25") and 3 or 1
+	local UnitIsUnit, UnitInVehicle, IsInRaid = UnitIsUnit, UnitInVehicle, DBM.IsInRaid
+
+	local function numberOfValkyrTargets(tbl)
+		if not tbl then return 0 end
+		local count = 0
+		for _ in pairs(tbl) do
+			count = count + 1
+		end
+		return count
 	end
-	
-	local function scanValkyrTargets()
-		if (time() - lastValk) < 10 then    -- scan for like 10secs
-			for i=0, GetNumRaidMembers() do        -- for every raid member check ..
-				if UnitInVehicle("raid"..i) and not valkyrTargets[i] then      -- if person #i is in a vehicle and not already announced 
-					valkyrWarning:Show(UnitName("raid"..i))  -- UnitName("raid"..i) returns the name of the person who got valkyred
-					valkyrTargets[i] = true          -- this person has been announced
-					if UnitName("raid"..i) == UnitName("player") then
+
+	local function scanValkyrTargets(self)
+		if numberOfValkyrTargets(valkyrTargets) < maxValks and (time() - lastValk) < 10 then	-- scan for like 10secs, but exit earlier if all the valks have spawned and grabbed their players
+			for uId in DBM:GetGroupMembers() do		-- for every raid member check ..
+				DBM:Debug("Valkyr UnitInVehicle for " .. UnitName(uId) .. " is returning " .. (UnitInVehicle(uId) or "nil") .. ". Checking if it is already cached: " .. (valkyrTargets[uId] and "true" or "nil."), 3)
+				if UnitInVehicle(uId) and not valkyrTargets[uId] then	  -- if person #i is in a vehicle and not already announced
+					valkyrWarning:Show(UnitName(uId))
+					valkyrTargets[uId] = true
+					local raidIndex = UnitInRaid(uId)
+					local name, _, subgroup, _, _, fileName = GetRaidRosterInfo(raidIndex + 1)
+					if name == UnitName(uId) then
+						local grp = subgroup
+						local class = fileName
+						mod:AddEntry(name, grp or 0, class, grabIcon)
+					end
+					if UnitIsUnit(uId, "player") then
 						specWarnYouAreValkd:Show()
-						if mod:IsHealer() then--Is player that's grabbed a healer
-							if isPAL then
-								mod:SendSync("PALGrabbed", UnitName("player"))--They are a holy paladin
-							elseif isPRI then
-								mod:SendSync("PRIGrabbed", UnitName("player"))--They are a disc/holy priest
-							end
-						end
+						specWarnYouAreValkd:Play("targetyou")
 					end
-					if mod.Options.AnnounceValkGrabs and DBM:GetRaidRank() > 0 then
-						if mod.Options.ValkyrIcon then
-							SendChatMessage(L.ValkGrabbedIcon:format(grabIcon, UnitName("raid"..i)), "RAID")
-							grabIcon = grabIcon + 1
+					if DBM:IsInGroup() and self.Options.AnnounceValkGrabs and DBM:GetRaidRank() > 1 then
+						local channel = (IsInRaid() and "RAID") or "PARTY"
+						if self.Options.ValkyrIcon then
+							SendChatMessage(L.ValkGrabbedIcon:format(grabIcon, UnitName(uId)), channel)
 						else
-							SendChatMessage(L.ValkGrabbed:format(UnitName("raid"..i)), "RAID")
+							SendChatMessage(L.ValkGrabbed:format(UnitName(uId)), channel)
 						end
 					end
+					grabIcon = grabIcon + 1--Makes assumption discovery order of vehicle grabs will match combat log order, since there is a delay
 				end
 			end
-			mod:Schedule(0.5, scanValkyrTargets)  -- check for more targets in a few
+			self:Schedule(0.5, scanValkyrTargets, self)  -- check for more targets in a few
 		else
-			wipe(valkyrTargets)       -- no more valkyrs this round, so lets clear the table
-			grabIcon = 2
+			table.wipe(valkyrTargets)	   -- no more valkyrs this round, so lets clear the table
+			grabIcon = 1
+			self.vb.valkIcon = 1
 		end
-	end  
-	
-	
+	end
+
 	function mod:SPELL_SUMMON(args)
-		if args:IsSpellID(69037) then -- Summon Val'kyr
-			if time() - lastValk > 15 then -- show the warning and timer just once for all three summon events
-				warnSummonValkyr:Show()
-				timerSummonValkyr:Start()
-				lastValk = time()
-				scanValkyrTargets()
-				if self.Options.ValkyrIcon then
-					resetValkIconState()
-				end
+		local spellId = args.spellId
+		if spellId == 69037 then -- Summon Val'kyr
+			if self.Options.ShowFrame then
+				self:CreateFrame()
 			end
 			if self.Options.ValkyrIcon then
-				valkIcons[args.destGUID] = currentIcon
-				currentIcon = currentIcon + 1
+				self:ScanForMobs(args.destGUID, 2, self.vb.valkIcon, 1, nil, 12, "ValkyrIcon")
 			end
+			self.vb.valkIcon = self.vb.valkIcon + 1
+			self.vb.valkyrWaveCount = self.vb.valkyrWaveCount + 1
+			if time() - lastValk > 15 then -- show the warning and timer just once for all three summon events
+				warnSummonValkyr:Show(self.vb.valkyrWaveCount)
+				timerSummonValkyr:Start(nil, self.vb.valkyrWaveCount+1)
+				lastValk = time()
+				scanValkyrTargets(self)
+				--if self.Options.ValkyrIcon then
+				--	local cid = self:GetCIDFromGUID(args.destGUID)
+				--	if self:IsDifficulty("normal25", "heroic25") then
+				--		self:ScanForMobs(args.destGUID, 1, 2, 3, nil, 20, "ValkyrIcon")--mod, scanId, iconSetMethod, mobIcon, maxIcon,
+				--	else
+				--		self:ScanForMobs(args.destGUID, 1, 2, 1, nil, 20, "ValkyrIcon")
+				--	end
+				--end
+			end
+		elseif spellId == 70372 then -- Shambling Horror
+			tinsert(shamblingHorrorsGUIDs, args.destGUID) -- Spawn order. Idea was to somehow distinguish shamblings, so let's do this on the assumption that it's visually easy to differentiate them due to HP diff.
+			local shamblingCount = DBM:tIndexOf(shamblingHorrorsGUIDs, args.destGUID)
+			warnShamblingSoon:Cancel()
+			warnShamblingHorror:Show()
+			warnShamblingSoon:Schedule(55)
+			timerShamblingHorror:Start()
+			timerEnrageCD:Start(12.3, shamblingCount, args.destGUID) -- -20s from Shambling Enrage summon. 34.4 || 34.3; 32.3; 33.4
+			timerEnrageCD:Schedule(12.3+21, nil, shamblingCount, args.destGUID) -- apparently on Warmane if you stun on pre-cast, it skips the Enrage. Couldn't repro on test server nor validate it, but doesn't really hurt because SCS has Restart method
 		end
 	end
-	
-	mod:RegisterOnUpdateHandler(function(self)
-		if self.Options.ValkyrIcon and (DBM:GetRaidRank() > 0 and not (iconsSet == 3 and self:IsDifficulty("normal25", "heroic25") or iconsSet == 1 and self:IsDifficulty("normal10", "heroic10"))) then
-			for i = 1, GetNumRaidMembers() do
-				local uId = "raid"..i.."target"
-				local guid = UnitGUID(uId)
-				if valkIcons[guid] then
-					SetRaidTarget(uId, valkIcons[guid])
-					iconsSet = iconsSet + 1
-					valkIcons[guid] = nil
-				end
-			end
-		end
-	end, 1)
 end
 
-do 
-	local lastWinter = 0
-	function mod:SPELL_DAMAGE(args)
-		if args:IsSpellID(68983, 73791, 73792, 73793) and args:IsPlayer() and time() - lastWinter > 2 then		-- Remorseless Winter
-			specWarnWinter:Show()
-			lastWinter = time()
-		end
+function mod:SPELL_DAMAGE(_, _, _, destGUID, _, _, spellId, spellName)
+	if (spellId == 68983 or spellId == 73791 or spellId == 73792 or spellId == 73793) and destGUID == UnitGUID("player") and self:AntiSpam(2, 3) then		-- Remorseless Winter
+		specWarnGTFO:Show(spellName)
+		specWarnGTFO:Play("watchfeet")
 	end
 end
+mod.SPELL_MISSED = mod.SPELL_DAMAGE
 
 function mod:UNIT_HEALTH(uId)
-	if (mod:IsDifficulty("heroic10") or mod:IsDifficulty("heroic25")) and uId == "target" and self:GetUnitCreatureId(uId) == 36609 and UnitHealth(uId) / UnitHealthMax(uId) <= 0.55 and not warnedValkyrGUIDs[UnitGUID(uId)] then
+	if self:IsHeroic() and self:GetUnitCreatureId(uId) == 36609 and UnitHealth(uId) / UnitHealthMax(uId) <= 0.55 and not warnedValkyrGUIDs[UnitGUID(uId)] then
 		warnedValkyrGUIDs[UnitGUID(uId)] = true
 		specWarnValkyrLow:Show()
+		specWarnValkyrLow:Play("stopattack")
 	end
-	if phase == 1 and not warned_preP2 and self:GetUnitCreatureId(uId) == 36597 and UnitHealth(uId) / UnitHealthMax(uId) <= 0.73 then
-		warned_preP2 = true
+	if self.vb.phase == 1 and not self.vb.warned_preP2 and self:GetUnitCreatureId(uId) == 36597 and UnitHealth(uId) / UnitHealthMax(uId) <= 0.73 then
+		self.vb.warned_preP2 = true
 		warnPhase2Soon:Show()
-	elseif phase == 2 and not warned_preP3 and self:GetUnitCreatureId(uId) == 36597 and UnitHealth(uId) / UnitHealthMax(uId) <= 0.43 then
-		warned_preP3 = true
+	elseif self.vb.phase == 2 and not self.vb.warned_preP3 and self:GetUnitCreatureId(uId) == 36597 and UnitHealth(uId) / UnitHealthMax(uId) <= 0.43 then
+		self.vb.warned_preP3 = true
 		warnPhase3Soon:Show()
-	end
-end
-
-function mod:NextPhase()
-	phase = phase + 1
-	if phase == 1 then
-		berserkTimer:Start()
-		warnShamblingSoon:Schedule(15)
-		timerShamblingHorror:Start(20)
-		timerDrudgeGhouls:Start(10)
-		timerNecroticPlagueCD:Start(27)
-		if mod:IsDifficulty("heroic10") or mod:IsDifficulty("heroic25") then
-			timerTrapCD:Start()
-		end
-	elseif phase == 2 then
-		timerSummonValkyr:Start(20)
-		timerSoulreaperCD:Start(40)
-		timerDefileCD:Start(38)
-		timerInfestCD:Start(14)
-		warnDefileSoon:Schedule(33)
-	elseif phase == 3 then
-		timerVileSpirit:Start(20)
-		timerSoulreaperCD:Start(40)
-		timerDefileCD:Start(38)
-		timerHarvestSoulCD:Start(14)
-		warnDefileSoon:Schedule(33)
 	end
 end
 
 function mod:CHAT_MSG_MONSTER_YELL(msg)
 	if msg == L.LKPull or msg:find(L.LKPull) then
-		timerCombatStart:Start()
-	end
-end
-
-function mod:CHAT_MSG_RAID_BOSS_WHISPER(msg)--We get this whisper for all plagues, ones cast by lich king and ones from dispel jumps.
-	if msg:find(L.PlagueWhisper) and self:IsInCombat() then--We do a combat check with lich king since rotface uses the same whisper message and we only want this to work on lich king.
-		if GetTime() - lastPlagueCast > 1 then--We don't want to send sync if it came from a spell cast though, so we ignore whisper unless it was at least 1 second after a cast.
-			specWarnNecroticPlague:Show()
-			self:SendSync("PlagueOn", UnitName("player"))
+		self:SendSync("CombatStart")
+		if self.Options.ShowFrame then
+			self:CreateFrame()
 		end
 	end
 end
 
-function mod:SWING_DAMAGE(args)
-	if args:GetSrcCreatureID() == 36597 then--Lich king Tank
-		LKTank = args.destName
+function mod:UNIT_DIED(args)
+	local cid = self:GetCIDFromGUID(args.destGUID)
+	if cid == 37698 then--Shambling Horror
+		local shamblingCount = DBM:tIndexOf(shamblingHorrorsGUIDs, args.sourceGUID)
+		timerEnrageCD:Stop(shamblingCount, args.sourceGUID)
+		timerEnrageCD:Unschedule(nil, shamblingCount, args.sourceGUID)
+	elseif cid == 36701 then -- Raging Spirit
+		timerSoulShriekCD:Cancel(args.sourceGUID)
 	end
 end
 
-function mod:SWING_MISSED(args)
-	if args:GetSrcCreatureID() == 36597 then--Lich king Tank
-		LKTank = args.destName
+function mod:UNIT_AURA_UNFILTERED(uId)
+	local name = DBM:GetUnitFullName(uId)
+	if (not name) or (name == lastPlague) then return end
+	local _, _, _, _, _, _, expires, _, _, _, spellId = DBM:UnitDebuff(uId, plagueHop)
+	if not spellId or not expires then return end
+	if (spellId == 73787 or spellId == 70338 or spellId == 73785 or spellId == 73786) and expires > 0 and not plagueExpires[expires] then
+		plagueExpires[expires] = true
+		warnNecroticPlagueJump:Show(name)
+		timerNecroticPlagueCleanse:Start()
+		if name == UnitName("player") and not mod:IsTank() then
+			specWarnNecroticPlague:Show()
+			soundNecroticOnYou:Play("Interface\\AddOns\\DBM-Core\\sounds\\RaidAbilities\\necroticOnYou.mp3")
+		end
+		if self.Options.NecroticPlagueIcon then
+			self:SetIcon(uId, 4, 5)
+		end
+	end
+end
+
+--function mod:UNIT_SPELLCAST_SUCCEEDED(uId, spellName)
+--	if spellName == soulshriek and mod:LatencyCheck() then
+--		self:SendSync("SoulShriek", UnitGUID(uId))
+--	end
+--end
+
+function mod:UNIT_ENTERING_VEHICLE(uId)
+	DBM:Debug(UnitName(uId) .. " (".. uId .. ") has entered a vehicle. Confirming API: " .. (UnitInVehicle(uId) or "nil"))
+end
+
+function mod:UNIT_EXITING_VEHICLE(uId)
+	DBM:Debug(UnitName(uId) .. " (".. uId .. ") has exited a vehicle. Confirming API: " .. (UnitInVehicle(uId) or "nil"))
+	mod:RemoveEntry(UnitName(uId))
+end
+
+function mod:UPDATE_MOUSEOVER_UNIT()
+	if DBM:GetUnitCreatureId("mouseover") == 36633 then -- Ice Sphere
+		local sphereGUID = UnitGUID("mouseover")
+		local sphereTarget = UnitName("mouseovertarget")
+		if sphereGUID and sphereTarget and not iceSpheresGUIDs[sphereGUID] then
+			local sphereString = ("%s\t%s"):format(sphereTarget, sphereGUID)
+			self:SendSync("SphereTarget", sphereString)
+		end
+	end
+end
+
+function mod:UNIT_TARGET_UNFILTERED(uId)
+	if DBM:GetUnitCreatureId(uId.."target") == 36633 then -- Ice Sphere
+		local sphereGUID = UnitGUID(uId.."target")
+		local sphereTarget = UnitName(uId.."targettarget")
+		if sphereGUID and sphereTarget and not iceSpheresGUIDs[sphereGUID] then
+			iceSpheresGUIDs[sphereGUID] = sphereTarget
+			warnIceSpheresTarget:Show(sphereTarget)
+			if sphereTarget == UnitName("player") then
+				specWarnIceSpheresYou:Show()
+				specWarnIceSpheresYou:Play("iceorbmove")
+			end
+		end
 	end
 end
 
 function mod:OnSync(msg, target)
-	if msg == "PALGrabbed" then--Does this function fail to alert second healer if 2 different paladins are grabbed within < 2.5 seconds?
-		if self.Options.specWarnHealerGrabbed then
-			specWarnPALGrabbed:Show(target)
-		end
-	elseif msg == "PRIGrabbed" then--Does this function fail to alert second healer if 2 different priests are grabbed within < 2.5 seconds?
-		if self.Options.specWarnHealerGrabbed then
-			specWarnPRIGrabbed:Show(target)
-		end
-	elseif msg == "TrapOn" then
-		if not self.Options.LKBugWorkaround then
-			warnTrapCast:Show(target)
-			if self.Options.TrapIcon then
-				self:SetIcon(player, 8, 10)
-			end
-			if target == UnitName("player") then
-				specWarnTrap:Show()
-				if self.Options.YellOnTrap then
-					SendChatMessage(L.YellTrap, "SAY")
-				end
-			end
-			local uId = DBM:GetRaidUnitId(target)
-			if uId ~= "none" then
-				local inRange = CheckInteractDistance(uId, 2)
-				local x, y = GetPlayerMapPosition(uId)
-				if x == 0 and y == 0 then
-					SetMapToCurrentZone()
-					x, y = GetPlayerMapPosition(uId)
-				end
-				if inRange then
-					specWarnTrapNear:Show()
-					if self.Options.TrapArrow then
-						DBM.Arrow:ShowRunAway(x, y, 10, 5)
-					end
-				end
-			end
-		end
-	elseif msg == "DefileOn" then
-		if not self.Options.LKBugWorkaround then
-			warnDefileCast:Show(target)
-			if self.Options.DefileIcon then
-				self:SetIcon(target, 8, 10)
-			end
-			if target == UnitName("player") then
-				specWarnDefileCast:Show()
-				soundDefile:Play()
-				if self.Options.YellOnDefile then
-					SendChatMessage(L.YellDefile, "SAY")
-				end
-			elseif target then
-				local uId = DBM:GetRaidUnitId(target)
-				if uId then
-					local inRange = CheckInteractDistance(uId, 2)
-					local x, y = GetPlayerMapPosition(uId)
-					if x == 0 and y == 0 then
-						SetMapToCurrentZone()
-						x, y = GetPlayerMapPosition(uId)
-					end
-					if inRange then
-						specWarnDefileNear:Show()
---						if self.Options.DefileArrow then
---							DBM.Arrow:ShowRunAway(x, y, 15, 5)
---						end
-					end
-				end
-			end
-		end
-	elseif msg == "PlagueOn" and self:IsInCombat() then
-		if GetTime() - lastPlagueCast > 1 then --We also do same 1 second check here
-			warnNecroticPlagueJump:Show(target)
-			timerNecroticPlagueCleanse:Start()
-			if self.Options.NecroticPlagueIcon then
-				self:SetIcon(target, 5, 5)
+	if msg == "CombatStart" then
+		timerCombatStart:Start()
+--	elseif msg == "SoulShriek" then
+--		timerSoulShriekCD:Start(target)
+	elseif msg == "SphereTarget" then
+		local sphereTarget, sphereGUID = strsplit("\t", target)
+		if sphereTarget and sphereGUID and not iceSpheresGUIDs[sphereGUID] then
+			iceSpheresGUIDs[sphereGUID] = sphereTarget
+			warnIceSpheresTarget:Show(sphereTarget)
+			if sphereTarget == UnitName("player") then
+				specWarnIceSpheresYou:Show()
+				specWarnIceSpheresYou:Play("iceorbmove")
 			end
 		end
 	end

@@ -1,165 +1,193 @@
-local Twins = DBM:NewBossMod("Twins", DBM_TWINS_NAME, DBM_TWINS_DESCRIPTION, DBM_SUNWELL, DBM_SW_TAB, 4)
+local mod	= DBM:NewMod("Twins", "DBM-Sunwell")
+local L		= mod:GetLocalizedStrings()
 
-Twins.Version		= "1.0"
-Twins.Author		= "Tandanu"
+mod:SetRevision("20220518110528")
+mod:SetCreatureID(25165, 25166)
+mod:SetUsedIcons(7, 8)
 
-Twins:SetCreatureID(25166)
-Twins:RegisterCombat("combat", 25165, 25166)
+mod:RegisterCombat("combat")
 
-Twins:AddOption("WarnShadowBlades", false, DBM_TWINS_OPTION_BLADES)
-Twins:AddOption("WarnBuff", true, DBM_TWINS_OPTION_BUFF)
-Twins:AddOption("WarnBlow", true, DBM_TWINS_OPTION_BLOW)
-Twins:AddOption("WarnBlowSoon", false, DBM_TWINS_OPTION_BLOW_SOON)
-Twins:AddOption("RangeCheck", true, DBM_KAL_OPTION_RANGE)
-Twins:AddOption("WarnConflagration", true, DBM_TWINS_OPTION_CONFLAG)
-Twins:AddOption("WhisperConflag", true, DBM_TWINS_OPTION_CONFLAG2)
-Twins:AddOption("SpecWarnConflag", true, DBM_TWINS_OPTION_CONFLAG3)
-Twins:AddOption("IconConflag", true, DBM_TWINS_OPTION_CONFLAG4)
-Twins:AddOption("SoundWarnConflag", true, DBM_TWINS_OPTION_CONFLAG5)
-Twins:AddOption("WarnNova", true, DBM_TWINS_OPTION_NOVA)
-Twins:AddOption("WhisperNova", true, DBM_TWINS_OPTION_NOVA2)
-Twins:AddOption("SpecWarnNova", true, DBM_TWINS_OPTION_NOVA3)
-Twins:AddOption("IconNova", false, DBM_TWINS_OPTION_NOVA4)
-Twins:AddOption("DarkTouch", true, DBM_TWINS_OPTION_TOUCH1)
-Twins:AddOption("FlameTouch", false, DBM_TWINS_OPTION_TOUCH2)
-Twins:AddOption("HealthFrame", true, "")
-
-Twins:AddBarOption("Enrage")
-Twins:AddBarOption("Shadow Blades", false)
-Twins:AddBarOption("Next Shadow Blades", false)
-Twins:AddBarOption("Next Shadow Nova")
-Twins:AddBarOption("Shadow Nova")
-Twins:AddBarOption("Confounding Blow")
-Twins:AddBarOption("Conflagration CD")
-Twins:AddBarOption("Conflagration")
-
-Twins:RegisterEvents(
-	"SPELL_CAST_START",
-	"SPELL_AURA_APPLIED",
-	"SPELL_DAMAGE",
+mod:RegisterEventsInCombat(
+	"SPELL_AURA_APPLIED 45230 45347 45348",
+	"SPELL_AURA_APPLIED_DOSE 45347 45348",
+	"SPELL_CAST_START 45248 45329 45342",
+	"SPELL_DAMAGE 45256",
+	"SPELL_MISSED 45256",
 	"CHAT_MSG_RAID_BOSS_EMOTE",
-	"SPELL_AURA_APPLIED_DOSE"
+	"UNIT_DIED"
 )
 
-Twins:SetBossHealthInfo(
-	25165, DBM_TWINS_MOB_SOCR,
-	25166, DBM_TWINS_MOB_WL
+mod:SetBossHealthInfo(
+	25165, L.Sacrolash,
+	25166, L.Alythess
 )
 
-function Twins:OnCombatStart(delay)
-	self:StartStatusBarTimer(360 - delay, "Enrage", "Interface\\Icons\\Spell_Shadow_UnholyFrenzy")
-	self:ScheduleAnnounce(180 - delay, DBM_GENERIC_ENRAGE_WARN:format(3, DBM_MIN), 1)
-	self:ScheduleAnnounce(300 - delay, DBM_GENERIC_ENRAGE_WARN:format(1, DBM_MIN), 2)
-	self:ScheduleAnnounce(330 - delay, DBM_GENERIC_ENRAGE_WARN:format(30, DBM_SEC), 3)
-	self:ScheduleAnnounce(350 - delay, DBM_GENERIC_ENRAGE_WARN:format(10, DBM_SEC), 4)
-	if self.Options.RangeCheck then
-		DBM_Gui_DistanceFrame_Show()
+local warnBlade				= mod:NewSpellAnnounce(45248, 3)
+local warnBlow				= mod:NewTargetAnnounce(45256, 3)
+local warnConflag			= mod:NewTargetAnnounce(45333, 3)
+local warnNova				= mod:NewTargetAnnounce(45329, 3)
+
+local specWarnConflag		= mod:NewSpecialWarningYou(45333, nil, nil, nil, 1, 2)
+local specWarnConflagNear	= mod:NewSpecialWarningClose(45333)
+local yellConflag			= mod:NewYell(45333, nil, false)
+local specWarnNova			= mod:NewSpecialWarningYou(45329, nil, nil, nil, 1, 2)
+local specWarnNovaNear		= mod:NewSpecialWarningClose(45329)
+local yellNova				= mod:NewYell(45329)
+local specWarnPyro			= mod:NewSpecialWarningDispel(45230, "MagicDispeller", nil, 2, 1, 2)
+local specWarnDarkTouch		= mod:NewSpecialWarningStack(45347, nil, 8, nil, nil, 1, 6)
+local specWarnFlameTouch	= mod:NewSpecialWarningStack(45348, false, 5, nil, nil, 1, 6)
+
+local timerBladeCD			= mod:NewCDTimer(11.5, 45248, nil, "Melee", 2, 2)
+local timerBlowCD			= mod:NewCDTimer(20, 45256, nil, nil, nil, 3)
+local timerConflagCD		= mod:NewCDTimer(31, 45333, nil, nil, nil, 3, nil, nil, true) -- Added "keep" arg. Considerable variation, and 31s default might an overexageration
+local timerNovaCD			= mod:NewCDTimer(31, 45329, nil, nil, nil, 3)
+local timerConflag			= mod:NewCastTimer(3.5, 45333, nil, false, 2)
+local timerNova				= mod:NewCastTimer(3.5, 45329, nil, false, 2)
+
+local berserkTimer			= mod:NewBerserkTimer(mod:IsTimewalking() and 300 or 360)
+
+mod:AddRangeFrameOption("12")
+mod:AddSetIconOption("ConflagIcon", 45333, false, false, {7})
+mod:AddSetIconOption("NovaIcon", 45329, false, false, {8})
+
+function mod:OnCombatStart(delay)
+	self:SetStage(1)
+	berserkTimer:Start(-delay)
+	timerConflagCD:Start(18) -- variable (18-22?)
+	if self.Options.RangeFrame then
+		DBM.RangeCheck:Show()
 	end
 end
 
-function Twins:OnCombatEnd()
-	if self.Options.RangeCheck then
-		DBM_Gui_DistanceFrame_Hide()
+function mod:OnCombatEnd()
+	if self.Options.RangeFrame then
+		DBM.RangeCheck:Hide()
 	end
 end
 
-function Twins:OnEvent(event, args)
-	if event == "SPELL_CAST_START" then
-		if args.spellId == 45248 then
-			self:SendSync("Blades")
+function mod:SPELL_AURA_APPLIED(args)
+	if args.spellId == 45230 and not args:IsDestTypePlayer() then
+		specWarnPyro:Show(args.destName)
+		specWarnPyro:Play("dispelboss")
+	elseif args.spellId == 45347 and args:IsPlayer() then
+		if (args.amount or 1) >= 8 then
+			specWarnDarkTouch:Show(args.amount)
+			specWarnDarkTouch:Play("stackhigh")
 		end
-	elseif event == "SPELL_AURA_APPLIED" then
-		if args.spellId == 45230 and args.destName == DBM_TWINS_MOB_WL then
-			self:SendSync("Buff")
+	elseif args.spellId == 45348 and args:IsPlayer() then
+		if (args.amount or 1) >= 5 then
+			specWarnFlameTouch:Show(args.amount)
+			specWarnFlameTouch:Play("stackhigh")
 		end
-	elseif event == "SPELL_AURA_APPLIED_DOSE" then
-		if self.Options.DarkTouch and args.spellId == 45347 and args.destName == UnitName("player") and args.amount >= 8 then
-			self:AddSpecialWarning(DBM_TWINS_SPECWARN_SHADOW:format(args.amount))
-		elseif self.Options.FlameTouch and args.spellId == 45348 and args.destName == UnitName("player") and args.amount >= 5 then
-			self:AddSpecialWarning(DBM_TWINS_SPECWARN_FIRE:format(args.amount))
-		end
-	elseif event == "SPELL_DAMAGE" then
-		if args.spellId == 45256 then
-			self:SendSync("Blow")
-		end
-	elseif event == "CHAT_MSG_RAID_BOSS_EMOTE" then
-		local _, _, target = (args or ""):find(DBM_TWINS_EMOTE_CONFLAG)
-		if target then
-			self:SendSync("Conflagration"..target)
-		end
-		target = nil
+	end
+end
+mod.SPELL_AURA_APPLIED_DOSE = mod.SPELL_AURA_APPLIED
 
-		local _, _, target = (args or ""):find(DBM_TWINS_EMOTE_NOVA)
-		if target then
-			self:SendSync("ShadowNova"..target)
+function mod:SPELL_DAMAGE(_, _, _, _, destName, _, spellId)
+	if spellId == 45256 then
+		warnBlow:Show(destName)
+		timerBlowCD:Start()
+	end
+end
+
+function mod:SPELL_MISSED(_, _, _, _, _, _, spellId)
+	if spellId == 45256 then
+		timerBlowCD:Start()
+	end
+end
+
+function mod:ShadowNovaTarget(targetname)
+	if not targetname then return end
+	if targetname == UnitName("player") then
+		specWarnNova:Show()
+		specWarnNova:Play("targetyou")
+		yellNova:Yell()
+	elseif self:CheckNearby(2, targetname) then
+		specWarnNovaNear:Show(targetname)
+		specWarnNovaNear:Play("runaway")
+	else
+		warnNova:Show(targetname)
+	end
+	if self.Options.NovaIcon then
+		self:SetIcon(targetname, 7, 5)
+	end
+end
+
+function mod:ConflagrationTarget(targetname)
+	if not targetname then return end
+	if targetname == UnitName("player") then
+		specWarnConflag:Show()
+		specWarnConflag:Play("targetyou")
+		yellConflag:Yell()
+	elseif self:CheckNearby(2, targetname) then
+		specWarnConflagNear:Show(targetname)
+		specWarnConflagNear:Play("runaway")
+	else
+		warnConflag:Show(targetname)
+	end
+	if self.Options.ConflagIcon then
+		self:SetIcon(targetname, 8, 5)
+	end
+end
+
+function mod:SPELL_CAST_START(args)
+	if args.spellId == 45248 then
+		warnBlade:Show()
+		timerBladeCD:Start()
+	elseif args.spellId == 45329 then -- Shadow Nova
+		timerNova:Start()
+		timerNovaCD:Start()
+		self:BossTargetScanner(25165, "ShadowNovaTarget", 0.05, 6)
+	elseif args.spellId == 45342 then -- Conflagration
+		timerConflag:Start()
+		timerConflagCD:Start()
+		self:BossTargetScanner(self:GetCIDFromGUID(args.sourceGUID), "ConflagrationTarget", 0.05, 6)
+	end
+end
+
+-- CHAT_MSG_RAID_BOSS_EMOTE bugged on Warmane: https://www.warmane.com/bugtracker/report/106891
+function mod:CHAT_MSG_RAID_BOSS_EMOTE(msg, _, _, _, target)
+	if (msg == L.Nova or msg:find(L.Nova)) and target then
+		DBM:AddMsg("Nova emote is working again. Notify me (Zidras) on discord or open a bug report.")
+		target = DBM:GetUnitFullName(target)
+		timerNova:Start()
+		timerNovaCD:Start()
+		if target == UnitName("player") then
+			specWarnNova:Show()
+			specWarnNova:Play("targetyou")
+			yellNova:Yell()
+		elseif self:CheckNearby(2, target) then
+			specWarnNovaNear:Show(target)
+			specWarnNovaNear:Play("runaway")
+		else
+			warnNova:Show(target)
+		end
+		if self.Options.NovaIcon then
+			self:SetIcon(target, 7, 5)
+		end
+	elseif (msg == L.Conflag or msg:find(L.Conflag)) and target then
+		DBM:AddMsg("Conflagration emote is working again. Notify me (Zidras) on discord or open a bug report.")
+		target = DBM:GetUnitFullName(target)
+		timerConflag:Start()
+		timerConflagCD:Start()
+		if target == UnitName("player") then
+			specWarnConflag:Show()
+			specWarnConflag:Play("targetyou")
+			yellConflag:Yell()
+		elseif self:CheckNearby(2, target) then
+			specWarnConflagNear:Show(target)
+			specWarnConflagNear:Play("runaway")
+		else
+			warnConflag:Show(target)
+		end
+		if self.Options.ConflagIcon then
+			self:SetIcon(target, 8, 5)
 		end
 	end
 end
 
-
-function Twins:OnSync(msg)
-	if msg == "Blades" then
-		self:StartStatusBarTimer(11, "Next Shadow Blades", 45248)
-		self:StartStatusBarTimer(1.5, "Shadow Blades", 45248)
-		if self.Options.WarnShadowBlades then
-			self:Announce(DBM_TWINS_WARN_BLADES, 1)
-		end
-	elseif msg == "Buff" then
-		if self.Options.WarnBuff then
-			self:Announce(DBM_TWINS_WARN_BUFF, 3)
-		end
-	elseif msg == "Blow" then
-		self:StartStatusBarTimer(20, "Next Confounding Blow", 45256)
-		if self.Options.WarnBlowSoon then
-			self:ScheduleAnnounce(17.5, DBM_TWINS_WARN_BLOW_SOON, 1)
-		end
-		if self.Options.WarnBlow then
-			self:Announce(DBM_TWINS_WARN_BLOW, 1)
-		end
-
-	elseif msg:sub(0, 13) == "Conflagration" then
-		msg = msg:sub(14)
-		self:StartStatusBarTimer(31, "Conflagration CD", 45321)
-		self:StartStatusBarTimer(3.5, "Conflagration", 45321)
-		if self.Options.WarnConflagration then
-			self:Announce(DBM_TWINS_WARN_CONFLAG_ON:format(msg), 4)
-		end
-		if self.Options.WhisperConflag then
-			self:SendHiddenWhisper(DBM_TWINS_WHISPER_CONFLAG, msg)
-		end
-		if msg == UnitName("player") then
-			if self.Options.SoundWarnConflag then
-				PlaySoundFile("Sound\\Spells\\PVPFlagTaken.wav")
-				PlaySoundFile("Sound\\Creature\\HoodWolf\\HoodWolfTransformPlayer01.wav")
-			end
-			if self.Options.SpecWarnConflag then
-				self:AddSpecialWarning(DBM_TWINS_WHISPER_CONFLAG)
-			end
-		end
-		if self.Options.IconConflag then
-			self:SetIcon(msg, 8)
-		end
-	elseif msg:sub(0, 10) == "ShadowNova" then
-		msg = msg:sub(11)
-		self:StartStatusBarTimer(31, "Next Shadow Nova", 45329)
-		self:StartStatusBarTimer(3.5, "Shadow Nova", 45329)
-		if self.Options.WarnNova then
-			self:Announce(DBM_TWINS_WARN_NOVA_ON:format(msg), 2)
-		end
-		if self.Options.WhisperNova then
-			self:SendHiddenWhisper(DBM_TWINS_WHISPER_NOVA, msg)
-		end
-		if msg == UnitName("player") and self.Options.SpecWarnNova then
-			self:AddSpecialWarning(DBM_TWINS_WHISPER_NOVA)
-		end
-		if self.Options.IconNova then
-			self:SetIcon(msg,7)
-		end
+function mod:UNIT_DIED(args)
+	if self:GetCIDFromGUID(args.destGUID) == 21566 then -- Grand Warlock Alythess
+		self:SetStage(2)
 	end
 end
-
-
-function Twins:GetBossHP()
-	return ("%s: %s, %s: %s"):format(DBM_TWINS_MOB_WL, DBM.GetHPByName(DBM_TWINS_MOB_WL), DBM_TWINS_MOB_SOCR, DBM.GetHPByName(DBM_TWINS_MOB_SOCR))
-end
-

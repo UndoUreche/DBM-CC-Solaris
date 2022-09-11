@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("BlackKnight", "DBM-Party-WotLK", 13)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision(("$Revision: 4440 $"):sub(12, -3))
+mod:SetRevision("20220518110528")
 mod:SetCreatureID(35451, 10000)		-- work around, DBM API failes to handle a Boss to die, rebirth, die again, rebirth again and die to loot...
 mod:SetUsedIcons(8)
 
@@ -9,80 +9,65 @@ mod:RegisterCombat("combat")
 mod:RegisterKill("yell", L.YellCombatEnd)
 
 mod:RegisterEvents(
-	"SPELL_CAST_START",
-	"SPELL_AURA_APPLIED",
-	"SPELL_DAMAGE",
-	"SPELL_MISSED",
 	"CHAT_MSG_MONSTER_YELL"
 )
 
-local warnExplode			= mod:NewAnnounce("warnExplode", 4, 67886)
-local warnGhoulExplode		= mod:NewTargetAnnounce(67751, 4)
-local warnMarked			= mod:NewTargetAnnounce(67823, 3)
+mod:RegisterEventsInCombat(
+	"SPELL_CAST_START 67729 67886",
+	"SPELL_AURA_APPLIED 67823 67882 67751",
+	"SPELL_DAMAGE 67781 67876 67729 67886",
+	"SPELL_MISSED 67781 67876 67729 67886"
+)
 
-local specWarnDesecration	= mod:NewSpecialWarningMove(67876)
-local specWarnExplode		= mod:NewSpecialWarningRun(67751, mod:IsMelee())
+local warnMarked			= mod:NewTargetNoFilterAnnounce(67823, 3)
 
-local timerCombatStart		= mod:NewTimer(55.5, "TimerCombatStart", 2457)
-local timerMarked			= mod:NewTargetTimer(10, 67823)
-local timerExplode			= mod:NewCastTimer(4, 67886)
+local specWarnDesecration	= mod:NewSpecialWarningMove(67781, nil, nil, nil, 1, 8)
+local specWarnExplode		= mod:NewSpecialWarningRun(67751, "Melee", nil, 2, 4, 2)
 
-local soundExplode	 		= mod:NewSound(67751, nil, mod:IsMelee())
-mod:AddBoolOption("SetIconOnMarkedTarget", true)
+local timerCombatStart		= mod:NewCombatTimer(38.5)
+local timerMarked			= mod:NewTargetTimer(10, 67823, nil, nil, nil, 3)
+local timerExplode			= mod:NewCastTimer(4, 67729, nil, nil, nil, 2)
+
+mod:AddSetIconOption("SetIconOnMarkedTarget", 67823, false, false, {8})
 mod:AddBoolOption("AchievementCheck", false, "announce")
 
 local warnedfailed = false
 
-function mod:OnCombatStart(delay)
+function mod:OnCombatStart()
 	warnedfailed = false
 end
 
 function mod:SPELL_CAST_START(args)
-	if args:IsSpellID(67729, 67886) then							-- Explode (elite explodes self, not BK. Phase 2)
-		warnExplode:Show()
-		timerExplode:Start(args.destName)
+	if args:IsSpellID(67729, 67886) and self:AntiSpam(2, 2) then							-- Explode (elite explodes self, not BK. Phase 2)
+		specWarnExplode:Show()
+		specWarnExplode:Play("justrun")
+		timerExplode:Start()
 	end
 end
 
-do 
-	local lastdesecration = 0
-	function mod:SPELL_DAMAGE(args)
-		if args:IsSpellID(67781, 67876) and args:IsPlayer() and GetTime() - lastdesecration > 3 then		-- Desecration
-			specWarnDesecration:Show()
-			lastdesecration = GetTime()
-		elseif args:IsSpellID(67886) then
-			if self.Options.AchievementCheck and not warnedfailed then
-				SendChatMessage(L.AchievementFailed:format(args.destName), "PARTY")
-				warnedfailed = true
-			end
-		end
-	end
-end
-
-function mod:SPELL_MISSED(args)
-	if args:IsSpellID(67886) then
+function mod:SPELL_DAMAGE(_, _, _, destGUID, destName, _, spellId)
+	if (spellId == 67781 or spellId == 67876) and destGUID == UnitGUID("player") and self:AntiSpam(3, 1) then		-- Desecration
+		specWarnDesecration:Show()
+		specWarnDesecration:Play("watchfeet")
+	elseif spellId == 67729 or spellId == 67886 then
 		if self.Options.AchievementCheck and not warnedfailed then
-			SendChatMessage(L.AchievementFailed:format(args.destName), "PARTY")
+			SendChatMessage(L.AchievementFailed:format(destName), "PARTY")
 			warnedfailed = true
 		end
 	end
 end
+mod.SPELL_MISSED = mod.SPELL_DAMAGE
 
-do
-	local lastexplode = 0
-	function mod:SPELL_AURA_APPLIED(args)
-		if args:IsSpellID(67823, 67882) then							-- Marked For Death
-			if self.Options.SetIconOnMarkedTarget then
-				self:SetIcon(args.destName, 8, 10)
-			end
-			warnMarked:Show(args.destName)
-			timerMarked:Show(args.destName)
-		elseif args:IsSpellID(67751) and time() - lastexplode > 2 then	-- Ghoul Explode (BK exlodes Army of the dead. Phase 3)
-			warnGhoulExplode:Show(args.destName)
-			specWarnExplode:Show()
-			soundExplode:Play()
-			lastexplode = time()
+function mod:SPELL_AURA_APPLIED(args)
+	if args:IsSpellID(67823, 67882) and args:IsDestTypePlayer() then							-- Marked For Death
+		if self.Options.SetIconOnMarkedTarget then
+			self:SetIcon(args.destName, 8, 10)
 		end
+		warnMarked:Show(args.destName)
+		timerMarked:Show(args.destName)
+	elseif args.spellId == 67751 and self:AntiSpam(2, 2) then	-- Ghoul Explode (BK exlodes Army of the dead. Phase 3)
+		specWarnExplode:Show()
+		specWarnExplode:Play("justrun")
 	end
 end
 

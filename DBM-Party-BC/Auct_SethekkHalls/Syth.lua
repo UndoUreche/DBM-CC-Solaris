@@ -1,21 +1,23 @@
-local mod = DBM:NewMod("Syth", "DBM-Party-BC", 9)
+local mod = DBM:NewMod(541, "DBM-Party-BC", 9, 252)
 local L = mod:GetLocalizedStrings()
 
-mod:SetRevision(("$Revision: 147 $"):sub(12, -3))
+mod.statTypes = "normal,heroic,mythic"
 
+mod:SetRevision("20220518110528")
 mod:SetCreatureID(18472)
+
+mod:SetModelID(20599)
+mod:SetModelScale(0.9)
 mod:RegisterCombat("combat")
 
-mod:RegisterEvents(
-	"SPELL_SUMMON"
+mod:RegisterEventsInCombat(
+	"SPELL_SUMMON 33537 33538 33539 33540"
 )
 
-local warnSummon   = mod:NewAnnounce("SummonElementals", 3, 33539)
+local warnSummon   = mod:NewAnnounce("warnSummon", 3)
 
-local spam = 0
 function mod:SPELL_SUMMON(args)
-	if args:IsSpellID(33537, 33538, 33539, 33540) and GetTime() - spam > 3 then
+	if args:IsSpellID(33537, 33538, 33539, 33540) and self:AntiSpam() then
 		warnSummon:Show()
-		spam = GetTime()
 	end
 end

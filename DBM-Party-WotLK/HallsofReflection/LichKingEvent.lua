@@ -1,23 +1,30 @@
 local mod = DBM:NewMod("LichKingEvent", "DBM-Party-WotLK", 16)
 local L = mod:GetLocalizedStrings()
 
-mod:SetRevision(("$Revision: 2153 $"):sub(12, -3))
+mod:SetRevision("20220729231502")
 mod:RegisterEvents(
 	"SPELL_AURA_REMOVED",
 	"CHAT_MSG_MONSTER_YELL"
 )
 
-local WarnWave1	= mod:NewAnnounce("WarnWave1", 2, nil, nil, false)
-local WarnWave2	= mod:NewAnnounce("WarnWave2", 2, nil, nil, false)
-local WarnWave3	= mod:NewAnnounce("WarnWave3", 2, nil, nil, false)
-local WarnWave4	= mod:NewAnnounce("WarnWave4", 2, nil, nil, false)
-mod:AddBoolOption("ShowWaves", true, "announce")
+local WarnWave		= mod:NewAnnounce("WarnWave", 2)
 
 local timerEscape	= mod:NewAchievementTimer(360, 4526, "achievementEscape")
 
+local ragingGhoul = L.Ghoul
+local witchDoctor = L.WitchDoctor
+local abomination = L.Abom
+
+local addWaves = {
+	[1] = { "6 "..ragingGhoul, "1 "..witchDoctor },
+	[2] = { "6 "..ragingGhoul, "2 "..witchDoctor, "1 "..abomination },
+	[3] = { "6 "..ragingGhoul, "2 "..witchDoctor, "2 "..abomination },
+	[4] = { "12 "..ragingGhoul, "3 "..witchDoctor, "3 "..abomination },
+}
+
 function mod:SPELL_AURA_REMOVED(args)
-	if args:IsSpellID(69708) then			--Lich King has broken out of his iceblock, this starts actual event
-		if mod:IsDifficulty("heroic5") then
+	if args.spellId == 69708 then			--Lich King has broken out of his iceblock, this starts actual event
+		if self:IsDifficulty("heroic5") then
 			timerEscape:Start()
 		end
 	end
@@ -25,20 +32,12 @@ end
 
 function mod:CHAT_MSG_MONSTER_YELL(msg)
 	if msg == L.Wave1 or msg:find(L.Wave1) then
-		if self.Options.ShowWaves then
-			WarnWave1:Show()
-		end
+		WarnWave:Show(table.concat(addWaves[1], ", "))
 	elseif msg == L.Wave2 or msg:find(L.Wave2) then
-		if self.Options.ShowWaves then
-			WarnWave2:Show()
-		end
+		WarnWave:Show(table.concat(addWaves[2], ", "))
 	elseif msg == L.Wave3 or msg:find(L.Wave3) then
-		if self.Options.ShowWaves then
-			WarnWave3:Show()
-		end
+		WarnWave:Show(table.concat(addWaves[3], ", "))
 	elseif msg == L.Wave4 or msg:find(L.Wave4) then
-		if self.Options.ShowWaves then
-			WarnWave4:Show()
-		end
+		WarnWave:Show(table.concat(addWaves[4], ", "))
 	end
 end

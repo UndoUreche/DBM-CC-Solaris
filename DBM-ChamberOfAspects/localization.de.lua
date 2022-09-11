@@ -41,46 +41,59 @@ L:SetGeneralLocalization({
 })
 
 L:SetWarningLocalization({
-   WarningTenebron         = "Tenebron kommt",
-   WarningShadron         = "Shadron kommt",
-   WarningVesperon         = "Vesperon kommt",
-   WarningFireWall         = "Feuerwand",
-   WarningVesperonPortal   = "Vesperons Portal",
-   WarningTenebronPortal   = "Tenebrons Portal",
-   WarningShadronPortal   = "Shadrons Portal"
+	WarningTenebron			= "Tenebron kommt",
+	WarningShadron			= "Shadron kommt",
+	WarningVesperon			= "Vesperon kommt",
+	WarningFireWall			= "Feuerwand",
+	WarningWhelpsSoon		= "Tenebron Welpen bald",
+	WarningPortalSoon		= "Shadron-Portal in Kürze",
+	WarningReflectSoon		= "Vesperon Reflect Bald",
+	WarningVesperonPortal	= "Vesperons Portal",
+	WarningTenebronPortal	= "Tenebrons Portal",
+	WarningShadronPortal	= "Shadrons Portal"
 })
 
 L:SetTimerLocalization({
-   TimerTenebron   = "Tenebron kommt",
-   TimerShadron   = "Shadron kommt",
-   TimerVesperon   = "Vesperon kommt"
+	TimerTenebron			= "Tenebron kommt",
+	TimerShadron			= "Shadron kommt",
+	TimerVesperon			= "Vesperon kommt",
+	TimerTenebronWhelps		= "Tenebron Welpen",
+	TimerShadronPortal		= "Shadron-Portal",
+	TimerVesperonPortal		= "Vesperon-Portal",
+	TimerVesperonPortal2	= "Vesperon-Portal 2"
 })
 
 L:SetOptionLocalization({
-   PlaySoundOnFireWall   = "Spiele Sound bei Feuerwand",
-   AnnounceFails      = "Verkünde Spieler, die bei Feuerwand und Zone der Leere scheitern, im Raidchat (benötigt aktivierte Ankündigungen und (L)- oder (A)-Status)",
-   TimerTenebron      = "Zeige Timer für Tenebrons Ankunft",
-   TimerShadron      = "Zeige Timer für Shadrons Ankunft",
-   TimerVesperon      = "Zeige Timer für Vesperons Ankunft",
-   WarningFireWall      = "Zeige Spezialwarnung für Feuerwand",
-   WarningTenebron      = "Verkünde Ankunft von Tenebron",
-   WarningShadron      = "Verkünde Ankunft von Shadron",
-   WarningVesperon      = "Verkünde Ankunft von Vesperon",
-   WarningTenebronPortal   = "Zeige Spezialwarnung für Tenebrons Portale",
-   WarningShadronPortal   = "Zeige Spezialwarnung für Shadrons Portale",
-   WarningVesperonPortal   = "Zeige Spezialwarnung für Vesperons Portale"
+	AnnounceFails			= "Verkünde Spieler im SZ-Chat, die bei Feuerwand und Schattenspalt scheitern (benötigt aktivierte Mitteilungen und Leiter-/Assistentenstatus)",
+	TimerTenebron			= "Zeige Zeit bis Tenebron in den Kampf eingreift",
+	TimerShadron			= "Zeige Zeit bis Shadron in den Kampf eingreift",
+	TimerVesperon			= "Zeige Zeit bis Vesperon in den Kampf eingreift",
+	TimerTenebronWhelps		= "Timer für Tenebron Welpen anzeigen",
+	TimerShadronPortal		= "Timer für Shadron-Portal anzeigen",
+	TimerVesperonPortal		= "Timer für Vesperon Portal anzeigen",
+	TimerVesperonPortal2	= "Timer für Vesperon Portal 2 anzeigen",
+	WarningFireWall			= "Spezialwarnung für Feuerwand",
+	WarningTenebron			= "Verkünde das Eingreifen von Tenebron in den Kampf",
+	WarningShadron			= "Verkünde das Eingreifen von Shadron in den Kampf",
+	WarningVesperon			= "Verkünde das Eingreifen von Vesperon in den Kampf",
+	WarningWhelpsSoon		= "Kündigen Tenebron Whelps bald an",
+	WarningPortalSoon		= "Shadron-Portal bald ankündigen",
+	WarningReflectSoon		= "Vesperon Reflect bald ankündigen",
+	WarningTenebronPortal	= "Spezialwarnung für Tenebrons Portal",
+	WarningShadronPortal	= "Spezialwarnung für Shadrons Portal",
+	WarningVesperonPortal	= "Spezialwarnung für Vesperons Portal"
 })
 
 L:SetMiscLocalization({
-   Wall         = "Die Lava um %s brodelt!",
-   Portal         = "%s beginnt, ein Portal des Zwielichts zu öffnen!",
-   NameTenebron   = "Tenebron",
-   NameShadron      = "Shadron",
-   NameVesperon   = "Vesperon",
-   FireWallOn      = "Feuerwand: %s",
-   VoidZoneOn      = "Zone der Leere: %s",
-   VoidZones      = "Fehler bei Zone der Leere (dieser Versuch): %s",
-   FireWalls      = "Fehler bei Feuerwand (dieser Versuch): %s"
+	Wall			= "Die Lava um %s brodelt!",
+	Portal			= "%s beginnt, ein Portal des Zwielichts zu öffnen!",
+	NameTenebron	= "Tenebron",
+	NameShadron		= "Shadron",
+	NameVesperon	= "Vesperon",
+	FireWallOn		= "Feuerwand: %s",
+	VoidZoneOn		= "Schattenspalt: %s",
+	VoidZones		= "Fehler bei Schattenspalt (dieser Versuch): %s",
+	FireWalls		= "Fehler bei Feuerwand (dieser Versuch): %s"
 })
 
 ------------------------
@@ -99,14 +112,7 @@ L:SetWarningLocalization({
 })
 
 L:SetOptionLocalization({
-	WarningSplitSoon	= "Zeige Vorwarnun für Aufspaltung",
-	RangeFrame			= "Zeige Abstandsfenster (12 m)",
-	SetIconOnBrand		= DBM_CORE_AUTO_ICONS_OPTION_TEXT:format(74505)
-})
-
-
-L:SetMiscLocalization({
-	SplitTrigger		= "Doppelter Schmerz, halb soviel Spaß."
+	WarningSplitSoon	= "Zeige Vorwarnung für Aufspaltung"
 })
 
 -------------------------
@@ -118,19 +124,6 @@ L:SetGeneralLocalization({
 	name = "Saviana Flammenschlund"
 })
 
-L:SetWarningLocalization({
-	SpecialWarningTranq		= "Wutanfall - Einlullen/Beruhigen"
-})
-
-L:SetOptionLocalization({
-	SpecialWarningTranq		= "Zeige Spezialwarnung für $spell:78722",
-	RangeFrame				= "Zeige Abstandsfenster (10 m)",
-	BeaconIcon				= DBM_CORE_AUTO_ICONS_OPTION_TEXT:format(74453)
-})
-
-L:SetMiscLocalization{
-}
-
 --------------------------
 --  General Zarithrian  --
 --------------------------
@@ -141,16 +134,20 @@ L:SetGeneralLocalization({
 })
 
 L:SetWarningLocalization({
-	WarnAdds	= "Neue Adds"
+	WarnAdds	= "Neue Adds",
+	warnCleaveArmor	= "%s auf >%s< (%s)"	-- Cleave Armor on >args.destName< (args.amount)
 })
 
 L:SetTimerLocalization({
-	TimerAdds	= "Neue Adds"
+	TimerAdds	= "Neue Adds",
+	AddsArrive	= "Adds kommen an in"
 })
 
 L:SetOptionLocalization({
 	WarnAdds		= "Verkünde neue Adds",
-	TimerAdds		= "Zeige Timer für neue Adds"
+	TimerAdds		= "Zeige Zeit bis neue Adds erscheinen",
+	CancelBuff		= "Entferne $spell:10278 und $spell:642, wenn verwendet, um $spell:74367 zu entfernen",
+	AddsArrive		= "Timer für die Ankunft der Adds anzeigen"
 })
 
 L:SetMiscLocalization({
@@ -167,23 +164,21 @@ L:SetGeneralLocalization({
 })
 
 L:SetWarningLocalization({
-	WarnPhase2Soon		= "Phase 2 bald",
-	WarnPhase3Soon		= "Phase 3 bald"
+	TwilightCutterCast	= "Wirkt Zwielichtschnitter: 5 sec"
 })
 
 L:SetOptionLocalization({
-	WarnPhase2Soon			= "Zeige Vorwarnung für Phase 2 (bei ~79%)",	
-	WarnPhase3Soon			= "Zeige Vorwarnung für Phase 3 (bei ~54%)",
-	SoundOnConsumption		= "Spiele Sound bei Einäschern",--We use localized text for these functions
-	SetIconOnConsumption	= "Setze Zeichen auf Ziele von Einäschern"--So we can use single functions for both versions of spell."--So we can use single functions for both versions of spell.
+	TwilightCutterCast		= "Zeige Warnung, wenn $spell:74769 gewirkt wird",
+	AnnounceAlternatePhase	= "Zeige auch Warnungen/Timer für Phasen, in denen du dich nicht befindest",
+	SetIconOnConsumption	= "Setze Zeichen auf Ziele von $spell:74562 und $spell:74792"
 })
 
 L:SetMiscLocalization({
+	Halion					= "Halion",
+	PhysicalRealm			= "Körperliches Reich",
 	MeteorCast				= "Die Himmel brennen!",
 	Phase2					= "Ihr werdet im Reich des Zwielichts nur Leid finden! Tretet ein, wenn ihr es wagt!",
-	Phase3					= "Ich bin das Licht und die Dunkelheit!",--partial, message find should find it though.
-	twilightcutter			= "Die kreisenden Sphären pulsieren vor dunkler Energie!",
-	YellCombustion			= "Combustion on me!",--needs translation
-	YellConsumption			= "Consumption on me!",--needs translation
-	Kill					= "Relish this victory, mortals, for it will be your last. This world will burn with the master's return!"--needs translation
+	Phase3					= "Ich bin das Licht und die Dunkelheit! Zittert, Sterbliche, vor dem Herold Todesschwinges!",
+	twilightcutter			= "Hütet euch vor dem Schatten!", --"Die kreisenden Sphären pulsieren vor dunkler Energie!" -- Can't use this since on Warmane it triggers twice, 5s prior and on cutter.
+	Kill					= "Genießt euren Sieg, Sterbliche, denn es war euer letzter. Bei der Rückkehr des Meisters wird diese Welt brennen!"
 })

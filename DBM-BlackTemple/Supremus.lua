@@ -1,98 +1,108 @@
-local Supremus = DBM:NewBossMod("Supremus", DBM_SUPREMUS_NAME, DBM_SUPREMUS_DESCRIPTION, DBM_BLACK_TEMPLE, DBM_BT_TAB, 2)
+local mod	= DBM:NewMod("Supremus", "DBM-BlackTemple")
+local L		= mod:GetLocalizedStrings()
 
-Supremus.Version	= "1.0"
-Supremus.Author		= "Tandanu"
-Supremus.MinRevision = 828
+mod:SetRevision("20220518110528")
+mod:SetCreatureID(22898)
 
-local lastIcon		= nil
-local phase2		= nil
+mod:SetModelID(21145)
+mod:SetUsedIcons(8)
 
-Supremus:SetCreatureID(22898)
-Supremus:RegisterCombat("combat")
+mod:RegisterCombat("combat")
 
-Supremus:RegisterEvents(
-	"CHAT_MSG_RAID_BOSS_EMOTE",
-	"SPELL_AURA_APPLIED"
+mod:RegisterEventsInCombat(
+	"CHAT_MSG_RAID_BOSS_EMOTE"
 )
 
-Supremus:AddOption("WarnKiteTarget", true, DBM_SUPREMUS_OPTION_TARGETWARN)
-Supremus:AddOption("IconKiteTarget", true, DBM_SUPREMUS_OPTION_TARGETICON)
-Supremus:AddOption("WhisperKiteTarget", false, DBM_SUPREMUS_OPTION_TARGETWHISPER)
+--TODO, see if CLEU method is reliable enough to scrap scan method. scan method may still have been faster.
+local warnPhase			= mod:NewAnnounce("WarnPhase", 4, 42052)
+local warnFixate		= mod:NewTargetNoFilterAnnounce(41295, 3)
 
-Supremus:AddBarOption("Enrage")
-Supremus:AddBarOption("Kite Phase")
-Supremus:AddBarOption("Tank & Spank Phase")
+local specWarnMolten	= mod:NewSpecialWarningMove(40265, nil, nil, nil, 1, 2)
+local specWarnVolcano	= mod:NewSpecialWarningMove(42052, nil, nil, nil, 1, 2)
+local specWarnFixate	= mod:NewSpecialWarningRun(41295, nil, nil, nil, 4, 2)
 
-function Supremus:OnCombatStart(delay)
-	self:StartStatusBarTimer(900 - delay, "Enrage", "Interface\\Icons\\Spell_Shadow_UnholyFrenzy")
-	self:ScheduleAnnounce(300 - delay, DBM_GENERIC_ENRAGE_WARN:format(10, DBM_MIN), 1)
-	self:ScheduleAnnounce(600 - delay, DBM_GENERIC_ENRAGE_WARN:format(5, DBM_MIN), 1)
-	self:ScheduleAnnounce(720 - delay, DBM_GENERIC_ENRAGE_WARN:format(3, DBM_MIN), 1)
-	self:ScheduleAnnounce(840 - delay, DBM_GENERIC_ENRAGE_WARN:format(1, DBM_MIN), 2)
-	self:ScheduleAnnounce(870 - delay, DBM_GENERIC_ENRAGE_WARN:format(30, DBM_SEC), 3)
-	self:ScheduleAnnounce(890 - delay, DBM_GENERIC_ENRAGE_WARN:format(10, DBM_SEC), 4)
-	
-	self:StartStatusBarTimer(60 - delay, "Kite Phase", "Interface\\Icons\\Spell_Fire_BurningSpeed")
-	self:ScheduleSelf(50 - delay, "PhaseWarn", 2)
-	lastIcon = nil
-	phase2 = nil
-end
+local timerPhase		= mod:NewTimer(60, "TimerPhase", 42052, nil, nil, 6)
 
-function Supremus:OnCombatEnd()
-	if lastIcon then
-		DBM.ClearIconByName(lastIcon)
-		lastIcon = nil
-	end
-end
+local berserkTimer		= mod:NewBerserkTimer(900)
 
-function Supremus:OnEvent(event, arg1)
-	if event == "CHAT_MSG_RAID_BOSS_EMOTE" and arg1 then
-		if arg1:find(DBM_SUPREMUS_EMOTE_PHASE1) then
-			self:StartStatusBarTimer(60, "Tank & Spank Phase", "Interface\\Icons\\Ability_Defend")
+mod:AddBoolOption("KiteIcon", true)
 
-			self:ScheduleSelf(50, "PhaseWarn", 2)
-			self:Announce(DBM_SUPREMUS_WARN_PHASE_1, 3)
-			if lastIcon then
-				DBM.ClearIconByName(lastIcon)
-				lastIcon = nil
-			end
-			phase2 = nil
-		elseif arg1 == DBM_SUPREMUS_EMOTE_PHASE2 then
-			self:StartStatusBarTimer(60, "Kite Phase", "Interface\\Icons\\Spell_Fire_BurningSpeed")
-			self:ScheduleSelf(50, "PhaseWarn", 1)
-			self:Announce(DBM_SUPREMUS_WARN_PHASE_2, 3)
-			self:ScheduleMethod(4, "NewTarget") -- he waits a few seconds before changing the target since patch 2.2
-			phase2 = true
-		elseif phase2 and arg1:find(DBM_SUPREMUS_EMOTE_NEWTARGET) then -- he sometimes uses this emote just after switching in phase 2 since 2.2
-			self:ScheduleMethod(0.5, "NewTarget")
-		end		
-	elseif event == "PhaseWarn" and arg1 then
-		self:Announce(getglobal("DBM_SUPREMUS_WARN_PHASE_"..tostring(arg1).."_SOON"), 1)
-	elseif event == "SPELL_AURA_APPLIED" then
-		if arg1.spellId == 42052 and arg1.destName == UnitName("player") then
-			self:AddSpecialWarning(DBM_SUPREMUS_SPECWARN_VOLCANO)
-		end
-	end
-end
+--mod.vb.phase2 = false
+mod.vb.lastTarget = "None"
 
-function Supremus:NewTarget()
-	local target
-	for i = 1, GetNumRaidMembers() do
-		if UnitName("raid"..i.."target") == DBM_SUPREMUS_NAME then
-			target = UnitName("raid"..i.."targettarget")
-			break
-		end
-	end	
+local function ScanTarget(self)
+	local target, uId = self:GetBossTarget(22898)
 	if target then
-		if self.Options.WarnKiteTarget then
-			self:Announce(DBM_SUPREMUS_WARN_KITE_TARGET:format(target), 2)
+		if self.vb.lastTarget ~= target then
+			self.vb.lastTarget = target
+			if UnitIsUnit(uId, "player") and not self:IsTrivial() then
+				specWarnFixate:Show()
+				specWarnFixate:Play("justrun")
+				specWarnFixate:ScheduleVoice(1, "keepmove")
+			else
+				warnFixate:Show(target)
+			end
+			if self.Options.KiteIcon then
+				self:SetIcon(target, 8)
+			end
 		end
-		if self.Options.IconKiteTarget and DBM.Rank >= 1 and self.Options.Announce then
-			lastIcon = target
-			self:SetIcon(target)
+	end
+end
+
+function mod:OnCombatStart(delay)
+	berserkTimer:Start(-delay)
+	timerPhase:Start(-delay, L.Kite)
+	self.vb.lastTarget = "None"
+	if not self:IsTrivial() then--Only warning that uses these events is remorseless winter and that warning is completely useless spam for level 90s.
+		self:RegisterShortTermEvents(
+			"SPELL_DAMAGE 40265 42052",
+			"SPELL_MISSED 40265 42052"
+		)
+	end
+end
+
+function mod:OnCombatEnd()
+	self:UnregisterShortTermEvents()
+	if self.vb.lastTarget ~= "None" then
+		self:SetIcon(self.vb.lastTarget, 0)
+	end
+end
+
+function mod:SPELL_DAMAGE(_, _, _, destGUID, _, _, spellId)
+	if spellId == 40265 and destGUID == UnitGUID("player") and self:AntiSpam(4, 1) and not self:IsTrivial() then
+		specWarnMolten:Show()
+		specWarnMolten:Play("runaway")
+	elseif spellId == 42052 and destGUID == UnitGUID("player") and self:AntiSpam(4, 2) and not self:IsTrivial() then
+		specWarnVolcano:Show()
+		specWarnVolcano:Play("runaway")
+	end
+end
+mod.SPELL_MISSED = mod.SPELL_DAMAGE
+
+function mod:CHAT_MSG_RAID_BOSS_EMOTE(msg)
+	if msg == L.PhaseKite or msg:find(L.PhaseKite) then
+		warnPhase:Show(L.Kite)
+		timerPhase:Start(L.Tank)
+		self:Unschedule(ScanTarget)
+		self:Schedule(4, ScanTarget, self)
+		if self.vb.lastTarget ~= "None" then
+			self:SetIcon(self.vb.lastTarget, 0)
 		end
-		if self.Options.WhisperKiteTarget and DBM.Rank >= 1 and self.Options.Announce then
-			self:SendHiddenWhisper(DBM_SUPREMUS_WHISPER_RUN_AWAY, target)
+		if self:IsMelee() and not self:IsTrivial() then
+			--Melee Dps Not technically fixated but melee should run out at start of kite phase in case chosen.
+			--Tank should run out because boss actually fixates tank for couple seconds before choosing new target.
+			specWarnFixate:Show()
+			specWarnFixate:Play("justrun")
 		end
+	elseif msg == L.PhaseTank or msg:find(L.PhaseTank) then
+		warnPhase:Show(L.Tank)
+		timerPhase:Start(L.Kite)
+		self:Unschedule(ScanTarget)
+		if self.vb.lastTarget ~= "None" then
+			self:SetIcon(self.vb.lastTarget, 0)
+		end
+	elseif msg == L.ChangeTarget or msg:find(L.ChangeTarget) then
+		self:Unschedule(ScanTarget)
+		self:Schedule(0.5, ScanTarget, self)
 	end
 end

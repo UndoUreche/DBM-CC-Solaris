@@ -1,5 +1,6 @@
-﻿## Interface: 30300
+## Interface: 30300
 ## Title:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0Icecrown Citadel|r
+## Title-deDE:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0Eiskronenzitadelle|r
 ## Title-frFR:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0Citadelle de la Couronne de glace|r
 ## Title-koKR:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0얼음왕관 성채|r
 ## Title-ruRU:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0Цитадель Ледяной Короны|r
@@ -9,29 +10,32 @@
 ## Title-esMX:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0Ciudadela de la Corona de Hielo|r
 ## LoadOnDemand: 1
 ## RequiredDeps: DBM-Core
-## SavedVariablesPerCharacter: DBMIcecrown_SavedVars, DBMIcecrown_SavedStats
+## SavedVariables: DBMIcecrown_AllSavedVars
+## SavedVariablesPerCharacter: DBMIcecrown_SavedStats
 ## X-DBM-Mod: 1
-## X-DBM-Mod-Category: WotLK
-## X-DBM-Mod-SubCategories: The Lower Spire, The Plagueworks, The Crimson Hall, Frostwing Halls, The Frozen Throne
-## X-DBM-Mod-SubCategories-deDE: Die untere Spitze, Die Seuchenwerke, Die Blutrote Halle, Hallen der Frostschwingen, Der Gefrorene Thron
-## X-DBM-Mod-SubCategories-frFR: La Flèche Inférieure, L'Atelier de la Peste, La Salle Cramoisie, Les salles de l'Aile de Glace, Le trône de Glace
-## X-DBM-Mod-SubCategories-zhTW: 城塞大門,瘟疫工坊, 赤紅大廳,霜翼大廳, 冰封王座
-## X-DBM-Mod-SubCategories-zhCN: The Lower Spire, The Plagueworks, The Crimson Hall, Frostwing Halls, The Frozen Throne
-## X-DBM-Mod-SubCategories-koKR: 성채 하층부, 역병작업장, 진홍빛 전당, 서리날개 전당, 얼어붙은 왕좌
-## X-DBM-Mod-SubCategories-ruRU: Шпиль, Чумодельня, Багровый зал, Зал Ледокрылых, Ледяной Трон
-## X-DBM-Mod-SubCategories-esES: La Ciudadela Inferior, Los Talleres de la Peste, La Sala Carmesí, Las Cámaras de Alaescarcha, El Trono Helado
-## X-DBM-Mod-SubCategories-esMX: La Ciudadela Inferior, Los Talleres de la Peste, La Sala Carmesí, Las Cámaras de Alaescarcha, El Trono Helado
+## X-DBM-Mod-Type: RAID
+## X-DBM-Mod-Category: WOTLK
+## X-DBM-StatTypes: normal,normal25,heroic,heroic25
+## X-DBM-Mod-SubCategories: The Lower Spire, The Plagueworks, The Crimson Hall, Frostwing Halls, The Frozen Throne, Trash
+## X-DBM-Mod-SubCategories-deDE: Die Untere Spitze, Die Seuchenwerke, Die Blutrote Halle, Die Frostschwingenhallen, Der Frostthron, Trash
+## X-DBM-Mod-SubCategories-frFR: La Flèche Inférieure, L'Atelier de la Peste, La Salle Cramoisie, Les salles de l'Aile de Glace, Le trône de Glace, Trash
+## X-DBM-Mod-SubCategories-zhTW: 城塞大門,瘟疫工坊, 赤紅大廳,霜翼大廳, 冰封王座, Trash
+## X-DBM-Mod-SubCategories-zhCN: 尖塔下层, 瘟疫工厂, 血色大厅, 霜翼之厅, 冰封王座, Trash
+## X-DBM-Mod-SubCategories-koKR: 성채 하층부, 역병작업장, 진홍빛 전당, 서리날개 전당, 얼어붙은 왕좌, 일반구간
+## X-DBM-Mod-SubCategories-ruRU: Шпиль, Чумодельня, Багровый зал, Зал Ледокрылых, Ледяной Трон, Trash
+## X-DBM-Mod-SubCategories-esES: La Ciudadela Inferior, Los Talleres de la Peste, La Sala Carmesí, Las Cámaras de Alaescarcha, El Trono Helado, Enemigos menores
+## X-DBM-Mod-SubCategories-esMX: La Ciudadela Inferior, Los Talleres de la Peste, La Sala Carmesí, Las Cámaras de Alaescarcha, El Trono Helado, Enemigos menores
 ## X-DBM-Mod-Name: Icecrown Citadel
 ## X-DBM-Mod-Name-deDE: Eiskronenzitadelle
 ## X-DBM-Mod-Name-frFR: Citadelle de la Couronne de glace
 ## X-DBM-Mod-Name-koKR: 얼음왕관 성채
 ## X-DBM-Mod-Name-ruRU: Цитадель Ледяной Короны
-## X-DBM-Mod-Name-zhTW: 冰冠城塞
 ## X-DBM-Mod-Name-zhCN: 冰冠堡垒
+## X-DBM-Mod-Name-zhTW: 冰冠城塞
 ## X-DBM-Mod-Name-esES: Ciudadela de la Corona de Hielo
 ## X-DBM-Mod-Name-esMX: Ciudadela de la Corona de Hielo
 ## X-DBM-Mod-Sort: 0
---## X-DBM-Mod-LoadZoneID: 605
+## X-DBM-Mod-MapID: 605
 ## X-DBM-Mod-LoadZone: Icecrown Citadel
 ## X-DBM-Mod-LoadZone-deDE: Eiskronenzitadelle
 ## X-DBM-Mod-LoadZone-frFR: Citadelle de la Couronne de glace
@@ -41,6 +45,7 @@
 ## X-DBM-Mod-LoadZone-zhCN: 冰冠堡垒
 ## X-DBM-Mod-LoadZone-esES: Ciudadela de la Corona de Hielo
 ## X-DBM-Mod-LoadZone-esMX: Ciudadela de la Corona de Hielo
+
 localization.en.lua
 localization.de.lua
 localization.kr.lua
@@ -49,20 +54,19 @@ localization.tw.lua
 localization.cn.lua
 localization.fr.lua
 localization.es.lua
-MapSizes.lua
+
+Trash.lua
 TheLowerSpire\LordMarrowgar.lua
 TheLowerSpire\Deathwhisper.lua
 TheLowerSpire\GunshipBattle.lua
 TheLowerSpire\Deathbringer.lua
-TheLowerSpire\LowerSpireTrash.lua
 ThePlagueworks\Festergut.lua
 ThePlagueworks\Rotface.lua
 ThePlagueworks\Putricide.lua
-ThePlagueworks\PlagueworksTrash.lua
 TheCrimsonHall\BPCouncil.lua
 TheCrimsonHall\Lanathel.lua
-TheCrimsonHall\CrimsonHallTrash.lua
 FrostwingHalls\Valithria.lua
 FrostwingHalls\Sindragosa.lua
-FrostwingHalls\FrostwingHallTrash.lua
 TheFrozenThrone\LichKing.lua
+TheFrozenThrone\LichKingFrame.lua
+TheFrozenThrone\LichKingFrame.xml

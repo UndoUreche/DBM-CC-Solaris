@@ -1,48 +1,49 @@
 local mod	= DBM:NewMod("Saviana", "DBM-ChamberOfAspects", 2)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision(("$Revision: 4241 $"):sub(12, -3))
+mod:SetRevision("20220518110528")
 mod:SetCreatureID(39747)
 mod:SetUsedIcons(8, 7, 6, 5, 4)
 
 mod:RegisterCombat("combat")
 
-mod:RegisterEvents(
-	"SPELL_CAST_START",
-	"SPELL_AURA_APPLIED",
-	"SPELL_AURA_REMOVED"
+mod:RegisterEventsInCombat(
+	"SPELL_CAST_START 74403 74404",
+	"SPELL_AURA_APPLIED 78722 74453",
+	"SPELL_AURA_REMOVED 78722"
 )
 
-local warningWarnBeacon		= mod:NewTargetAnnounce(74453, 4)--Will change to a target announce if possible. need to do encounter
-local warningWarnEnrage		= mod:NewSpellAnnounce(78722, 3)
-local warningWarnBreath		= mod:NewSpellAnnounce(74404, 3)
+local warningWarnBeacon		= mod:NewTargetNoFilterAnnounce(74453, 4)--Will change to a target announce if possible. need to do encounter
+local warningWarnBreath		= mod:NewSpellAnnounce(74403, 3)
 
-local specWarnBeacon		= mod:NewSpecialWarningYou(74453)--Target scanning may not even work since i haven't done encounter yet it's just a guess.
-local specWarnTranq			= mod:NewSpecialWarning("SpecialWarningTranq", mod:CanRemoveEnrage())
+local specWarnBeacon		= mod:NewSpecialWarningYou(74453, nil, nil, nil, 1, 2)--Target scanning may not even work since i haven't done encounter yet it's just a guess.
+local specWarnTranq			= mod:NewSpecialWarningDispel(78722, "RemoveEnrage", nil, nil, 1, 2)
 
-local timerBeacon			= mod:NewBuffActiveTimer(5, 74453)
-local timerConflag			= mod:NewBuffActiveTimer(5, 74456)
-local timerConflagCD		= mod:NewNextTimer(50, 74452)
-local timerBreath			= mod:NewCDTimer(25, 74404, nil, mod:IsTank() or mod:IsHealer())
-local timerEnrage			= mod:NewBuffActiveTimer(10, 78722)
+local timerBeacon			= mod:NewBuffActiveTimer(5, 74453, nil, nil, nil, 3)
+local timerConflag			= mod:NewBuffActiveTimer(5, 74456, nil, nil, nil, 3)
+local timerConflagCD		= mod:NewNextTimer(50, 74452, nil, nil, nil, 3)
+local timerBreath			= mod:NewCDTimer(25, 74403, nil, "Tank|Healer", nil, 5, nil, DBM_COMMON_L.TANK_ICON)
+local timerEnrage			= mod:NewBuffActiveTimer(10, 78722, nil, "RemoveEnrage|Tank|Healer", nil, 5, nil, DBM_COMMON_L.ENRAGE_ICON..DBM_COMMON_L.TANK_ICON)
 
-mod:AddBoolOption("RangeFrame")
-mod:AddBoolOption("BeaconIcon")
+mod:AddRangeFrameOption(10, 74456)
+mod:AddSetIconOption("beaconIcon", 74453, true, false, {8, 7, 6, 5, 4})
+
+mod:GroupSpells(74453, 74456, 74452)--Group target debuff ID with regular debuff IDs
 
 local beaconTargets = {}
-local beaconIcon 	= 8
+mod.vb.beaconIcon	= 8
 
-local function warnConflagTargets()
+local function warnConflagTargets(self)
 	warningWarnBeacon:Show(table.concat(beaconTargets, "<, >"))
 	table.wipe(beaconTargets)
-	beaconIcon = 8
+	self.vb.beaconIcon = 8
 end
 
 function mod:OnCombatStart(delay)
 	timerConflagCD:Start(32-delay)--need more pulls to verify consistency
 	timerBreath:Start(12-delay)--need more pulls to verify consistency
 	table.wipe(beaconTargets)
-	beaconIcon = 8
+	self.vb.beaconIcon = 8
 	if self.Options.RangeFrame then
 		DBM.RangeCheck:Show(10)
 	end
@@ -62,29 +63,31 @@ function mod:SPELL_CAST_START(args)
 end
 
 function mod:SPELL_AURA_APPLIED(args)
-	if args:IsSpellID(78722) then
-		warningWarnEnrage:Show()
-		specWarnTranq:Show()
+	local spellId = args.spellId
+	if spellId == 78722 then
+		specWarnTranq:Show(args.destName)
+		specWarnTranq:Play("trannow")
 		timerEnrage:Start()
-	elseif args:IsSpellID(74453) then
+	elseif spellId == 74453 then
 		beaconTargets[#beaconTargets + 1] = args.destName
 		timerConflagCD:Start()
 		timerBeacon:Start()
 		timerConflag:Schedule(5)
 		if args:IsPlayer() then
 			specWarnBeacon:Show()
+			specWarnBeacon:Play("targetyou")
 		end
-		if self.Options.BeaconIcon then
-			self:SetIcon(args.destName, beaconIcon, 11)
-			beaconIcon = beaconIcon - 1
+		if self.Options.beaconIcon then
+			self:SetIcon(args.destName, self.vb.beaconIcon, 11)
 		end
+		self.vb.beaconIcon = self.vb.beaconIcon - 1
 		self:Unschedule(warnConflagTargets)
-		self:Schedule(0.3, warnConflagTargets)
+		self:Schedule(0.3, warnConflagTargets, self)
 	end
 end
 
 function mod:SPELL_AURA_REMOVED(args)
-	if args:IsSpellID(78722) then
+	if args.spellId == 78722 then
 		timerEnrage:Cancel()
 	end
 end

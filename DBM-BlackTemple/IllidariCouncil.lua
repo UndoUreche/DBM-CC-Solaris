@@ -1,201 +1,110 @@
-local Council = DBM:NewBossMod("Council", DBM_COUNCIL_NAME, DBM_COUNCIL_DESCRIPTION, DBM_BLACK_TEMPLE, DBM_BT_TAB, 8)
+local mod	= DBM:NewMod("Council", "DBM-BlackTemple")
+local L		= mod:GetLocalizedStrings()
 
-Council.Version		= "1.0"
-Council.Author		= "Tandanu"
+mod:SetRevision("20220518110528")
+mod:SetCreatureID(22949, 22950, 22951, 22952)
 
-Council:SetCreatureID(22949)
-Council:RegisterCombat("yell", DBM_COUNCIL_YELL_PULL1, DBM_COUNCIL_YELL_PULL2, DBM_COUNCIL_YELL_PULL3, DBM_COUNCIL_YELL_PULL4)
+mod:SetModelID(21416)
+mod:SetUsedIcons(1)
 
-Council:AddOption("WarnCoH", true, DBM_COUNCIL_OPTION_COH)
-Council:AddOption("WarnDP", true, DBM_COUNCIL_OPTION_DP)
-Council:AddOption("WarnDW", false, DBM_COUNCIL_OPTION_DW)
-Council:AddOption("WarnVanish", true, DBM_COUNCIL_OPTION_VANISH)
-Council:AddOption("WarnVanishFade", true, DBM_COUNCIL_OPTION_VANISHFADED)
-Council:AddOption("WarnVanishFadeSoon", true, DBM_COUNCIL_OPTION_VANISHFADESOON)
-Council:AddOption("WarnShieldNormal", true, DBM_COUNCIL_OPTION_SN)
-Council:AddOption("WarnShieldSpell", true, DBM_COUNCIL_OPTION_SS)
-Council:AddOption("WarnShieldMelee", true, DBM_COUNCIL_OPTION_SM)
-Council:AddOption("WarnDevAura", true, DBM_COUNCIL_OPTION_DEVAURA)
-Council:AddOption("WarnResAura", true, DBM_COUNCIL_OPTION_RESAURA)
+mod:RegisterCombat("combat")
 
-Council:AddBarOption("Enrage")
-Council:AddBarOption("Circle of Healing")
-Council:AddBarOption("Next Circle of Healing")
-Council:AddBarOption("Divine Wrath") 
-Council:AddBarOption("Reflective Shield")
-Council:AddBarOption("Vanish")
-Council:AddBarOption("Devotion Aura")
-Council:AddBarOption("Resistance Aura")
-Council:AddBarOption("Spell Shield: (.*)")
-Council:AddBarOption("Melee Shield: (.*)")
-
-Council:RegisterEvents(
-	"SPELL_CAST_START",
-	"SPELL_HEAL",
-	"SPELL_INTERRUPT",
-	"SPELL_AURA_APPLIED",
-	"SPELL_AURA_REMOVED"
+mod:RegisterEventsInCombat(
+	"SPELL_CAST_START 41455",
+	"SPELL_CAST_SUCCESS 41455",
+	"SPELL_AURA_APPLIED 41485 41481 41482 41541 41476 41475 41452 41453 41450 41451",
+	"SPELL_AURA_REMOVED 41479 41485"
 )
 
-function Council:OnCombatStart(delay)
-	self:StartStatusBarTimer(900 - delay, "Enrage", "Interface\\Icons\\Spell_Shadow_UnholyFrenzy")	
-	self:ScheduleAnnounce(300 - delay, DBM_GENERIC_ENRAGE_WARN:format(10, DBM_MIN), 1)
-	self:ScheduleAnnounce(600 - delay, DBM_GENERIC_ENRAGE_WARN:format(5, DBM_MIN), 1)
-	self:ScheduleAnnounce(720 - delay, DBM_GENERIC_ENRAGE_WARN:format(3, DBM_MIN), 1)
-	self:ScheduleAnnounce(840 - delay, DBM_GENERIC_ENRAGE_WARN:format(1, DBM_MIN), 2)
-	self:ScheduleAnnounce(870 - delay, DBM_GENERIC_ENRAGE_WARN:format(30, DBM_SEC), 3)
-	self:ScheduleAnnounce(890 - delay, DBM_GENERIC_ENRAGE_WARN:format(10, DBM_SEC), 4)
+local warnPoison			= mod:NewTargetNoFilterAnnounce(41485, 3, nil, "Healer", 3)
+local warnVanish			= mod:NewTargetNoFilterAnnounce(41476, 3)
+local warnVanishEnd			= mod:NewEndAnnounce(41476, 3)
+local warnDevAura			= mod:NewSpellAnnounce(41452, 3, nil, "Physical", 2)
+local warnResAura			= mod:NewSpellAnnounce(41453, 3, nil, "-Physical", 2)
+
+local specWarnShield		= mod:NewSpecialWarningReflect(41475, "Dps", nil, nil, 1, 2)
+local specWarnFlame			= mod:NewSpecialWarningMove(41481, nil, nil, nil, 1, 2)
+local specWarnBlizzard		= mod:NewSpecialWarningMove(41482, nil, nil, nil, 1, 2)
+local specWarnConsecration	= mod:NewSpecialWarningMove(41541, nil, nil, nil, 1, 2)
+local specWarnCoH			= mod:NewSpecialWarningInterrupt(41455, "HasInterrupt", nil, 2, 1, 2)
+local specWarnImmune		= mod:NewSpecialWarning("Immune", false)
+
+local timerVanish			= mod:NewBuffActiveTimer(31, 41476, nil, nil, nil, 6)
+local timerShield			= mod:NewBuffActiveTimer(20, 41475, nil, nil, nil, 5, nil, DBM_COMMON_L.HEALER_ICON..DBM_COMMON_L.DAMAGE_ICON)
+local timerMeleeImmune		= mod:NewTargetTimer(15, 41450, nil, "Physical", 2, 5, nil, DBM_COMMON_L.DAMAGE_ICON)
+local timerSpellImmune		= mod:NewTargetTimer(15, 41451, nil, "-Physical", 2, 5, nil, DBM_COMMON_L.DAMAGE_ICON)
+local timerDevAura			= mod:NewBuffActiveTimer(30, 41452, nil, "Physical", 2, 5, nil, DBM_COMMON_L.DAMAGE_ICON)
+local timerResAura			= mod:NewBuffActiveTimer(30, 41453, nil, "-Physical", 2, 5, nil, DBM_COMMON_L.DAMAGE_ICON)
+local timerNextCoH			= mod:NewCDTimer(14, 41455, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
+
+local berserkTimer			= mod:NewBerserkTimer(900)
+
+mod:AddSetIconOption("PoisonIcon", 41485)
+
+function mod:OnCombatStart(delay)
+	berserkTimer:Start(-delay)
 end
 
-function Council:OnEvent(event, args)
-	if event == "SPELL_CAST_START" then
-		if args.spellId == 41455 then
-			self:SendSync("CoHCast")
-		elseif args.spellId == 41472 then
-			self:SendSync("DWCast")
+function mod:SPELL_AURA_APPLIED(args)
+	local spellId = args.spellId
+	if spellId == 41485 then
+		warnPoison:Show(args.destName)
+		if self.Options.PoisonIcon then
+			self:SetIcon(args.destName, 1)
 		end
-	elseif event == "SPELL_HEAL" then
-		if args.spellId == 41455 then
-			self:SendSync("CoHHeal")
-		end
-	elseif event == "SPELL_INTERRUPT" then
-		if args.extraSpellId == 41455 then
-			self:SendSync("CoHInterrupt")
-		end
-	elseif event == "SPELL_AURA_APPLIED" then
-		if args.spellId == 41485 then
-			self:SendSync("DP"..tostring(args.destName))
-		elseif args.spellId == 41472 then
-			self:SendSync("DW"..tostring(args.destName))
-		elseif args.spellId == 41476 then
-			self:SendSync("Vanish")
-		elseif args.spellId == 41475 then
-			self:SendSync("ShieldNormal")
-		elseif args.spellId == 41452 then
-			self:SendSync("DevAura")
-		elseif args.spellId == 41453 then
-			self:SendSync("ResAura")
-		elseif args.spellId == 41451 then
-			local target = args.destName
-			if target == DBM_COUNCIL_MOB_GATHIOS then
-				target = DBM_COUNCIL_MOB_GATHIOS_EN
-			elseif target == DBM_COUNCIL_MOB_MALANDE then
-				target = DBM_COUNCIL_MOB_MALANDE_EN
-			elseif target == DBM_COUNCIL_MOB_ZEREVOR then
-				target = DBM_COUNCIL_MOB_ZEREVOR_EN
-			elseif target == DBM_COUNCIL_MOB_VERAS then
-				target = DBM_COUNCIL_MOB_VERAS_EN
-			else
-				return
-			end
-			self:SendSync("Spellward"..target)
-		elseif args.spellId == 41450 then
-			local target = args.destName
-			if target == DBM_COUNCIL_MOB_GATHIOS then
-				target = DBM_COUNCIL_MOB_GATHIOS_EN
-			elseif target == DBM_COUNCIL_MOB_MALANDE then
-				target = DBM_COUNCIL_MOB_MALANDE_EN
-			elseif target == DBM_COUNCIL_MOB_ZEREVOR then
-				target = DBM_COUNCIL_MOB_ZEREVOR_EN
-			elseif target == DBM_COUNCIL_MOB_VERAS then
-				target = DBM_COUNCIL_MOB_VERAS_EN
-			else
-				return
-			end
-			self:SendSync("Protection"..target)
-		end
-	elseif event == "SPELL_AURA_REMOVED" then
-		if args.spellId == 41476 then
-			self:SendSync("FadeVanish")
-		end
-	elseif event == "VanishFadeSoon" then
-		if self.Options.WarnVanishFadeSoon then
-			self:Announce(DBM_COUNCIL_WARN_VANISHFADE_SOON, 3)
+	elseif spellId == 41481 and args:IsPlayer() and self:AntiSpam(3, 1) and not self:IsTrivial() then
+		 specWarnFlame:Show()
+		 specWarnFlame:Play("runaway")
+	elseif spellId == 41482 and args:IsPlayer() and self:AntiSpam(3, 2) and not self:IsTrivial() then
+		 specWarnBlizzard:Show()
+		 specWarnBlizzard:Play("runaway")
+	elseif spellId == 41541 and args:IsPlayer() and self:AntiSpam(3, 3) and not self:IsTrivial() then
+		 specWarnConsecration:Show()
+		 specWarnConsecration:Play("runaway")
+	elseif spellId == 41476 then
+		warnVanish:Show(args.destName)
+		timerVanish:Start(args.destName)
+	elseif spellId == 41475 and not self:IsTrivial() then
+		specWarnShield:Show(args.destName)
+		specWarnShield:Play("stopattack")
+		timerShield:Start(args.destName)
+	elseif spellId == 41452 and self:GetCIDFromGUID(args.destGUID) == 22949 then
+		warnDevAura:Show()
+		timerDevAura:Start()
+	elseif spellId == 41453 and self:GetCIDFromGUID(args.destGUID) == 22949 then
+		warnResAura:Show()
+		timerResAura:Start()
+	elseif spellId == 41450 and self:GetCIDFromGUID(args.destGUID) == 22951 then
+		timerMeleeImmune:Start(args.destName)
+		specWarnImmune:Show(L.Melee)
+	elseif spellId == 41451 and self:GetCIDFromGUID(args.destGUID) == 22951 then
+		timerSpellImmune:Start(args.destName)
+		specWarnImmune:Show(L.Spell)
+	end
+end
+
+function mod:SPELL_AURA_REMOVED(args)
+	local spellId = args.spellId
+	if spellId == 41479 then
+		warnVanishEnd:Show()
+	elseif spellId == 41485 then
+		if self.Options.PoisonIcon then
+			self:SetIcon(args.destName, 0)
 		end
 	end
 end
 
-function Council:OnSync(msg)
-	if msg:sub(0, 9) == "Spellward" then
-		msg = msg:sub(10)
-		self:StartStatusBarTimer(15, "Spell Shield: "..msg, "Interface\\Icons\\Spell_Holy_SealOfRighteousness")
-		
-		if self.Options.WarnShieldSpell then
-			if GetLocale():sub(0, 2) ~= "en" then
-				if msg == DBM_COUNCIL_MOB_GATHIOS_EN then
-					msg = DBM_COUNCIL_MOB_GATHIOS
-				elseif msg == DBM_COUNCIL_MOB_MALANDE_EN then
-					msg = DBM_COUNCIL_MOB_MALANDE
-				elseif msg == DBM_COUNCIL_MOB_ZEREVOR_EN then
-					msg = DBM_COUNCIL_MOB_ZEREVOR
-				elseif msg == DBM_COUNCIL_MOB_VERAS_EN then
-					msg = DBM_COUNCIL_MOB_VERAS
-				end
-			end
-			self:Announce(DBM_COUNCIL_WARN_SHIELD_SPELL:format(msg), 2)
+function mod:SPELL_CAST_START(args)
+	if args.spellId == 41455 then
+		if self:CheckInterruptFilter(args.sourceGUID) then
+			specWarnCoH:Show(args.sourceName)
+			specWarnCoH:Play("kickcast")
 		end
-		
-	elseif msg == "DWCast" then
-		self:StartStatusBarTimer(2, "Divine Wrath", "Interface\\Icons\\Spell_Holy_SearingLight")
+	end
+end
 
-	elseif msg:sub(0, 10) == "Protection" and self.InCombat then
-		msg = msg:sub(11)
-		self:StartStatusBarTimer(15, "Melee Shield: "..msg, "Interface\\Icons\\Spell_Holy_SealOfProtection")
-		if self.Options.WarnShieldMelee then
-			if GetLocale():sub(0, 2) ~= "en" then
-				if msg == DBM_COUNCIL_MOB_GATHIOS_EN then
-					msg = DBM_COUNCIL_MOB_GATHIOS
-				elseif msg == DBM_COUNCIL_MOB_MALANDE_EN then
-					msg = DBM_COUNCIL_MOB_MALANDE
-				elseif msg == DBM_COUNCIL_MOB_ZEREVOR_EN then
-					msg = DBM_COUNCIL_MOB_ZEREVOR
-				elseif msg == DBM_COUNCIL_MOB_VERAS_EN then
-					msg = DBM_COUNCIL_MOB_VERAS
-				end
-			end
-			self:Announce(DBM_COUNCIL_WARN_SHIELD_MELEE:format(msg), 2)
-		end
-	elseif msg == "CoHCast" then
-		if self.Options.WarnCoH then
-			self:Announce(DBM_COUNCIL_WARN_CAST_COH, 4)
-		end
-		self:StartStatusBarTimer(2.5, "Circle of Healing", "Interface\\Icons\\Spell_Holy_CircleOfRenewal")
-	elseif msg == "CoHHeal" then
-		self:StartStatusBarTimer(19.5, "Next Circle of Healing", "Interface\\Icons\\Spell_Holy_CircleOfRenewal")
-	elseif msg == "CoHInterrupt" then
-		self:StartStatusBarTimer(14.5, "Next Circle of Healing", "Interface\\Icons\\Spell_Holy_CircleOfRenewal")
-	elseif msg:sub(0, 2) == "DP" and self.InCombat then
-		msg = msg:sub(3)
-		if self.Options.WarnDP then
-			self:Announce(DBM_COUNCIL_WARN_POISON:format(msg), 2)
-		end
-		self:SetIcon(msg, 8)
-	elseif msg:sub(0, 2) == "DW" then
-		msg = msg:sub(3)
-		if self.Options.WarnDW then
-			self:Announce(DBM_COUNCIL_WARN_WRATH:format(msg), 1)
-		end
-	elseif msg == "ShieldNormal" then
-		if self.Options.WarnShieldNormal then
-			self:Announce(DBM_COUNCIL_WARN_SHIELD_NORMAL, 3)
-		end
-		self:StartStatusBarTimer(20, "Reflective Shield", "Interface\\Icons\\Spell_Holy_PowerWordShield")
-
-	elseif msg == "Vanish" and self.Options.WarnVanish then
-		self:Announce(DBM_COUNCIL_WARN_VANISH, 1)
-		self:StartStatusBarTimer(31, "Vanish", "Interface\\Icons\\Ability_Vanish")
-		self:ScheduleEvent(26, "VanishFadeSoon")
-	elseif msg == "FadeVanish" and self.Options.WarnVanishFade then
-		self:Announce(DBM_COUNCIL_WARN_VANISH_FADED, 4)
-	elseif msg == "DevAura" then
-		if self.Options.WarnDevAura then
-			self:Announce(DBM_COUNCIL_WARN_AURA_DEV, 1)
-		end
-		self:StartStatusBarTimer(30, "Devotion Aura", "Interface\\Icons\\Spell_Holy_SealOfProtection")
-	elseif msg == "ResAura" then
-		if self.Options.WarnResAura then
-			self:Announce(DBM_COUNCIL_WARN_AURA_RES, 1)
-		end
-		self:StartStatusBarTimer(30, "Resistance Aura", "Interface\\Icons\\Spell_Frost_WizardMark")
+function mod:SPELL_CAST_SUCCESS(args)
+	if args.spellId == 41455 then
+		timerNextCoH:Start(13.3)
 	end
 end

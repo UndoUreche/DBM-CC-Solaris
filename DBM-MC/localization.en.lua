@@ -5,67 +5,63 @@ local L
 ----------------
 L = DBM:GetModLocalization("Lucifron")
 
-L:SetGeneralLocalization{
+L:SetGeneralLocalization({
 	name = "Lucifron"
-}
+})
 
 ----------------
 --  Magmadar  --
 ----------------
 L = DBM:GetModLocalization("Magmadar")
 
-L:SetGeneralLocalization{
+L:SetGeneralLocalization({
 	name = "Magmadar"
-}
+})
 
 ----------------
 --  Gehennas  --
 ----------------
 L = DBM:GetModLocalization("Gehennas")
 
-L:SetGeneralLocalization{
+L:SetGeneralLocalization({
 	name = "Gehennas"
-}
+})
 
 ------------
 --  Garr  --
 ------------
-L = DBM:GetModLocalization("Garr")
+L = DBM:GetModLocalization("Garr-Classic")
 
-L:SetGeneralLocalization{
+L:SetGeneralLocalization({
 	name = "Garr"
-}
+})
 
 --------------
 --  Geddon  --
 --------------
 L = DBM:GetModLocalization("Geddon")
 
-L:SetGeneralLocalization{
+L:SetGeneralLocalization({
 	name = "Baron Geddon"
-}
-
-L:SetOptionLocalization{
-	SetIconOnBombTarget	= DBM_CORE_AUTO_ICONS_OPTION_TEXT:format(20475)
-}
+})
 
 ----------------
 --  Shazzrah  --
 ----------------
 L = DBM:GetModLocalization("Shazzrah")
 
-L:SetGeneralLocalization{
+L:SetGeneralLocalization({
 	name = "Shazzrah"
-}
+})
 
 ----------------
 --  Sulfuron  --
 ----------------
 L = DBM:GetModLocalization("Sulfuron")
 
-L:SetGeneralLocalization{
-	name = "Sulfuron Harbringer"
-}
+L:SetGeneralLocalization({
+	name = "Sulfuron Harbinger"
+})
 
 ----------------
 --  Golemagg  --
@@ -128,3 +124,12 @@ L:SetMiscLocalization{
 	Submerge2	= "YOU CANNOT DEFEAT THE LIVING FLAME! COME YOU MINIONS OF FIRE! COME FORTH, YOU CREATURES OF HATE! YOUR MASTER CALLS!",
 	Pull		= "Impudent whelps! You've rushed headlong to your own deaths! See now, the master stirs!\r\n"
 }
+
+-----------------
+--  MC: Trash  --
+-----------------
+L = DBM:GetModLocalization("MCTrash")
+
+L:SetGeneralLocalization({
+	name = "MC: Trash"
+})

@@ -1,54 +1,54 @@
-local Fathomlord = DBM:NewBossMod("Fathomlord", DBM_FATHOMLORD_NAME, DBM_FATHOMLORD_DESCRIPTION, DBM_COILFANG, DBM_SERPENT_TAB, 4);
+local mod	= DBM:NewMod("Fathomlord", "DBM-Serpentshrine")
+local L		= mod:GetLocalizedStrings()
 
-Fathomlord.Version		= "1.0";
-Fathomlord.Author		= "Tandanu";
+mod:SetRevision("20220811214332")
+mod:SetCreatureID(21214)
 
-Fathomlord:SetCreatureID(21214)
-Fathomlord:RegisterCombat("yell", DBM_FATHOMLORD_YELL_PULL)
+--mod:SetModelID(20662)
 
-Fathomlord:RegisterEvents(
-	"SPELL_CAST_START",
-	"SPELL_CAST_SUCCESS"
-);
+mod:RegisterCombat("combat_yell", L.YellPull)
 
-Fathomlord:AddOption("TidalTotem", true, DBM_FATHOMLORD_OPTION_TOTEM_1);
-Fathomlord:AddOption("KaraTotem", true, DBM_FATHOMLORD_OPTION_TOTEM_2);
-Fathomlord:AddOption("Heal", true, DBM_FATHOMLORD_OPTION_HEAL);
+mod:RegisterEventsInCombat(
+	"SPELL_AURA_APPLIED 38451 38452 38455",
+	"SPELL_CAST_START 38330",
+	"SPELL_SUMMON 38236"
+)
 
-Fathomlord:AddBarOption("Enrage")
-Fathomlord:AddBarOption("Healing Wave")
+local warnCariPower		= mod:NewSpellAnnounce(38451, 3)
+local warnTidalPower	= mod:NewSpellAnnounce(38452, 3)
+local warnSharPower		= mod:NewSpellAnnounce(38455, 3)
 
-function Fathomlord:OnCombatStart(delay)
-	self:StartStatusBarTimer(600 - delay, "Enrage", "Interface\\Icons\\Spell_Shadow_UnholyFrenzy");
+local specWarnHeal		= mod:NewSpecialWarningInterrupt(38330, "HasInterrupt", nil, nil, 1, 2)
+local specWarnTotem		= mod:NewSpecialWarningSwitch(38236, "Dps", nil, nil, 1, 2)
+
+local berserkTimer		= mod:NewBerserkTimer(600)
+
+function mod:OnCombatStart(delay)
+	berserkTimer:Start(-delay)
 end
 
-function Fathomlord:OnEvent(event, arg1)
-	if event == "SPELL_CAST_SUCCESS" then
-		if arg1.spellId == 38236 and arg1.sourceName == DBM_FATHOMLORD_NAME then
-			self:SendSync("KaraTotem")
-		elseif arg1.spellId == 38236 then
-			self:SendSync("TidalTotem")
-		end
-	elseif event == "SPELL_CAST_START" then
-		if arg1.spellId == 38330 then
-			self:SendSync("Heal");
+function mod:SPELL_AURA_APPLIED(args)
+	if args.spellId == 38451 then
+		warnCariPower:Show()
+	elseif args.spellId == 38452 then
+		warnTidalPower:Show()
+	elseif args.spellId == 38455 then
+		warnSharPower:Show()
+	end
+end
+
+function mod:SPELL_CAST_START(args)
+	if args.spellId == 38330 then
+		if self:CheckInterruptFilter(args.sourceGUID) then
+			specWarnHeal:Show(args.sourceName)
+			specWarnHeal:Play("kickcast")
 		end
 	end
 end
 
-function Fathomlord:OnSync(msg)
-	if msg == "TidalTotem" then
-		if self.Options.TidalTotem then
-			self:Announce(DBM_FATHOMLORD_SFTOTEM1_WARN);
-		end
-	elseif msg == "KaraTotem" then
-		if self.Options.KaraTotem then
-			self:Announce(DBM_FATHOMLORD_SFTOTEM2_WARN);
-		end
-	elseif msg == "Heal" then
-		if self.Options.Heal then
-			self:Announce(DBM_FATHOMLORD_HEAL_WARN);
-		end
-		self:StartStatusBarTimer(1, "Healing Wave", "Interface\\Icons\\Spell_Nature_MagicImmunity");
+function mod:SPELL_SUMMON(args)
+	if args.spellId == 38236 then
+		specWarnTotem:Show()
+		specWarnTotem:Play("attacktotem")
 	end
 end

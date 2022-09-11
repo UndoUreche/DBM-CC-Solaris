@@ -1,154 +1,113 @@
-local Solarian = DBM:NewBossMod("Solarian", DBM_SOLARIAN_NAME, DBM_SOLARIAN_DESCRIPTION, DBM_TEMPEST_KEEP, DBM_EYE_TAB, 3);
+local mod	= DBM:NewMod("Solarian", "DBM-TheEye")
+local L		= mod:GetLocalizedStrings()
 
-Solarian.Version	= "1.0";
-Solarian.Author		= "Tandanu";
+mod:SetRevision("20220518110528")
+mod:SetCreatureID(18805)
+mod:SetUsedIcons(8)
 
-local warnPhase = false;
-local split = false
+mod:RegisterCombat("combat")
 
-Solarian:RegisterEvents(
-	"SPELL_CAST_START",
-	"SPELL_AURA_APPLIED",
+mod:RegisterEventsInCombat(
+	"SPELL_AURA_APPLIED 42783 33045",
+	"SPELL_AURA_REMOVED 42783 33045",
+	"SPELL_CAST_START 37135",
 	"CHAT_MSG_MONSTER_YELL"
-);
+)
 
-Solarian:SetCreatureID(18805)
-Solarian:RegisterCombat("combat")
+local warnWrath			= mod:NewTargetNoFilterAnnounce(33045, 2)--42783 used later
+local warnSplit			= mod:NewAnnounce("WarnSplit", 4, 39414)
+local warnAgent			= mod:NewAnnounce("WarnAgent", 1, 39414)
+local warnPriest		= mod:NewAnnounce("WarnPriest", 1, 39414)
+local warnPhase2		= mod:NewPhaseAnnounce(2)
 
-Solarian:AddOption("WarnWrath", true, DBM_SOLARIAN_OPTION_WARN_WRATH);
-Solarian:AddOption("IconWrath", true, DBM_SOLARIAN_OPTION_ICON_WRATH);
-Solarian:AddOption("SpecWrath", true, DBM_SOLARIAN_OPTION_SPECWARN_WRATH);
-Solarian:AddOption("SoundWarning", false, DBM_SOLARIAN_OPTION_SOUND);
-Solarian:AddOption("WhisperWrath", true, DBM_SOLARIAN_OPTION_WHISPER_WRATH);
-Solarian:AddOption("WarnPhase", true, DBM_SOLARIAN_OPTION_WARN_PHASE);
+local specWarnDomination= mod:NewSpecialWarningInterrupt(37135, "HasInterrupt", nil, 2, 1, 2)
+local specWarnWrath		= mod:NewSpecialWarningMoveAway(42783, nil, nil, nil, 1, 2)
+local yellWrath			= mod:NewYell(42783)
 
-Solarian:AddBarOption("Wrath: (.*)")
-Solarian:AddBarOption("Split")
-Solarian:AddBarOption("Agents")
-Solarian:AddBarOption("Priests & Solarian")
+local timerWrath		= mod:NewTargetTimer(8, 33045)--42783 (and 6 seconds) later
+local timerSplit		= mod:NewTimer(90, "TimerSplit", 39414, nil, nil, 6)
+local timerAgent		= mod:NewTimer(4, "TimerAgent", 39414, nil, nil, 1)
+local timerPriest		= mod:NewTimer(20, "TimerPriest", 39414, nil, nil, 1)
 
-function Solarian:OnCombatStart(delay)	
-	warnPhase = false;
-	split = false
-	self:ScheduleSelf(15, "CheckBack"); -- to prevent bugs if you are using an unsupported client language...
-	
-	self:StartStatusBarTimer(50 - delay, "Split", "Interface\\Icons\\Spell_Holy_SummonLightwell");
-	if self.Options.WarnPhase then
-		self:ScheduleSelf(45 - delay, "SplitWarn");
+local berserkTimer		= mod:NewBerserkTimer(600)
+
+mod:AddRangeFrameOption(8, 33045)--Range may be larger pre nerf. it was 8 post nerf
+mod:AddSetIconOption("WrathIcon", 33045, true, false, {8})--42783 used later
+mod:AddInfoFrameOption(33044)
+
+function mod:OnCombatStart(delay)
+	timerSplit:Start(50-delay)
+	berserkTimer:Start(-delay)
+	if self.Options.InfoFrame then
+		DBM.InfoFrame:SetHeader(DBM:GetSpellInfo(33044))
+		DBM.InfoFrame:Show(10, "playerdebuffremaining", 33044)
 	end
 end
 
-function Solarian:OnCombatEnd()
-	split = false
-end
-
-local splitIds = {
-	[33189] = true,
-	[33281] = true,
-	[33282] = true,
-	[33347] = true,
-	[33348] = true,
-	[33349] = true,
-	[33350] = true,
-	[33351] = true,
-	[33352] = true,
-	[33353] = true,
-	[33354] = true,
-	[33355] = true,
-}
-
-function Solarian:OnEvent(event, arg1)
-	if event == "SPELL_AURA_APPLIED" then
-		if arg1.spellId == 42783 then
-			self:SendSync("Wrath"..tostring(arg1.destName));
-		end
-	elseif event == "SPELL_CAST_START" then
-		if arg1.spellId and splitIds[arg1.spellId] then -- wtf?
-			self:SendSync("Split");
-		end
-	elseif event == "CHAT_MSG_MONSTER_YELL" and arg1 then
-		if string.find(arg1, DBM_SOLARIAN_YELL_ENRAGE) then
-			self:Announce(DBM_SOLARIAN_ANNOUNCE_ENRAGE_PHASE, 3);
-			warnPhase = false;
-			self:EndStatusBarTimer("Split");
-			self:UnScheduleSelf("SplitWarn");
-			self:UnScheduleSelf("CheckBack");
-		end
-	elseif event == "SplitWarn" then
-		self:Announce(DBM_SOLARIAN_ANNOUNCE_SPLIT_SOON, 2);
-	elseif event == "PriestsWarn" then
-		self:Announce(DBM_SOLARIAN_ANNOUNCE_PRIESTS_SOON, 2);
-	elseif event == "PriestsNow" then
-		self:Announce(DBM_SOLARIAN_ANNOUNCE_PRIESTS_NOW, 3);
-	elseif event == "AgentsNow" then
-		self:Announce(DBM_SOLARIAN_ANNOUNCE_AGENTS_NOW, 2);
-	elseif event == "CheckBack" then
-		for i = 1, GetNumRaidMembers() do
-			if UnitName("raid"..i.."target") == DBM_SOLARIAN_NAME and UnitAffectingCombat("raid"..i.."target") then -- to prevent false positives after wipes
-				warnPhase = true;
-				break;
-			end
-		end
-	elseif event == "ResetSplit" then
-		split = false
+function mod:OnCombatEnd()
+	if self.Options.RangeFrame then
+		DBM.RangeCheck:Hide()
+	end
+	if self.Options.InfoFrame then
+		DBM.InfoFrame:Hide()
 	end
 end
 
-
-function Solarian:OnSync(msg)
-	if string.sub(msg, 1, 5) == "Wrath" then
-		local target = string.sub(msg, 6);
-		if target then
-			if target == UnitName("player") then
-			   if self.Options.SpecWrath then 
-				  self:AddSpecialWarning(DBM_SOLARIAN_SPECWARN_WRATH); 
-			   end 
-			   if self.Options.SoundWarning then 
-				  PlaySoundFile("Sound\\Spells\\PVPFlagTaken.wav"); 
-				  PlaySoundFile("Sound\\Creature\\HoodWolf\\HoodWolfTransformPlayer01.wav");
-			   end 
+function mod:SPELL_AURA_APPLIED(args)
+	local spellId = args.spellId
+	if spellId == 42783 or spellId == 33045 then
+		timerWrath:Start(args.destName)
+		if args:IsPlayer() then
+			specWarnWrath:Show()
+			specWarnWrath:Play("runout")
+			yellWrath:Yell()
+			if self.Options.RangeFrame then
+				DBM.RangeCheck:Show(8)
 			end
-			if self.Options.WarnWrath then
-				self:Announce(string.format(DBM_SOLARIAN_ANNOUNCE_WRATH, target), 1);
-			end
-			if self.Options.IconWrath then
-				self:SetIcon(target, 6);
-			end
-			if self.Options.WhisperWrath then
-				self:SendHiddenWhisper(DBM_SOLARIAN_SPECWARN_WRATH, target)
-			end
-			self:StartStatusBarTimer(6, "Wrath: "..target, "Interface\\Icons\\Spell_Arcane_ArcaneTorrent")
+		else
+			warnWrath:Show(args.destName)
 		end
-		
-	elseif msg == "Split" then
-		split = true
-		if self.Options.WarnPhase then
-			self:Announce(DBM_SOLARIAN_ANNOUNCE_SPLIT, 3);
-			self:ScheduleSelf(6, "AgentsNow");
-			self:ScheduleSelf(17, "PriestsWarn");
-			self:ScheduleSelf(22, "PriestsNow");
-			self:ScheduleSelf(85, "SplitWarn");
-		end		
-		self:StartStatusBarTimer(90, "Split", "Interface\\Icons\\Spell_Holy_SummonLightwell");
-		self:StartStatusBarTimer(22.5, "Priests & Solarian", "Interface\\Icons\\Spell_Holy_Renew");
-		self:StartStatusBarTimer(6.5, "Agents", "Interface\\Icons\\Spell_Holy_AuraMastery");
-		self:ScheduleEvent(50, "ResetSplit")
+		if self.Options.WrathIcon then
+			self:SetIcon(args.destName, 8, 6)
+		end
 	end
 end
 
-function Solarian:OnUpdate(elapsed) -- this can be used to detect the phase if nobody was in range after her teleport
-	if not split and self.InCombat then
-		local foundIt;
-		for i = 1, GetNumRaidMembers() do
-			if UnitName("raid"..i.."target") == DBM_SOLARIAN_NAME then
-				foundIt = true;
-				break;
+function mod:SPELL_AURA_REMOVED(args)
+	if args.spellId == 42783 or args.spellId == 33045 then
+		timerWrath:Cancel(args.destName)
+		if args:IsPlayer() then
+			if self.Options.RangeFrame then
+				DBM.RangeCheck:Hide()
 			end
 		end
-		if not foundIt and warnPhase then
-			self:SendSync("Split");
-			warnPhase = false;
-			self:ScheduleSelf(45, "CheckBack");
+		if self.Options.WrathIcon then
+			self:SetIcon(args.destName, 0)
 		end
+	end
+end
+
+function mod:SPELL_CAST_START(args)
+	if args.spellId == 37135 then
+		specWarnDomination:Show(args.sourceName)
+		specWarnDomination:Play("kickcast")
+	end
+end
+
+function mod:CHAT_MSG_MONSTER_YELL(msg)
+	if msg == L.YellSplit1 or msg:find(L.YellSplit1) or msg == L.YellSplit2 or msg:find(L.YellSplit2) then
+		warnSplit:Show()
+		timerAgent:Start()
+		warnAgent:Schedule(4)
+		timerPriest:Start()
+		warnPriest:Schedule(20)
+		timerSplit:Start()
+	elseif msg == L.YellPhase2 or msg:find(L.YellPhase2) then
+		warnPhase2:Show()
+		timerAgent:Cancel()
+		warnAgent:Cancel()
+		timerPriest:Cancel()
+		warnPriest:Cancel()
+		timerSplit:Cancel()
 	end
 end

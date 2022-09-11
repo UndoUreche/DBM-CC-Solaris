@@ -1,4 +1,4 @@
-﻿if GetLocale() ~= "ruRU" then return end
+if GetLocale() ~= "ruRU" then return end
 
 local L
 
@@ -60,14 +60,11 @@ L:SetGeneralLocalization({
 	name = "Трое аптекарей"
 })
 
-L:SetWarningLocalization({
-})
-
-L:SetTimerLocalization{
+L:SetTimerLocalization({
 	HummelActive	= "Хаммел вступает в бой",
 	BaxterActive	= "Бакстер вступает в бой",
 	FryeActive		= "Фрай вступает в бой"
-}
+})
 
 L:SetOptionLocalization({
 	TrioActiveTimer		= "Отсчет времени до вступления Троих аптекарей в бой"
@@ -92,17 +89,17 @@ L:SetWarningLocalization({
 	specWarnAttack	= "Ахун уязвим - атакуйте сейчас!"
 })
 
-L:SetTimerLocalization{
-	SubmergTimer	= "Исчезновение",
+L:SetTimerLocalization({
+	SubmergeTimer	= "Исчезновение",
 	EmergeTimer		= "Появление",
 	TimerCombat		= "Начало боя"
-}
+})
 
 L:SetOptionLocalization({
 	Submerged		= "Предупреждение, когда Ахун исчезает",
 	Emerged			= "Предупреждение, когда Ахун появляется",
 	specWarnAttack	= "Спец-предупреждение, когда Ахун становится уязвим",
-	SubmergTimer	= "Отсчет времени до исчезновения",
+	SubmergeTimer	= "Отсчет времени до исчезновения",
 	EmergeTimer		= "Отсчет времени до появления",
 	TimerCombat		= "Отсчет времени до начала боя",
 })

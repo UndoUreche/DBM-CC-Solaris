@@ -1,144 +1,125 @@
-local Lurker = DBM:NewBossMod("LurkerBelow", DBM_LURKER_NAME, DBM_LURKER_DESCRIPTION, DBM_COILFANG, DBM_SERPENT_TAB, 2);
+local mod	= DBM:NewMod("LurkerBelow", "DBM-Serpentshrine")
+local L		= mod:GetLocalizedStrings()
 
-Lurker.Version		= "2.2";
-Lurker.Author		= "Tandanu";
-Lurker.MinVersionToSync = 2.7
+mod:SetRevision("20220813110833")
+mod:SetCreatureID(21217)
 
-Lurker.SubmergeWarning = false; -- to prevent spam after a wipe
-Lurker.Submerged	= false;
+--mod:SetModelID(20216)
 
-Lurker:SetCreatureID(21217)
-Lurker:RegisterCombat("combat")
+mod:RegisterCombat("combat")
 
-Lurker:AddOption("WhirlWarn", true, DBM_LURKER_OPTION_WHIRL);
-Lurker:AddOption("WhirlSoonWarn", true, DBM_LURKER_OPTION_WHIRLSOON);
-Lurker:AddOption("SpoutWarn", true, DBM_LURKER_OPTION_SPOUT);
+mod:RegisterEventsInCombat(
+	"SPELL_CAST_START 20568",
+	"CHAT_MSG_RAID_BOSS_EMOTE",
+	"UNIT_DIED",
+	"UNIT_SPELLCAST_SUCCEEDED"
+)
 
-Lurker:AddBarOption("Submerge")
-Lurker:AddBarOption("Emerge")
-Lurker:AddBarOption("Spout")
-Lurker:AddBarOption("Next Spout")
-Lurker:AddBarOption("Whirl")
+local warnSubmerge		= mod:NewAnnounce("WarnSubmerge", 2, "Interface\\AddOns\\DBM-Core\\textures\\CryptFiendBurrow.blp")
+local warnEmerge		= mod:NewAnnounce("WarnEmerge", 1, "Interface\\AddOns\\DBM-Core\\textures\\CryptFiendUnBurrow.blp")
+local warnWhirl			= mod:NewSpellAnnounce(37363, 2)
 
-Lurker:RegisterEvents(
-	"SPELL_DAMAGE",
-	"CHAT_MSG_RAID_BOSS_EMOTE"
-);
+local specWarnSpout		= mod:NewSpecialWarningSpell(37433, nil, nil, nil, 2, 2)
 
-function Lurker:OnCombatStart(delay)
-	self:StartStatusBarTimer(90, "Submerge", "Interface\\AddOns\\DBM_API\\Textures\\CryptFiendBurrow");
-	self:ScheduleSelf(60 - delay, "SubmergeWarning", 30);
-	self:ScheduleSelf(75 - delay, "SubmergeWarning", 15);
-	self:ScheduleSelf(85 - delay, "SubmergeWarning", 5);
-	
-	self:StartStatusBarTimer(42 - delay, "Spout", "Interface\\Icons\\Spell_Frost_ChillingBlast");
-	self:ScheduleSelf(37 - delay, "SpoutWarning");
+local timerSubmerge		= mod:NewTimer(105, "TimerSubmerge", "Interface\\AddOns\\DBM-Core\\textures\\CryptFiendBurrow.blp", nil, nil, 6) -- REVIEW! no data to validate, but doesn't match wiki
+local timerEmerge		= mod:NewTimer(60, "TimerEmerge", "Interface\\AddOns\\DBM-Core\\textures\\CryptFiendUnBurrow.blp", nil, nil, 6)
+local timerSpoutCD		= mod:NewCDTimer(118.5, 37433, nil, nil, nil, 3, nil, DBM_COMMON_L.DEADLY_ICON) -- REVIEW! variance? (25 man FM log 2022/08/11) - 118.5 (happened right after emerge)
+local timerSpoutCast	= mod:NewCastTimer(3, 37433, nil, nil, nil, 3, nil, DBM_COMMON_L.DEADLY_ICON)
+local timerSpout		= mod:NewBuffActiveTimer(22, 37433, nil, nil, nil, 3, nil, DBM_COMMON_L.DEADLY_ICON)
+local timerWhirlCD		= mod:NewCDTimer(18, 37363, nil, nil, nil, 2) -- REVIEW! variance? (25 man FM log 2022/08/11) - 18.0, (after emerge) 100.5
 
-	self:StartStatusBarTimer(18 - delay, "Whirl", "Interface\\Icons\\Ability_Whirlwind");
-	self:ScheduleSelf(14 - delay, "WhirlWarning");
+mod.vb.submerged = false
+mod.vb.guardianKill = 0
+mod.vb.ambusherKill = 0
 
-	self.SubmergeWarning = false;
-	self:ScheduleSelf(20, "CheckBack");
-	
-	self.Submerged = false;
+local function emerged(self)
+	self.vb.submerged = false
+	timerEmerge:Cancel()
+	warnEmerge:Show()
+	timerSubmerge:Start()
 end
 
-function Lurker:OnEvent(event, arg1)
-	if event == "SPELL_DAMAGE" and arg1.spellId == 37363 then
-		self:SendSync("Whirl");
-		
-	elseif event == "CHAT_MSG_RAID_BOSS_EMOTE" then
-		if arg1 == DBM_LURKER_EMOTE_SPOUT then
-			if self.Options.SpoutWarn then
-				self:Announce(DBM_LURKER_WARN_SPOUT, 3);
-			end
-			
-			self:ScheduleSelf(22, "NextSpout");
-			self:EndStatusBarTimer("Whirl");
-			self:StartStatusBarTimer(22, "Spout", "Interface\\Icons\\Spell_Frost_ChillingBlast");
-			self:UnScheduleSelf("WhirlWarning");
-			self:UnScheduleSelf("SpoutWarning");
+local function submerged(self)
+	self:SetStage(2)
+	self.vb.submerged = true
+	self.vb.guardianKill = 0
+	self.vb.ambusherKill = 0
+	timerSubmerge:Cancel()
+--	timerSpoutCD:Cancel()
+	timerWhirlCD:Cancel()
+	warnSubmerge:Show()
+	timerEmerge:Start()
+end
+
+function mod:OnCombatStart(delay)
+	self:SetStage(1)
+	self.vb.submerged = false
+	timerWhirlCD:Start(62.5-delay) -- REVIEW! variance? (25 man FM log 2022/08/11) - 62.5
+	timerSpoutCD:Start(35.5-delay) -- REVIEW! variance? (25 man FM log 2022/08/11) - 35.5
+	timerSubmerge:Start(90-delay)
+end
+
+function mod:SPELL_CAST_START(args)
+	if args.spellId == 20568 then -- Ragnaros Emerge. Fires when boss emerges
+		self:SetStage(1)
+		timerEmerge:Cancel()
+		warnEmerge:Show()
+		timerSubmerge:Start()
+		self:Schedule(60, submerged, self)
+	end
+end
+
+function mod:CHAT_MSG_RAID_BOSS_EMOTE(_, source)
+	if (source or "") == L.name then
+		specWarnSpout:Show()
+		specWarnSpout:Play("watchwave")
+		timerSpoutCast:Start()
+		timerSpout:Schedule(3) -- takes 3 seconds to start Spout (from EMOTE to UNIT_SPELLCAST_SUCCEEDED)
+		timerSpoutCD:Start()
+	end
+end
+
+function mod:UNIT_DIED(args)
+	local cId = self:GetCIDFromGUID(args.destGUID)
+	if cId == 21865 then
+		self.vb.ambusherKill = self.vb.ambusherKill + 1
+		if self.vb.ambusherKill == 6 and self.vb.guardianKill == 3 and self.vb.submerged then
+			self:Unschedule(emerged)
+			self:Schedule(2, emerged, self)
 		end
-		
-	elseif event == "SpoutWarning" and self.Options.SpoutWarn then
-		self:Announce(DBM_LURKER_WARN_SPOUT_SOON, 2);
-		
-	elseif event == "NextSpout" then
-		self:StartStatusBarTimer(32, "Next Spout", "Interface\\Icons\\Spell_Frost_ChillingBlast");
-		self:ScheduleSelf(27, "SpoutWarning");
-		
-	elseif event == "Submerge" then
-		self.Submerged = true;
-		self:Announce(DBM_LURKER_WARN_SUBMERGE, 2);
-		self:UnScheduleSelf("SpoutWarning");
-		self:UnScheduleSelf("WhirlWarning");
-		self:UnScheduleSelf("NextSpout");
-		self:EndStatusBarTimer("Spout");
-		self:EndStatusBarTimer("Submerge");
-		self:EndStatusBarTimer("Whirl");
-		self:EndStatusBarTimer("Next Spout");
-		self:StartStatusBarTimer(60, "Emerge", "Interface\\AddOns\\DBM_API\\Textures\\CryptFiendUnBurrow");
-		
-	elseif event == "Emerge" then
-		self.Submerged = false;
-		self:Announce(DBM_LURKER_WARN_EMERGE, 3);
-		self:StartStatusBarTimer(90, "Submerge", "Interface\\AddOns\\DBM_API\\Textures\\CryptFiendBurrow");
-		self:EndStatusBarTimer("Emerge");
-		self:ScheduleSelf(60, "SubmergeWarning", 30);
-		self:ScheduleSelf(75, "SubmergeWarning", 15);
-		self:ScheduleSelf(85, "SubmergeWarning", 5);
-		
-	elseif event == "CheckBack" then
-		local foundIt;
-		for i = 1, GetNumRaidMembers() do
-			if UnitName("raid"..i.."target") == DBM_LURKER_NAME then
-				foundIt = true;
-			end
-		end
-		if foundIt then
-			self.SubmergeWarning = true;
-		end
-		
-	elseif event == "SubmergeWarning" then
-		if type(arg1) == "number" then
-			self:Announce(string.format(DBM_LURKER_WARN_SUBMERGE_SOON, arg1), 1);
-		end
-	elseif event == "WhirlWarning" then
-		if self.Options.WhirlSoonWarn then
-			self:Announce(DBM_LURKER_WARN_WHIRL_SOON, 1);
+	elseif cId == 21873 then
+		self.vb.guardianKill = self.vb.guardianKill + 1
+		if self.vb.ambusherKill == 6 and self.vb.guardianKill == 3 and self.vb.submerged then
+			self:Unschedule(emerged)
+			self:Schedule(2, emerged, self)
 		end
 	end
 end
 
-function Lurker:OnUpdate(elapsed)
-	if self.InCombat then
-		
-		local foundIt;
-		for i = 1, GetNumRaidMembers() do
-			if UnitName("raid"..i.."target") == DBM_LURKER_NAME then
-				foundIt = true;
-				break;
-			end
-		end
-		
-		if not foundIt and self.SubmergeWarning then
-			self:OnEvent("Submerge");
-			self.SubmergeWarning = false;
-		elseif foundIt and self.Submerged then
-			self:OnEvent("Emerge");
-			self:Schedule(10, function() DBM:GetMod("LurkerBelow").SubmergeWarning = true; end);
-		end
-
+function mod:UNIT_SPELLCAST_SUCCEEDED(_, spellName)
+	if spellName == GetSpellInfo(28819) and self:AntiSpam(2, 1) then--Submerge Visual
+		DBM:AddMsg("Submerge Visual unhidden from event log. Notify Zidras on Discord or GitHub")
+		self:SendSync("Submerge")
+	elseif spellName == GetSpellInfo(37660) and self:AntiSpam(2, 2) then
+		self:SendSync("Whirl")
 	end
 end
 
-
-function Lurker:OnSync(msg)
-	if msg == "Whirl" then
-		self:StartStatusBarTimer(17.5, "Whirl", "Interface\\Icons\\Ability_Whirlwind");
-		self:ScheduleSelf(13.5, "WhirlWarning");
-		if self.Options.WhirlWarn then
-			self:Announce(DBM_LURKER_WARN_WHIRL, 2);
-		end
+function mod:OnSync(msg)
+	if not self:IsInCombat() then return end
+	if msg == "Submerge" then
+		DBM:AddMsg("Submerge is being synced by something. Notify Zidras on Discord or GitHub with a Transcriptor log")
+--[[	self.vb.submerged = true
+		self.vb.guardianKill = 0
+		self.vb.ambusherKill = 0
+		timerSubmerge:Cancel()
+		timerSpoutCD:Cancel()
+		timerWhirlCD:Cancel()
+		warnSubmerge:Show()
+		timerEmerge:Start()
+		self:Schedule(60, emerged, self)
+]]	elseif msg == "Whirl" then
+		warnWhirl:Show()
+		timerWhirlCD:Start()
 	end
 end

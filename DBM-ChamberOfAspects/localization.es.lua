@@ -2,41 +2,39 @@
 
 local L
 
-----------------------------
---  The Obsidian Sanctum  --
-----------------------------
---  Shadron  --
----------------
+---------------------------
+-- El Sagrario Obsidiana --
+---------------------------
+-------------
+-- Shadron --
+-------------
 L = DBM:GetModLocalization("Shadron")
 
 L:SetGeneralLocalization({
 	name = "Shadron"
 })
 
-
----------------
---  Tenebron  --
----------------
+--------------
+-- Tenebron --
+--------------
 L = DBM:GetModLocalization("Tenebron")
 
 L:SetGeneralLocalization({
 	name = "Tenebron"
 })
 
-
----------------
---  Vesperon  --
----------------
+--------------
+-- Vesperon --
+--------------
 L = DBM:GetModLocalization("Vesperon")
 
 L:SetGeneralLocalization({
 	name = "Vesperon"
 })
 
-
----------------
---  Sartharion  --
----------------
+----------------
+-- Sartharion --
+----------------
 L = DBM:GetModLocalization("Sartharion")
 
 L:SetGeneralLocalization({
@@ -44,34 +42,47 @@ L:SetGeneralLocalization({
 })
 
 L:SetWarningLocalization({
-	WarningTenebron			= "Tenebron viene",
-	WarningShadron			= "Shadron viene",
-	WarningVesperon			= "Vesperon viene",
+	WarningTenebron			= "Tenebron se aproxima",
+	WarningShadron			= "Shadron se aproxima",
+	WarningVesperon			= "Vesperon se aproxima",
 	WarningFireWall			= "¡Muro de Fuego!",
+	WarningWhelpsSoon		= "Crías de Tenebron pronto",
+	WarningPortalSoon		= "Portal de Shadron pronto",
+	WarningReflectSoon		= "Vesperon Reflexiona pronto",
 	WarningVesperonPortal	= "¡Portal de Vesperon!",
 	WarningTenebronPortal	= "¡Portal de Tenebron!",
 	WarningShadronPortal	= "¡Portal de Shadron!"
 })
 
 L:SetTimerLocalization({
-	TimerTenebron	= "Tenebron viene",
-	TimerShadron	= "Shadron  viene",
-	TimerVesperon	= "Vesperon viene"
+	TimerTenebron			= "Tenebron llega",
+	TimerShadron			= "Shadron llega",
+	TimerVesperon			= "Vesperon llega",
+	TimerTenebronWhelps		= "Crías de Tenebron",
+	TimerShadronPortal		= "Portal de Shadron",
+	TimerVesperonPortal		= "Portal Vesperon",
+	TimerVesperonPortal2	= "Portal Vesperon 2"
 })
 
 L:SetOptionLocalization({
-	PlaySoundOnFireWall	= "Reproducir sonido para \"Muro de Fuego\"",
-	AnnounceFails		= "Spamear en la banda la gente que falle Muro de Fuego y Zona de Vacio (require ayudante/lider)",
-	TimerTenebron		= "Mostrar tiempo para Tenebron",
-	TimerShadron		= "Mostrar tiempo para Shadron",
-	TimerVesperon		= "Mostrar tiempo para Vesperon",
-	WarningFireWall		= "Mostrar aviso especial para \"Muro de Fuego\" ",
-	WarningTenebron		= "Mostrar tiempo para que Tenebron venga",
-	WarningShadron		= "Mostrar tiempo para que Shadron venga",
-	WarningVesperon		= "Mostrar tiempo para que Vesperon venga",
-	WarningTenebronPortal	= "Mostrar aviso especial para los portales de Tenebron",
-	WarningShadronPortal	= "Mostrar aviso especial para los portales de Shadron",
-	WarningVesperonPortal	= "Mostrar aviso especial para los portales de Vesperon"
+	AnnounceFails			= "Anunciar jugadores que reciban daño de $spell:57491 y $spell:57579 en el chat de banda (requiere líder o ayudante)",
+	TimerTenebron			= "Mostrar temporizador para la llegada de Tenebron",
+	TimerShadron			= "Mostrar temporizador para la llegada de Shadron",
+	TimerVesperon			= "Mostrar temporizador para la llegada de Vesperon",
+	TimerTenebronWhelps		= "Mostrar temporizador para crías de Tenebrón",
+	TimerShadronPortal		= "Mostrar temporizador para Shadron Portal",
+	TimerVesperonPortal		= "Mostrar temporizador para Vesperon Portal",
+	TimerVesperonPortal2	= "Mostrar temporizador para Vesperon Portal 2",
+	WarningFireWall			= "Mostrar aviso especial para $spell:57491",
+	WarningTenebron			= "Anunciar cuando Tenebron se aproxime",
+	WarningShadron			= "Anunciar cuando Shadron se aproxime",
+	WarningVesperon			= "Anunciar cuando Vesperon se aproxime",
+	WarningWhelpsSoon		= "Anunciar pronto crías de Tenebrón",
+	WarningPortalSoon		= "Anunciar Shadron Portal pronto",
+	WarningReflectSoon		= "Anunciar Vesperon Reflect pronto",
+	WarningTenebronPortal	= "Mostrar aviso especial cuando aparezca el portal de Tenebron",
+	WarningShadronPortal	= "Mostrar aviso especial cuando aparezca el portal de Shadron",
+	WarningVesperonPortal	= "Mostrar aviso especial cuando aparezca el portal de Vesperon"
 })
 
 L:SetMiscLocalization({
@@ -80,16 +91,17 @@ L:SetMiscLocalization({
 	NameTenebron	= "Tenebron",
 	NameShadron		= "Shadron",
 	NameVesperon	= "Vesperon",
-	FireWallOn		= "Muro de Fuego: %s",
-	VoidZoneOn		= "Zona de vacio: %s",
-	VoidZones		= "Zona de vacio fallos (este intento): %s",
-	FireWalls		= "Muro de Fuego fallos (esta intento): %s"
+	FireWallOn		= "Tsunami de llamas: %s",
+	VoidZoneOn		= "Fisura de las Sombras: %s",
+	VoidZones		= "Fallos en Fisura de las Sombras (en este intento): %s",
+	FireWalls		= "Fallos en Tsunami de llamas (en este intento): %s"
 })
 
-------------------------
---  The Ruby Sanctum  --
-------------------------
---  Baltharus the Warborn  --
+----------------------
+-- El Sagrario Rubí --
+----------------------
+-----------------------------
+-- Baltharus el Batallante --
 -----------------------------
 L = DBM:GetModLocalization("Baltharus")
 
@@ -98,16 +110,11 @@ L:SetGeneralLocalization({
 })
 
 L:SetWarningLocalization({
-	WarningSplitSoon	= "Separación pronto"
+	WarningSplitSoon	= "Separación en breve"
 })
 
 L:SetOptionLocalization({
-	WarningSplitSoon	= "Mostrar pre-aviso para Separación (54%)",
-	RangeFrame			= "Mostrar distancia (12 yardas)",
-	SetIconOnBrand		= DBM_CORE_AUTO_ICONS_OPTION_TEXT:format(74505)
-})
-
-L:SetMiscLocalization({
+	WarningSplitSoon	= "Mostrar aviso previo para la separación de banda"
 })
 
 -------------------------
@@ -119,23 +126,9 @@ L:SetGeneralLocalization({
 	name = "Saviana Furia Ardiente"
 })
 
-L:SetWarningLocalization({
-	SpecialWarningTranq		= "Enrage ¡Tranquilizadlo!"
-})
-
-L:SetOptionLocalization({
-	SpecialWarningTranq		= "Mostrar aviso especial para $spell:78722 (para tranquilizar)",
-	RangeFrame				= "Mostrar distancia (10 yardas)",
-	BeaconIcon				= DBM_CORE_AUTO_ICONS_OPTION_TEXT:format(74453)
-})
-
-L:SetMiscLocalization{
-}
-
-
---------------------------
---  General Zarithrian  --
---------------------------
+------------------------
+-- General Zarithrian --
+------------------------
 L = DBM:GetModLocalization("Zarithrian")
 
 L:SetGeneralLocalization({
@@ -143,28 +136,29 @@ L:SetGeneralLocalization({
 })
 
 L:SetWarningLocalization({
-	WarnAdds	= "Nuevos adds",
-	warnCleaveArmor	= "%s en >%s< (%s)"
+	WarnAdds	= "Ónices clamallamas",
+	warnCleaveArmor	= "%s en >%s< (%s)"		-- Cleave Armor on >args.destName< (args.amount)
 })
 
 L:SetTimerLocalization({
-	TimerAdds	= "Nuevos adds"
+	TimerAdds	= "Siguientes Ónices clamallamas",
+	AddsArrive	= "Adds llegan en"
 })
 
 L:SetOptionLocalization({
-	WarnAdds		= "Anunciar nuevos adds",
-	TimerAdds		= "Mostrar tiempo para nuevos adds",
-	warnCleaveArmor	= DBM_CORE_AUTO_ANNOUNCE_OPTIONS.spell:format(74367, GetSpellInfo(74367) or "unknown")
+	WarnAdds		= "Anunciar cuando aparezcan Ónices clamallamas",
+	TimerAdds		= "Mostrar temporizador para los siguientes Ónices clamallamas",
+	CancelBuff		= "Eliminar $spell:10278 y $spell:642 si se usa para eliminar $spell:74367",
+	AddsArrive		= "Mostrar temporizador para a llegada de adds", --Needs Translating
 })
 
 L:SetMiscLocalization({
 	SummonMinions	= "¡Reducidlos a cenizas, esbirros!"
 })
 
-
--------------------------------------
---  Halion the Twilight Destroyer  --
--------------------------------------
+------------
+-- Halion --
+------------
 L = DBM:GetModLocalization("Halion")
 
 L:SetGeneralLocalization({
@@ -172,32 +166,21 @@ L:SetGeneralLocalization({
 })
 
 L:SetWarningLocalization({
-	WarnPhase2Soon		= "Fase 2 pronto",
-	WarnPhase3Soon		= "Fase 3 pronto",
-	TwilightCutterCast	= "Casteando Corte Crepuscular: 5 seg"
+	TwilightCutterCast	= "Lanzando Corte Crepuscular en 5 s"
 })
 
 L:SetOptionLocalization({
-	WarnPhase2Soon			= "Mostrar pre-aviso para Fase 2 (al ~79%)",
-	WarnPhase3Soon			= "Mostrar pre-aviso para Fase 3 (al ~54%)",
-	TwilightCutterCast		= "Mostrar aviso cuando $spell:77844 se esté casteando",
-	AnnounceAlternatePhase	= "Mostrar también avisos/tiempos de la fase en la que no estás",
-	SoundOnConsumption		= "Reproducir sonido en $spell:74562 y $spell:74792",
-	SetIconOnConsumption	= "Poner iconos en los objetivos de $spell:74562 y $spell:74792",
-	YellOnConsumption		= "Gritar cuando tengas $spell:74562 o $spell:74792",
-	WhisperOnConsumption	= "Enviar susurro a los objetivos de $spell:74562 o $spell:74792"
+	TwilightCutterCast		= "Mostrar aviso cuando se esté lanzando $spell:74769",
+	AnnounceAlternatePhase	= "Mostrar avisos y temporizadores que no pertenezcan a tu fase actual",
+	SetIconOnConsumption	= "Poner iconos en los objetivos de $spell:74562 y $spell:74792"--So we can use single functions for both versions of spell.
 })
 
 L:SetMiscLocalization({
-	NormalHalion			= "Halion Físico",
-	TwilightHalion			= "Halion Crepuscular",
+	Halion					= "Halion",
+	PhysicalRealm			= "Reino físico",
 	MeteorCast				= "¡Los cielos arden!",
 	Phase2					= "En el reino del crepúsculo solo encontraréis sufrimiento. ¡Entrad si os atrevéis!",
 	Phase3					= "¡Yo soy la luz y la oscuridad! ¡Temed, mortales, la llegada de Alamuerte!",
-	twilightcutter			= "¡Las esferas que orbitan emiten energía oscura!",
-	YellCombustion			= "¡Combustión en mi!",
-	WhisperCombustion		= "¡Combustion en ti! ¡Corre a la pared!",
-	YellConsumption			= "¡Consumo en mi!",
-	WhisperConsumption		= "¡Consumo en ti! ¡Corre a la pared!",
+	twilightcutter			= "¡Temed la sombra!", -- ¡Las esferas que orbitan emiten energía oscura!", -- Can't use this since on Warmane it triggers twice, 5s prior and on cutter.
 	Kill					= "Disfrutad la victoria, mortales, porque será la última. ¡Este mundo arderá cuando vuelva el maestro!"
 })

@@ -1,146 +1,119 @@
-local Muru = DBM:NewBossMod("Muru", DBM_MURU_NAME, DBM_MURU_DESCRIPTION, DBM_SUNWELL, DBM_SW_TAB, 5)
+local mod	= DBM:NewMod("Muru", "DBM-Sunwell")
+local L		= mod:GetLocalizedStrings()
 
-Muru.Version	= "0.9"
-Muru.Author		= "Tandanu"
-Muru.MinRevision = 1011
+mod:SetRevision("20220518110528")
+mod:SetCreatureID(25741)--25741 Muru, 25840 Entropius
 
-Muru:SetCreatureID(25741)
-Muru:RegisterCombat("combat", 25840)
+mod:RegisterCombat("combat")
 
-Muru:AddOption("VoidWarn", true, DBM_MURU_OPTION_VOID)
-Muru:AddOption("VoidSoonWarn", true, DBM_MURU_OPTION_VOID_SOON)
-Muru:AddOption("HumWarn", true, DBM_MURU_OPTION_HUM)
-Muru:AddOption("HumSoonWarn", true, DBM_MURU_OPTION_HUM_SOON)
-Muru:AddOption("WarnDarkness", true, DBM_MURU_OPTION_DARKNESS)
-Muru:AddOption("WarnDarknessSoon", true, DBM_MURU_OPTION_DARKNESS_SOON)
-Muru:AddOption("WarnBlackHole", true, DBM_MURU_OPTION_HOLE_WARN)
-Muru:AddOption("PreWarnBlackHole", true, DBM_MURU_OPTION_HOLE_SOON_WARN)
-Muru:AddOption("WarnFiend", true, DBM_MURU_OPTION_WARN_FIEND)
-
-Muru:AddBarOption("Enrage")
-Muru:AddBarOption("Humanoids")
-Muru:AddBarOption("Void Sentinel")
-Muru:AddBarOption("Next Darkness")
-Muru:AddBarOption("Next Black Hole")
-
-local p2 = false
-
-Muru:RegisterEvents(
-	"SPELL_AURA_APPLIED",
-	"SPELL_SUMMON"
+mod:RegisterEventsInCombat(
+	"SPELL_AURA_APPLIED 45996",
+	"SPELL_CAST_SUCCESS 46177",
+	"SPELL_SUMMON 46268 46282",
+	"UNIT_DIED"
 )
 
+local warnHuman				= mod:NewAnnounce("WarnHuman", 4, 27778)
+local warnVoid				= mod:NewAnnounce("WarnVoid", 4, 46087)
+local warnDarkness			= mod:NewSpellAnnounce(45996, 2)
+local warnPhase2			= mod:NewPhaseAnnounce(2)
+local warnFiend				= mod:NewAnnounce("WarnFiend", 2, 46268)
+local warnBlackHole			= mod:NewSpellAnnounce(46282, 3)
 
-function Muru:OnCombatStart(delay)
-	p2 = false
-	self:StartStatusBarTimer(600 - delay, "Enrage", "Interface\\Icons\\Spell_Shadow_UnholyFrenzy") 
-	self:ScheduleAnnounce(300 - delay, DBM_GENERIC_ENRAGE_WARN:format(5, DBM_MIN), 1)
-	self:ScheduleAnnounce(420 - delay, DBM_GENERIC_ENRAGE_WARN:format(3, DBM_MIN), 1)
-	self:ScheduleAnnounce(540 - delay, DBM_GENERIC_ENRAGE_WARN:format(1, DBM_MIN), 2)
-	self:ScheduleAnnounce(570 - delay, DBM_GENERIC_ENRAGE_WARN:format(30, DBM_SEC), 3)
-	self:ScheduleAnnounce(590 - delay, DBM_GENERIC_ENRAGE_WARN:format(10, DBM_SEC), 4)
-	
-	self:StartStatusBarTimer(15 - delay, "Humanoids", "Interface\\Icons\\Spell_Holy_PrayerOfHealing")
-	self:ScheduleMethod(15 - delay, "HumanoidSpawn")
-	if self.Options.HumSoonWarn then
-		self:ScheduleAnnounce(10 - delay, DBM_MURU_WARN_HUMANOIDS_SOON, 1)
-	end
-	
-	if self.Options.VoidSoonWarn then
-		self:ScheduleAnnounce(31.5 - delay, DBM_MURU_WARN_VOID_SOON, 1)
-	end
-	self:ScheduleMethod(36.5 - delay, "VoidSpawn")
-	self:StartStatusBarTimer(36.5 - delay, "Void Sentinel", "Interface\\Icons\\Spell_Shadow_SummonVoidWalker")
-	
-	self:StartStatusBarTimer(45 - delay, "Next Darkness", 45996)
-	self:ScheduleAnnounce(40 - delay, DBM_MURU_DARKNESS_SOON, 3)
+local specWarnVoid			= mod:NewSpecialWarning("specWarnVoid")
+local specWarnBH			= mod:NewSpecialWarning("specWarnBH")
+local specWarnVW			= mod:NewSpecialWarning("specWarnVW", "Tank")
+local specWarnDarknessSoon	= mod:NewSpecialWarning("specWarnDarknessSoon", "Melee|Tank")
+
+local timerHuman			= mod:NewTimer(60, "TimerHuman", 27778, nil, nil, 6)
+local timerVoid				= mod:NewTimer(30, "TimerVoid", 46087, nil, nil, 6)
+local timerNextDarkness		= mod:NewNextTimer(45, 45996, nil, nil, nil, 2)
+local timerDarknessDura		= mod:NewBuffActiveTimer(20, 45996)
+local timerBlackHoleCD		= mod:NewCDTimer(15, 46282)
+local timerPhase			= mod:NewTimer(10, "TimerPhase", 46087, nil, nil, 6)
+local timerSingularity		= mod:NewNextTimer(3.2, 46238)
+
+local berserkTimer			= mod:NewBerserkTimer(mod:IsTimewalking() and 450 or 600)
+
+mod.vb.humanCount = 1
+mod.vb.voidCount = 1
+
+local function HumanSpawn(self)
+	warnHuman:Show(self.vb.humanCount)
+	self.vb.humanCount = self.vb.humanCount + 1
+	timerHuman:Start(nil, self.vb.humanCount)
+	self:Schedule(60, HumanSpawn, self)
 end
 
-function Muru:OnEvent(event, args)
-	if event == "SPELL_AURA_APPLIED" then
-		if args.spellId == 45996 then
-			if args.auraType == "BUFF" then
-				self:SendSync("Darkness")
-				p2 = false
-			end
-		end
-	elseif event == "SPELL_SUMMON" then
-		if args.spellId == 46268 then
-			self:SendSync("Fiend")
-		elseif args.spellId == 46282 then
-			self:SendSync("BlackHole")
-		end
-	end
+local function VoidSpawn(self)
+	warnVoid:Show(self.vb.voidCount)
+	self.vb.voidCount = self.vb.voidCount + 1
+	timerVoid:Start(nil, self.vb.voidCount)
+	specWarnVW:Schedule(25)
+	self:Schedule(30, VoidSpawn, self)
 end
 
-function Muru:OnSync(msg)
-	if msg == "Darkness" then
-		if self.Options.WarnDarkness then
-			self:Announce(DBM_MURU_DARKNESS_INC, 4)
-		end
-		self:StartStatusBarTimer(45, "Next Darkness", 45996)
-		if self.Options.WarnDarknessSoon then
-			self:ScheduleAnnounce(40, DBM_MURU_DARKNESS_SOON, 3)
-		end
-	elseif msg == "Fiend" then
-		if self.Options.WarnFiend then
-			self:Announce(DBM_MURU_WARN_FIEND, 3)
-		end
-	elseif msg == "BlackHole" then
-		if self.Options.WarnBlackHole then
-			self:Announce(DBM_MURU_WARN_BLACKHOLE, 2)
-		end
-		self:StartStatusBarTimer(15, "Next Black Hole", "Interface\\Icons\\Ability_Hunter_Resourcefulness")
-		if self.Options.PreWarnBlackHole then
-			self:ScheduleAnnounce(10, DBM_MURU_WARN_BLACKHOLE_SOON, 1)
-		end
-	elseif msg == "Phase2" then
-		p2 = true
-		self:Announce(DBM_MURU_WARN_P2, 1)
-		self:UnScheduleMethod("HumanoidSpawn")
-		self:UnScheduleMethod("VoidSpawn")
-		self:EndStatusBarTimer("Humanoids")
-		self:EndStatusBarTimer("Void Sentinel")
-		self:UnScheduleAnnounce(DBM_MURU_WARN_HUMANOIDS_SOON, 1)
-		self:UnScheduleAnnounce(DBM_MURU_WARN_VOID_SOON, 1)
+local function phase2(self)
+	self:SetStage(2)
+	warnPhase2:Show()
+	self:Unschedule(HumanSpawn)
+	self:Unschedule(VoidSpawn)
+	timerBlackHoleCD:Start(17)
+	if self.Options.HealthFrame then
+		DBM.BossHealth:Clear()
+		DBM.BossHealth:AddBoss(25840, L.Entropius)
 	end
 end
 
-function Muru:HumanoidSpawn()
-	if self.Options.HumWarn then
-		self:Announce(DBM_MURU_WARN_HUMANOIDS_NOW, 2)
-	end
-	self:StartStatusBarTimer(60, "Humanoids", "Interface\\Icons\\Spell_Holy_PrayerOfHealing", true)
-	self:ScheduleMethod(60, "HumanoidSpawn")
-	if self.Options.HumSoonWarn then
-		self:ScheduleAnnounce(55, DBM_MURU_WARN_HUMANOIDS_SOON, 1)
+function mod:OnCombatStart(delay)
+	self:SetStage(1)
+	self.vb.humanCount = 1
+	self.vb.voidCount = 1
+	timerHuman:Start(15-delay, 1)
+	timerVoid:Start(36.5-delay, 1)
+	specWarnVW:Schedule(31.5)
+	timerNextDarkness:Start(-delay)
+	specWarnDarknessSoon:Schedule(42)
+	self:Schedule(15, HumanSpawn, self)
+	self:Schedule(36.5, VoidSpawn, self)
+	berserkTimer:Start(-delay)
+end
+
+function mod:SPELL_AURA_APPLIED(args)
+	if args.spellId == 45996 and args:GetDestCreatureID() == 25741 then
+		warnDarkness:Show()
+		specWarnVoid:Show()
+		timerNextDarkness:Start()
+		timerDarknessDura:Start()
+		specWarnDarknessSoon:Schedule(40)
 	end
 end
 
-function Muru:VoidSpawn()
-	if self.Options.VoidWarn then
-		self:Announce(DBM_MURU_WARN_VOID_NOW, 3)
-	end
-	if self.Options.VoidSoonWarn then
-		self:ScheduleAnnounce(25, DBM_MURU_WARN_VOID_SOON, 1)
-	end
-	self:ScheduleMethod(30, "VoidSpawn")
-	self:StartStatusBarTimer(30, "Void Sentinel", "Interface\\Icons\\Spell_Shadow_SummonVoidWalker")
-end
-
-function Muru:OnUpdate(elapsed)
-	if p2 or not self.InCombat then return end
-	for i = 1, GetNumRaidMembers() do
-		if UnitName("raid"..i.."target") == DBM_MURU_ENTROPIUS and not UnitIsPlayer("raid"..i.."target") then
-			self:SendSync("Phase2")
-		end
+function mod:SPELL_CAST_SUCCESS(args)
+	if args.spellId == 46177 then
+		timerNextDarkness:Cancel()
+		timerHuman:Cancel()
+		timerVoid:Cancel()
+		specWarnVW:Cancel()
+		timerPhase:Start()
+		specWarnDarknessSoon:Cancel()
+		self:Schedule(10, phase2, self)
 	end
 end
 
-function Muru:GetBossHP()
-	if p2 then
-		return DBM_MURU_ENTROPIUS..": "..DBM.GetHPByName(DBM_MURU_ENTROPIUS)
-	else
-		return DBM.GetHPByName(DBM_MURU_NAME)
+function mod:SPELL_SUMMON(args)
+	if args.spellId == 46268 then
+		warnFiend:Show()
+	elseif args.spellId == 46282 then
+		warnBlackHole:Show()
+		specWarnBH:Show()
+		timerBlackHoleCD:Start()
+		timerSingularity:Start()
+	end
+end
+
+function mod:UNIT_DIED(args)
+	if self:GetCIDFromGUID(args.destGUID) == 25840 then
+		DBM:EndCombat(self)
 	end
 end

@@ -1,5 +1,4 @@
-﻿if GetLocale() ~= "esES" and GetLocale() ~= "esMX" then return end
-
+if GetLocale() ~= "esES" and GetLocale() ~= "esMX" then return end
 local L
 
 --------------
@@ -7,30 +6,26 @@ local L
 --------------
 L = DBM:GetModLocalization("Onyxia")
 
-L:SetGeneralLocalization{
+L:SetGeneralLocalization({
 	name = "Onyxia"
-}
+})
 
-L:SetWarningLocalization{
-	SpecWarnBreath	= "Aliento profundo",
-	WarnWhelpsSoon	= "Pronto saldran crias",
-	WarnPhase2Soon		= "Fase 2 pronto",
-	WarnPhase3Soon		= "Fase 3 pronto"
-}
+L:SetWarningLocalization({
+	WarnWhelpsSoon		= "Crías de Onyxia en breve"
+})
 
-L:SetTimerLocalization{
-	TimerWhelps = "Salen crias"
-}
+L:SetTimerLocalization({
+	TimerWhelps	= "Crías de Onyxia"
+})
 
-L:SetOptionLocalization{
-	TimerWhelps		= "Mostrar tiempo para las crias",
-	WarnWhelpsSoon	= "Mostrar pre-aviso para las crias",
-	SoundWTF				= "Reproducir sonidos divertidos de una banda legendaria de Onyxia classico",
-	WarnPhase2Soon			= "Mostrar pre-aviso para Fase 2 (al ~67%)",
-	WarnPhase3Soon			= "Mostrar pre-aviso para Fase 3 (al ~41%)"
-}
+L:SetOptionLocalization({
+	TimerWhelps				= "Mostrar temporizador para las siguientes Crías de Onyxia",
+	WarnWhelpsSoon			= "Mostrar aviso previo para las siguientes Crías de Onyxia",
+	SoundWTF3				= "Reproducir sonidos graciosos de cierta banda legendaria"
+})
 
-L:SetMiscLocalization{
+L:SetMiscLocalization({
+	YellPull = "Qué casualidad. Generalmente, debo salir de mi guarida para poder comer.",
 	YellP2 = "Este ejercicio sin sentido me aburre. ¡Os inceneraré a todos desde arriba!",
 	YellP3 = "¡Parece ser que vais a necesitar otra lección, mortales!"
-}
+})
