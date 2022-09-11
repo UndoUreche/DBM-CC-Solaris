@@ -23,12 +23,17 @@ function mod:OnCombatStart(delay)
 end
 
 function mod:SPELL_AURA_APPLIED(args)
-	if args:IsSpellID(25176) then
+	if args.spellId == 25176 then
 		warnSupreme:Show()
-	elseif args:IsSpellID(25189) then
+	elseif args.spellId == 25189 then
 		warnCyclone:Show(args.destName)
 		timerCyclone:Start(args.destName)
-	elseif args:IsSpellID(25177, 25178, 25180, 25181) or args:IsSpellID(25183) then
+	elseif args.spellId == 25177 
+			or args.spellId == 25178 
+			or args.spellId == 25180 
+			or args.spellId == 25181 
+			or args.spellId == 25183 then
+			
 		warnSupremeSoon:Cancel()
 		warnSupremeSoon:Schedule(40)
 		warnVulnerable:Show(args.spellName)
@@ -37,7 +42,7 @@ function mod:SPELL_AURA_APPLIED(args)
 end
 
 function mod:SPELL_AURA_REMOVED(args)
-	if args:IsSpellID(25189) then
+	if args.spellId == 25189 then
 		timerCyclone:Cancel(args.destName)
 	end	
 end

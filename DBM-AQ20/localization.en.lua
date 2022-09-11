@@ -46,6 +46,15 @@ L:SetGeneralLocalization({
 	name		= "Moam"
 })
 
+L:SetMiscLocalization ({
+
+	StartEmote 	= "%s senses your fear.",
+
+	ExplodeEmote = "%s bristles with energy!"
+
+})
+
+
 ----------
 -- Buru --
 ----------

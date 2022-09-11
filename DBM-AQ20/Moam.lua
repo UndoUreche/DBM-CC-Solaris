@@ -19,11 +19,11 @@ local warnStoneform		= mod:NewSpellAnnounce(25685, 3)
 local timerStoneform	= mod:NewNextTimer(90, 25685)
 local timerStoneformDur	= mod:NewBuffActiveTimer(90, 25685)
 
-local fiendCounter
+local fiendCounter = 0
 local charging
 
 function mod:SPELL_AURA_APPLIED(args)
-	if args:IsSpellID(25685) then
+	if args.spellId == 25685 then
 		charging = false
 		timerStoneformDur:Start()
 		timerStoneform:Cancel()
@@ -32,7 +32,7 @@ function mod:SPELL_AURA_APPLIED(args)
 end
 
 function mod:SPELL_AURA_REMOVED(args)
-	if args:IsSpellID(25685) then
+	if args.spellId == 25685 then
 		timerStoneform:Start()
 		warnStoneformSoon:Schedule(80)
 	end
@@ -59,12 +59,12 @@ end
 function mod:UNIT_DIED(args)
 	if(args.sourceName == "Mana Fiend") then
 		fiendCounter = fiendCounter + 1
-	end
-	
-	if fiendCounter % 3 == 0 and charging == false then
-		charging = true
-		timerStoneform:Start(91)
-		warnStoneformSoon:Schedule(80)
-		timerStoneformDur:Cancel()
+
+		if fiendCounter % 3 == 0 and charging == false then
+			charging = true
+			timerStoneform:Start(91)
+			warnStoneformSoon:Schedule(80)
+			timerStoneformDur:Cancel()
+		end
 	end
 end
