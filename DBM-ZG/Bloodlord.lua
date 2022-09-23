@@ -30,11 +30,11 @@ function mod:OnCombatStart(delay)
 end
 
 function mod:SPELL_AURA_APPLIED(args)
-	if args:IsSpellID(24314) then
+	if args.spellId == 24314 then
 		timerGaze:Start(args.destName)
-	elseif args:IsSpellID(24318) then
+	elseif args.spellId == 24318 then
 		warnFrenzy:Show(args.destName)
-	elseif args:IsSpellID(16856) and self:IsInCombat() and args:IsDestTypePlayer() then
+	elseif args.spellId == 16856 and self:IsInCombat() and args:IsDestTypePlayer() then
 		warnMortal:Show(args.destName)
 		timerMortal:Start(args.destName)
 	end
@@ -52,7 +52,7 @@ end
 
 
 function mod:SPELL_CAST_SUCCESS(args)
-	if args:IsSpellID(13736) then
+	if args.spellId == 13736 then
 		warnWhirlWind:Show()
 		timerWhirlWind:Start()
 	end

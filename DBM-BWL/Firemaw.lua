@@ -23,17 +23,17 @@ function mod:OnCombatStart(delay)
 end
 
 function mod:SPELL_CAST_START(args)
-	if args:IsSpellID(23339) and self:IsInCombat() then
+	if args.spellId == 23339 and self:IsInCombat() then
 		warnWingBuffet:Show()
 		timerWingBuffet:Start()
-	elseif args:IsSpellID(22539) and self:IsInCombat() then
+	elseif args.spellId == 22539 and self:IsInCombat() then
 		timerShadowFlame:Start()
 		warnShadowFlame:Show()
 	end
 end
 
 function mod:SPELL_CAST_SUCCESS(args)
-	if args:IsSpellID(23341) then
+	if args.spellId == 23341 then
 		warnFlameBuffet:Show()
 		timerFlameBuffetCD:Start()
 	end

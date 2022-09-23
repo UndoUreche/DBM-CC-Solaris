@@ -17,7 +17,7 @@ mod:RegisterEvents(
 
 local warnPhase2Soon	= mod:NewAnnounce("WarnPhase2Soon", 1)
 local warnPhase2		= mod:NewPhaseAnnounce(2)
-local specWarnFire = mod:NewSpecialWarningMove(23972)
+local specWarnFire 		= mod:NewSpecialWarningMove(23972, nil, nil, nil, 1, 2)
 
 local warnSonicBurst	= mod:NewSpellAnnounce(23918)
 local warnScreech		= mod:NewSpellAnnounce(22884)
@@ -49,24 +49,24 @@ function mod:SPELL_CAST_START(args)
 end
 
 function mod:SPELL_CAST_SUCCESS(args)
-	if args:IsSpellID(23918) then
+	if args.spellId == 23918 then
 		timerSonicBurst:Start()
 		warnSonicBurst:Show()
-	elseif args:IsSpellID(22884) and self:IsInCombat() then
+	elseif args.spellId == 22884 and self:IsInCombat() then
 		timerScreech:Start()
 		warnScreech:Show()
 	end
 end
 
 function mod:SPELL_AURA_APPLIED(args)
-	if args:IsSpellID(23952) then
+	if args.spellId == 23952 then
 		timerPain:Start(args.destName)
 		warnPain:Show(args.destName)
 	end
 end
 
 function mod:SPELL_AURA_REMOVED(args)
-	if args:IsSpellID(23952) then
+	if args.spellId == 23952 then
 		timerPain:Cancel(args.destName)
 	end
 end
@@ -85,9 +85,10 @@ function mod:UNIT_HEALTH(uId)
 	end
 end
 
-function mod:SPELL_DAMAGE(args)
-	if (args:IsSpellID(23972) or args:IsSpellID(23970)) and args:IsPlayer() then
+function mod:SPELL_DAMAGE(_, _, _, destGUID, _, _, spellId)
+	if (spellId == 23972 or spellId == 23970) and destGUID == UnitGUID("player") and self:AntiSpam() then
 		specWarnFire:Show()	
+		specWarnFire:Play("runaway")
 	end
 end
 

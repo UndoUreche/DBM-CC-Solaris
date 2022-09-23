@@ -29,15 +29,15 @@ function mod:OnCombatStart(delay)
 end
 
 function mod:SPELL_AURA_APPLIED(args)
-	if args:IsSpellID(24111) then
+	if args.spellId == 24111 then
 		warnCorrosive:Show(args.destName)
 		timerCorrosive:Start(args.destName)
-	elseif args:IsSpellID(24300) then
+	elseif args.spellId == 24300 then
 		warnDrain:Show(args.destName)
 		timerDrain:Start(args.destName)
-	elseif args:IsSpellID(24109) then
+	elseif args.spellId == 24109 then
 		warnEnlarge:Show()
-	elseif args:IsSpellID(24110) then
+	elseif args.spellId == 24110 then
 		warnWebs:Show()
 	end
 end

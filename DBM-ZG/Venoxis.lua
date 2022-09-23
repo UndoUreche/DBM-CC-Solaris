@@ -14,7 +14,7 @@ mod:RegisterEvents(
 )
 
 local warnVenomSpit	= mod:NewTargetAnnounce(23862)
-local specWarnPoisonCloud = mod:NewSpecialWarningMove(23861)
+local specWarnPoisonCloud = mod:NewSpecialWarningMove(23861, nil, nil, nil, 1, 2)
 local warnSerpent	= mod:NewTargetAnnounce(23865)
 local warnCloud		= mod:NewSpellAnnounce(23861)
 local warnRenew		= mod:NewTargetAnnounce(23895)
@@ -43,27 +43,27 @@ function mod:OnCombatEnd()
 end
 
 function mod:SPELL_AURA_APPLIED(args)
-	if args:IsSpellID(23895) then
+	if args.spellId == 23895 then
 		warnRenew:Show(args.destName)
 		timerRenew:Start(args.destName)
-	elseif args:IsSpellID(23860) then
+	elseif args.spellId == 23860 then
 		warnFire:Show(args.destName)
 		timerFire:Start(args.destName)
-	elseif args:IsSpellID(23865) then
+	elseif args.spellId == 23865 then
 		warnSerpent:Show(args.destName)
-	elseif args:IsSpellID(23862) then
+	elseif args.spellId == 23862 then
 		warnVenomSpit:Show(args.destName)
 	end
 end
 
 function mod:SPELL_AURA_REMOVED(args)
-	if args:IsSpellID(23895) then
+	if args.spellId == 23895 then
 		timerRenew:Cancel(args.destName)
 	end
 end
 
 function mod:SPELL_CAST_SUCCESS(args)
-	if args:IsSpellID(23861) then
+	if args.spellId == 23861 then
 		warnCloud:Show()
 		timerCloud:Start()
 	end
@@ -76,8 +76,9 @@ function mod:UNIT_HEALTH(uId)
 	end
 end
 
-function mod:SPELL_PERIODIC_DAMAGE(args)
-	if args:IsSpellID(23861) and args:IsPlayer() then
+function mod:SPELL_PERIODIC_DAMAGE(_, _, _, destGUID, _, _, spellId)
+	if spellId == 23861 and destGUID == UnitGUID("player") and self:AntiSpam() then
 		specWarnPoisonCloud:Show()
+		specWarnPoisonCloud:Play("runaway")
 	end
 end

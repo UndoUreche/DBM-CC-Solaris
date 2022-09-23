@@ -34,29 +34,29 @@ function mod:OnCombatStart(delay)
 end
 
 function mod:SPELL_CAST_SUCCESS(args)
-	if args:IsSpellID(24684) then
+	if args.spellId == 24684 then
 		warnChainBurn:Show()
-	elseif args:IsSpellID(24699) then
+	elseif args.spellId == 24699 then
 		warnVanish:Show()
-	elseif args:IsSpellID(24699) then
+	elseif args.spellId == 24699 then
 		warnCloud:Show()
 		timerCloud:Start()
 	end
 end
 
 function mod:SPELL_AURA_APPLIED(args)
-	if args:IsSpellID(24664) and GetTime() - spamSleep > 5 then
+	if args.spellId == 24664 and GetTime() - spamSleep > 5 then
 		warnSleep:Show()
 		timerSleep:Start()
-	elseif args:IsSpellID(8269) and self:IsInCombat() then
+	elseif args.spellId == 8269 and self:IsInCombat() then
 		warnFrenzy:Show()
 	end
 end
 
 function mod:SPELL_SUMMON(args)
-	if args:IsSpellID(24684) then
+	if args.spellId == 24684 then
 		warnIllusions:Show()
-	elseif args:IsSpellID(24699) then
+	elseif args.spellId == 24699 then
 		warnCloud:Show()
 		timerCloud:Start()
 	end

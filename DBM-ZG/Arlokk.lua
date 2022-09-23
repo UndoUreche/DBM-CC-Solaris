@@ -27,15 +27,15 @@ function mod:OnCombatStart(delay)
 end
 
 function mod:SPELL_AURA_APPLIED(args)
-	if args:IsSpellID(24210) then
+	if args.spellId == 24210 then
 		warnMark:Show(args.destName)
 		if args:IsPlayer() then
 			specWarnMark:Show()
 		end
-	elseif args:IsSpellID(24212) then
+	elseif args.spellId == 24212 then
 		warnPain:Show(args.destName)
 		timerPain:Start(args.destName)
-	elseif args:IsSpellID(12540) then
+	elseif args.spellId == 12540 then
 		timerGouge:Start(args.destName)
 	end
 end
@@ -55,9 +55,9 @@ function mod:UNIT_SPELLCAST_SUCCEEDED(_, spell)
 end
 
 function mod:SPELL_AURA_REMOVED(args)
-	if args:IsSpellID(24212) then
+	if args.spellId == 24212 then
 		timerPain:Cancel(args.destName)
-	elseif args:IsSpellID(12540) then
+	elseif args.spellId == 12540 then
 		timerGouge:Cancel(args.destName)
 	end
 end

@@ -48,25 +48,25 @@ function mod:SPELL_CAST_START(args)
 end
 
 function mod:SPELL_AURA_APPLIED(args)
-	if args:IsSpellID(21060) then     --Blind Daze
+	if args.spellId == 21060 then     --Blind Daze
 		warnBlind:Show(args.destName)
 		timerBlind:Start(args.destName)
-	elseif args:IsSpellID(12540) and self:IsInCombat() then --Gouge Stun
+	elseif args.spellId == 12540 and self:IsInCombat() then --Gouge Stun
 		warnGouge:Show(args.destName)
 		timerGouge:Start(args.destName)
 	end
 end
 
 function mod:SPELL_AURA_REMOVED(args)
-	if args:IsSpellID(21060) then
+	if args.spellId == 21060 then
 		timerBlind:Cancel(args.destName)
-    elseif args:IsSpellID(12540) then
+    elseif args.spellId == 12540 then
         timerGouge:Cancel(args.destName)
 	end
 end
 
 function mod:SPELL_SUMMON(args)
-	if args:IsSpellID(24183) and not_putting_more_effort_into_this_shit then
+	if args.spellId == 24183 and not_putting_more_effort_into_this_shit then
 		warnAdds:Show()
 	end
 	

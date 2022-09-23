@@ -60,35 +60,35 @@ function mod:SPELL_CAST_START(args)
 end
 
 function mod:SPELL_CAST_SUCCESS(args)
-	if args:IsSpellID(23170) then
+	if args.spellId == 23170 then
 		warnBronze:Show()
 	end
 end
 
 function mod:SPELL_AURA_APPLIED(args)
-	if args:IsSpellID(23155) then
+	if args.spellId == 23155 then
 		warnRed:Show(args.destName)
-	elseif args:IsSpellID(23169) then
+	elseif args.spellId == 23169 then
 		warnGreen:Show(args.destName)
-	elseif args:IsSpellID(23153) then
+	elseif args.spellId == 23153 then
 		warnBlue:Show(args.destName)
-	elseif args:IsSpellID(23154) then
+	elseif args.spellId == 23154 then
 		warnBlack:Show(args.destName)
-	elseif args:IsSpellID(23170) then
+	elseif args.spellId == 23170 then
 		warnBronze:Show()
 		if args:IsPlayer() then
 			specWarnBronze:Show()
 		end
-	elseif args:IsSpellID(23128) then
+	elseif args.spellId == 23128 then
 		warnEnrage:Show()
 		timerEnrage:Start()
-	elseif args:IsSpellID(23537) then
+	elseif args.spellId == 23537 then
 		warnPhase2:Show()
 	end
 end
 
 function mod:SPELL_AURA_REMOVED(args)
-	if args:IsSpellID(23128) then
+	if args.spellId == 23128 then
 		timerEnrage:Cancel()
 	end
 end

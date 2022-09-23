@@ -30,17 +30,17 @@ function mod:OnCombatStart(delay)
 end
 
 function mod:SPELL_AURA_APPLIED(args)
-	if args:IsSpellID(24327) then
+	if args.spellId == 24327 then
 		warnInsanity:Show(args.destName)
 		timerInsanity:Start(args.destName)
 		timerInsanityCD:Start()
-	elseif args:IsSpellID(24328) then
+	elseif args.spellId == 24328 then
 		warnBlood:Show(args.destName)
 		timerBlood:Start(args.destName)
 		if args:IsPlayer() then
 			specWarnBlood:Show()
 		end
-	elseif args:IsSpellID(24324) then
+	elseif args.spellId == 24324 then
 		warnSiphonSoon:Cancel()
 		warnSiphonSoon:Schedule(80)
 		timerSiphon:Start()
