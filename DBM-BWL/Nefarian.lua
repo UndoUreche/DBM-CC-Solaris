@@ -24,6 +24,7 @@ local warnFear			= mod:NewCastAnnounce(22686, 2)
 local warnVeilShadow	= mod:NewTargetAnnounce(22687, 3)
 local warnMc			= mod:NewTargetAnnounce(22667, 4)
 local warnMcCD			= mod:NewSpecialWarning("WarnMcCallSoon")
+local WarnAddsLeft		= mod:NewAnnounce("WarnAddsLeft", 2, "136116")
 
 local timerClassCall	= mod:NewTimer(30, "TimerClassCall")
 local timerShadowFlame	= mod:NewCastTimer(2, 22539)
@@ -32,11 +33,16 @@ local timerVeilShadow	= mod:NewTargetTimer(6, 22687)
 local timerMc			= mod:NewTargetTimer(15, 22667)
 local timerMcCD			= mod:NewCDTimer(24, 22667)
 
+mod.vb.addLeft = 42
+local addsGuidCheck = {}
+
 local prewarn_P3
 function mod:OnCombatStart(delay)
 	prewarn_P3 = false
 	timerMcCD:Start(30)
 	warnMcCD:Schedule(29)
+	table.wipe(addsGuidCheck)
+	self.vb.addLeft = 42
 end
 
 function mod:SPELL_CAST_START(args)
@@ -75,6 +81,21 @@ function mod:UNIT_HEALTH(uId)
 	if UnitHealth(uId) / UnitHealthMax(uId) <= 0.25 and self:GetUnitCreatureId(uId) == 11583 and not prewarn_P3 then
 		warnPhaseSoon:Show("3")
 		prewarn_P3 = true
+	end
+end
+
+function mod:UNIT_DIED(args)
+	local guid = args.destGUID
+	local cid = self:GetCIDFromGUID(guid)
+	if cid == 14264 or cid == 14263 or cid == 14261 or cid == 14265 or cid == 14262 or cid == 14302 then--Red, Bronze, Blue, Black, Green, Chromatic
+		if not addsGuidCheck[guid] then
+			addsGuidCheck[guid] = true
+			self.vb.addLeft = self.vb.addLeft - 1
+			--40, 35, 30, 25, 20, 15, 12, 9, 6, 3
+			if self.vb.addLeft >= 15 and (self.vb.addLeft % 5 == 0) or self.vb.addLeft >= 1 and (self.vb.addLeft % 3 == 0) then
+				WarnAddsLeft:Show(self.vb.addLeft)
+			end
+		end
 	end
 end
 

@@ -17,6 +17,7 @@
 ## X-DBM-Mod-Category: Classic
 ## X-DBM-StatTypes: normal
 ## X-DBM-Mod-MapID: 767
+## X-DBM-Mod-LoadZone: Ahn'Qiraj
 ## X-DBM-Mod-Sort: 1102
 ## X-DBM-Mod-Name: The Temple of Ahn'Qiraj
 ## X-DBM-Mod-Name-zhCN: 安其拉神殿

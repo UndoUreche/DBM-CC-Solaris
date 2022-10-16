@@ -7,7 +7,8 @@ mod:RegisterCombat("combat")
 
 mod:RegisterEvents(
 	"SPELL_CAST_SUCCESS",
-	"SPELL_AURA_APPLIED"
+	"SPELL_AURA_APPLIED",
+	"UNIT_THREAT_SITUATION_UPDATE"
 )
 
 local warnBlastWave	= mod:NewSpellAnnounce(23331)
@@ -36,5 +37,17 @@ function mod:SPELL_AURA_APPLIED(args)
 	if args.spellId == 24573 and self:IsInCombat() then
 		warnMortal:Show(args.destName)
 		timerMortal:Start(args.destName)
+	end
+end
+
+function mod:UNIT_THREAT_SITUATION_UPDATE(unit)
+	if UnitExists("boss1") then
+		local playerTanking = UnitDetailedThreatSituation("player", "boos1")
+		
+		print(playerTanking)
+		
+		if unit == "player" and playerTanking then
+			print("pula2")
+		end
 	end
 end

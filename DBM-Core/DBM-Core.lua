@@ -3044,11 +3044,11 @@ do
 		--These can still change even if mapID doesn't
 		difficultyIndex = difficulty
 		LastGroupSize = instanceGroupSize
-		if LastInstanceMapID == mapID then
+		if LastInstanceZoneName == zoneName then
 			self:TransitionToDungeonBGM()
 			self:Debug("No action taken because mapID hasn't changed since last check", 2)
 			return
-		end--ID hasn't changed, don't waste cpu doing anything else (example situation, porting into garrosh stage 4 is a loading screen)
+		end--zoneName hasn't changed, don't waste cpu doing anything else (example situation, porting into garrosh stage 4 is a loading screen)
 		LastInstanceZoneName = zoneName
 		LastInstanceMapID = mapID
 		DBMScheduler:UpdateZone()--Also update zone in scheduler

@@ -15,7 +15,7 @@ L:SetOptionLocalization{
 	TimerAddsSpawn	= "Show timer for first adds spawning"
 }
 L:SetMiscLocalization{
-	YellPull = "Intruders have breached the hatchery! Sound the alarm! Protect the eggs at all costs!\r\n"--Yes this yell actually has a return and new line in it. as grabbed by transcriptor
+	YellPull = "Intruders have breached the hatchery! Sound the alarm! Protect the eggs at all costs!\n"
 }
 -------------------
 --  Vaelastrasz  --
@@ -109,7 +109,8 @@ L:SetWarningLocalization{
 	WarnClassCall		= "%s call",
 	WarnPhaseSoon		= "Phase %s soon",
 	WarnPhase			= "Phase %s",
-	WarnMcCallSoon 		= "Mind control soon!"
+	WarnMcCallSoon 		= "Mind control soon!",
+	WarnAddsLeft		= "%d kills remaining"
 }
 L:SetTimerLocalization{
 	TimerClassCall		= "%s call"
@@ -120,6 +121,7 @@ L:SetOptionLocalization{
 	WarnClassCall		= "Announce class calls",
 	WarnPhaseSoon		= "Announce when a new phase is about to start",
 	WarnPhase			= "Announce phase change",
+	WarnAddsLeft		= "Announce kills remaining until Stage 2 is triggered",
 	WarnMcCallSoon		= "Pre-warn Shadow Command"
 }
 L:SetMiscLocalization{
