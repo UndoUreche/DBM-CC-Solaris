@@ -3046,7 +3046,7 @@ do
 		LastGroupSize = instanceGroupSize
 		if LastInstanceZoneName == zoneName then
 			self:TransitionToDungeonBGM()
-			self:Debug("No action taken because mapID hasn't changed since last check", 2)
+			self:Debug("No action taken because zoneName hasn't changed since last check", 2)
 			return
 		end--zoneName hasn't changed, don't waste cpu doing anything else (example situation, porting into garrosh stage 4 is a loading screen)
 		LastInstanceZoneName = zoneName

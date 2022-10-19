@@ -10,51 +10,55 @@ mod:RegisterCombat("combat")
 mod:RegisterEventsInCombat(
 	"SPELL_AURA_APPLIED 26615",
 	"SPELL_CAST_START 26102 26103",
-	"SPELL_CAST_SUCCESS 26058",
+	"SPELL_SUMMON 26058",
+	"SWING_DAMAGE",
+	"SWING_MISSED",
 	"UNIT_HEALTH mouseover focus target"
 )
 
---Submerge timer is not timer based, it has some kind of hidden condition we do not know. It's not health based either (other than fact the faster you kill boss less likely you are to see it)
---[[
-(ability.id = 26102 or ability.id = 26103) and type = "begincast"
- or ability.id = 26058 and type = "cast"
- or ability.id = 26615
---]]
-local warnSubmerge		= mod:NewAnnounce("WarnSubmerge", 3, "Interface\\AddOns\\DBM-Core\\textures\\CryptFiendBurrow.blp")
-local warnEmerge		= mod:NewAnnounce("WarnEmerge", 3, "Interface\\AddOns\\DBM-Core\\textures\\CryptFiendUnBurrow.blp")
-local warnSweep			= mod:NewSpellAnnounce(26103, 2, nil, "Tank", 3)
-local warnBerserk		= mod:NewSpellAnnounce(26615, 3)
-local warnBerserkSoon	= mod:NewSoonAnnounce(26615, 2)
+local warnSubmerge			= mod:NewAnnounce("WarnSubmerge", 3, "Interface\\AddOns\\DBM-Core\\textures\\CryptFiendBurrow.blp")
+local warnEmerge			= mod:NewAnnounce("WarnEmerge", 3, "Interface\\AddOns\\DBM-Core\\textures\\CryptFiendUnBurrow.blp")
+local warnSweep				= mod:NewSpellAnnounce(26103, 2, nil, "Tank", 3)
+local warnBerserk			= mod:NewSpellAnnounce(26615, 3)
+local warnBerserkSoon		= mod:NewSoonAnnounce(26615, 2)
 
-local specWarnBlast		= mod:NewSpecialWarningSpell(26102, nil, nil, nil, 2, 2)
+local specWarnBlast			= mod:NewSpecialWarningSpell(26102, nil, nil, nil, 2, 2)
 
-local timerSubmerge		= mod:NewTimer(30, "TimerSubmerge", "Interface\\AddOns\\DBM-Core\\textures\\CryptFiendBurrow.blp", nil, nil, 6)
-local timerEmerge		= mod:NewTimer(30, "TimerEmerge", "Interface\\AddOns\\DBM-Core\\textures\\CryptFiendUnBurrow.blp", nil, nil, 6)
-local timerSweepCD		= mod:NewNextTimer(20.5, 26103, nil, nil, nil, 5, nil, DBM_COMMON_L.TANK_ICON)
-local timerBlastCD		= mod:NewNextTimer(23, 26102, nil, nil, nil, 2)
+local timerSubmerge			= mod:NewTimer(90, "TimerSubmerge", "Interface\\AddOns\\DBM-Core\\textures\\CryptFiendBurrow.blp", nil, nil, 6)
+local timerForcedSubmerge	= mod:NewTimer(8, "TimerForcedSubmerge", "Interface\\AddOns\\DBM-Core\\textures\\CryptFiendBurrow.blp", nil, nil, 6)
+local timerEmerge			= mod:NewTimer(30, "TimerEmerge", "Interface\\AddOns\\DBM-Core\\textures\\CryptFiendUnBurrow.blp", nil, nil, 6)
+local timerMounds			= mod:NewNextTimer(20, 26058, nil, nil, nil, 2)
+local timerSweepCD			= mod:NewNextTimer(22, 26103, nil, nil, nil, 5, nil, DBM_COMMON_L.TANK_ICON)
+local timerBlastCD			= mod:NewNextTimer(20, 26102, nil, nil, nil, 2)
 
 mod.vb.prewarn_Berserk = false
 mod.vb.Berserked = false
 
+local function StartSubmergeTimer()
+	timerForcedSubmerge:Start()
+end
+
 function mod:OnCombatStart(delay)
 	self.vb.prewarn_Berserk = false
 	self.vb.Berserked = false
-	timerSweepCD:Start(22-delay)--22-25
-	timerBlastCD:Start(20-delay)--20-26
-	timerSubmerge:Start(184-delay)
+	timerSweepCD:Start(22-delay)
+	timerBlastCD:Start(-delay)
+	timerSubmerge:Start(90-delay)
+	self:Schedule(4, StartSubmergeTimer)
 end
 
-function mod:Emerge()
+local function Emerge()
 	warnEmerge:Show()
-	timerSweepCD:Start(23)--23-24 (it might be 22-25 like pull)
-	timerBlastCD:Start(24)--24-26 (it might be 20-26 like pull)
-	timerSubmerge:Start(184)
+	timerSweepCD:Start(22)
+	timerBlastCD:Start(24)
+	timerSubmerge:Start(90)
 end
 
 function mod:SPELL_AURA_APPLIED(args)
 	if args.spellId == 26615 and args:IsDestTypeHostile() then
 		self.vb.Berserked = true
 		warnBerserk:Show()
+		timerMounds:Start()
 		timerSubmerge:Stop()
 	end
 end
@@ -70,14 +74,36 @@ function mod:SPELL_CAST_START(args)
 	end
 end
 
-function mod:SPELL_CAST_SUCCESS(args)
-	if args.spellId == 26058 and self:AntiSpam(3) and not self.vb.Berserked then
-		timerBlastCD:Stop()
-		timerSweepCD:Stop()
-		timerSubmerge:Stop()
-		warnSubmerge:Show()
-		timerEmerge:Start()
-		self:ScheduleMethod(30, "Emerge")
+function mod:SWING_DAMAGE(_, source)
+	if source == "Ouro" and not self.vb.Berserked  then 
+		timerForcedSubmerge:Cancel()
+		self:Unschedule(StartSubmergeTimer)
+		self:Schedule(4, StartSubmergeTimer)
+	end
+end
+
+function mod:SWING_MISSED(_, source)
+	if source == "Ouro" and not self.vb.Berserked then 
+		timerForcedSubmerge:Cancel()
+		self:Unschedule(StartSubmergeTimer)
+		self:Schedule(4, StartSubmergeTimer)
+	end
+end
+
+function mod:SPELL_SUMMON(args)
+	if args.spellId == 26058 and self:AntiSpam(3) then
+		if not self.vb.Berserked then
+			timerBlastCD:Stop()
+			timerSweepCD:Stop()
+			timerSubmerge:Stop()
+			warnSubmerge:Show()
+			timerEmerge:Start()
+			self:Schedule(30, Emerge)
+			
+		elseif self.vb.Berserked then
+			timerMounds:Start()
+			
+		end
 	end
 end
 
@@ -85,5 +111,7 @@ function mod:UNIT_HEALTH(uId)
 	if self:GetUnitCreatureId(uId) == 15517 and UnitHealth(uId) / UnitHealthMax(uId) <= 0.23 and not self.vb.prewarn_Berserk then
 		self.vb.prewarn_Berserk = true
 		warnBerserkSoon:Show()
+		timerSubmerge:Cancel()
+		timerForcedSubmerge:Cancel()
 	end
 end
