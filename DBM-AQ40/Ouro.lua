@@ -99,6 +99,7 @@ function mod:SPELL_SUMMON(args)
 			warnSubmerge:Show()
 			timerEmerge:Start()
 			self:Schedule(30, Emerge)
+			self:Schedule(34, StartSubmergeTimer)
 			
 		elseif self.vb.Berserked then
 			timerMounds:Start()
