@@ -47,6 +47,7 @@ local firstBossMod = DBM:GetModByName("AQ40Trash")
 local playersInStomach = {}
 local fleshTentacles, diedTentacles = {}, {}
 local tentacleMurderCounter = 0
+-- local weakened = false
 
 local updateInfoFrame
 do
@@ -95,6 +96,7 @@ function mod:OnCombatStart(delay)
 	table.wipe(diedTentacles)
 	
 	tentacleMurderCounter = 0
+	--weakened = false
 	
 	self:SetStage(1)
 	
@@ -218,32 +220,26 @@ function mod:SPELL_CAST_SUCCESS(args)
 	end
 end
 
-function mod:SPELL_DAMAGE(args) 
-	if args.spellId == 26478 then
+-- function mod:SPELL_DAMAGE(_, sourceName, _, _, _, _, spellId) 
+
+	-- if spellId == 26478 and not weakened then
 		 
-		 local cid = self:GetCIDFromGUID(args.sourceGUID)
-		 
-		 if self:AntiSpam(5, cid) then
-			if cid == 15334 then -- Giant Eye Tentacle
-				warnGiantEyeTentacle:Show()
-				
-				timerGiantEyeTentacle:Stop()
-				self:UnscheduleMethod("GiantEyeTentacle")
-				
-				timerGiantEyeTentacle:Start()
-				self:ScheduleMethod(60, "GiantEyeTentacle")
-			elseif cid == 15728 then -- Giant Claw Tentacle
-				warnGiantClawTentacle:Show()
-				
-				timerGiantClawTentacle:Stop()
-				self:UnscheduleMethod("GiantClawTentacle")
-				
-				timerGiantClawTentacle:Start()
-				self:ScheduleMethod(60, "GiantClawTentacle")
-			end
-		end
-	end
-end
+		-- if sourceName  ==  "Giant Eye Tentacle" then -- Giant Eye Tentacle
+			-- timerGiantEyeTentacle:Stop()
+			-- self:UnscheduleMethod("GiantEyeTentacle")
+			
+			-- timerGiantEyeTentacle:Start()
+			-- self:ScheduleMethod(60, "GiantEyeTentacle")
+			
+		-- elseif sourceName  ==  "Giant Claw Tentacle" then -- Giant Claw Tentacle
+			-- timerGiantClawTentacle:Stop()
+			-- self:UnscheduleMethod("GiantClawTentacle")
+			
+			-- timerGiantClawTentacle:Start()
+			-- self:ScheduleMethod(60, "GiantClawTentacle")
+		-- end
+	-- end
+-- end
 
 function mod:SPELL_AURA_APPLIED(args)
 	if args.spellId == 26476 then
@@ -312,6 +308,10 @@ function mod:CHAT_MSG_ADDON(prefix, msg)
 	end
 end
 
+-- local function disableWeakenedState() 
+	-- weakened = false 
+-- end
+
 function mod:OnSync(msg)
 	if not self:IsInCombat() then return end
 	if msg == "Weakened" then
@@ -332,6 +332,10 @@ function mod:OnSync(msg)
 		self:ScheduleMethod(53, "GiantClawTentacle")
 		timerGiantEyeTentacle:Schedule(45, 38)
 		self:ScheduleMethod(83, "GiantEyeTentacle")
+		
+		-- weakened = true
+		-- self:Schedule(45, disableWeakenedState)
+		
 		if self.Options.InfoFrame then
 			DBM.InfoFrame:Hide()
 		end
