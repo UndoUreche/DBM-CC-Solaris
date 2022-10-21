@@ -304,7 +304,8 @@ function mod:CHAT_MSG_ADDON(prefix, msg)
 	if not self:IsInCombat() then return end
 	
 	if prefix == "DBM_CTHUN_WEAKENED" and not UnitIsDeadOrGhost("player") then 
-		self:OnSync("Weakened")
+		self:UnscheduleMethod("Weakened")
+		self:ScheduleMethod(0.5, "Weakened")
 	end
 end
 
@@ -312,32 +313,33 @@ end
 	-- weakened = false 
 -- end
 
-function mod:OnSync(msg)
-	if not self:IsInCombat() then return end
-	if msg == "Weakened" then
-		table.wipe(fleshTentacles)
-		specWarnWeakened:Show()
-		specWarnWeakened:Play("targetchange")
+function mod:Weakened()
+	if not self:IsInCombat() then 
+		return 
+	end
+	
+	table.wipe(fleshTentacles)
+	specWarnWeakened:Show()
+	specWarnWeakened:Play("targetchange")
 
-		timerWeakened:Start()
-		
-		timerEyeTentacle:Stop()
-		timerGiantClawTentacle:Stop()
-		timerGiantEyeTentacle:Stop()
-		self:UnscheduleMethod("GiantClawTentacle")
-		self:UnscheduleMethod("GiantEyeTentacle")
-		
-		timerEyeTentacle:Schedule(45, 30)
-		timerGiantClawTentacle:Schedule(45, 8)
-		self:ScheduleMethod(53, "GiantClawTentacle")
-		timerGiantEyeTentacle:Schedule(45, 38)
-		self:ScheduleMethod(83, "GiantEyeTentacle")
-		
-		-- weakened = true
-		-- self:Schedule(45, disableWeakenedState)
-		
-		if self.Options.InfoFrame then
-			DBM.InfoFrame:Hide()
-		end
+	timerWeakened:Start()
+	
+	timerEyeTentacle:Stop()
+	timerGiantClawTentacle:Stop()
+	timerGiantEyeTentacle:Stop()
+	self:UnscheduleMethod("GiantClawTentacle")
+	self:UnscheduleMethod("GiantEyeTentacle")
+	
+	timerEyeTentacle:Schedule(45, 30)
+	timerGiantClawTentacle:Schedule(45, 8)
+	self:ScheduleMethod(53, "GiantClawTentacle")
+	timerGiantEyeTentacle:Schedule(45, 38)
+	self:ScheduleMethod(83, "GiantEyeTentacle")
+	
+	-- weakened = true
+	-- self:Schedule(45, disableWeakenedState)
+	
+	if self.Options.InfoFrame then
+		DBM.InfoFrame:Hide()
 	end
 end
