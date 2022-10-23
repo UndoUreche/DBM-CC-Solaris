@@ -1,65 +1,50 @@
 local mod	= DBM:NewMod("Razorgore", "DBM-BWL", 1)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision(("$Revision: 188 $"):sub(12, -3))
-mod:SetCreatureID(12435)
-mod:SetMinSyncRevision(168)
-mod:RegisterCombat("yell", L.YellPull)
-mod:SetWipeTime(180)
+mod:SetRevision(("$Revision: 7007 $"):sub(12, -3))
+mod:SetCreatureID(12435, 99999)--Bogus detection to prevent invalid kill detection if razorgore happens to die in phase 1
 
-mod:RegisterEvents(
-	"SPELL_AURA_APPLIED",
-	"SPELL_AURA_REMOVED",
-	"UNIT_SPELLCAST_SUCCEEDED",
+--mod:DisableEEKillDetection()--So disable only EE
+mod:SetModelID(12435)
+
+mod:RegisterCombat("yell", L.YellPull)
+mod:SetWipeTime(180)--guesswork
+
+
+mod:RegisterEventsInCombat(
+	"SPELL_CAST_START 22425",
+	"SPELL_CAST_SUCCESS 23040 19873 23023",
+	"SPELL_AURA_APPLIED 23023",
+	"CHAT_MSG_MONSTER_EMOTE",
 	"CHAT_MSG_MONSTER_YELL",
-	"SPELL_CAST_START 22425"
+	"UNIT_DIED"
 )
 
-local warnConflagration		= mod:NewTargetAnnounce(23023)
-local warnEggsLeft			= mod:NewCountAnnounce(19873, 1)
+
+--ability.id = 22425 and type = "begincast" or (ability.id = 23040 or ability.id = 19873) and type = "cast"
 local warnPhase2			= mod:NewPhaseAnnounce(2)
+local warnFireballVolley	= mod:NewCastAnnounce(22425, 3)
+local warnConflagration		= mod:NewTargetNoFilterAnnounce(23023, 2)
+local warnEggsLeft			= mod:NewCountAnnounce(19873, 1)
 
-local timerConflagration	= mod:NewTargetTimer(10, 23023)
-local timerAddsSpawn		= mod:NewTimer(45, "TimerAddsSpawn", 19879)
+local specWarnFireballVolley= mod:NewSpecialWarningMoveTo(22425, false, nil, nil, 2, 2)
 
-mod:AddSpeedClearOption("BWL", true)
+local timerAddsSpawn		= mod:NewTimer(45, "TimerAddsSpawn", 19879, nil, nil, 1)--Only for start of adds, not adds after the adds.
+local timerConflag			= mod:NewCDTimer(30, 23023, nil, false)
+
 
 mod.vb.eggsLeft = 30
 
 function mod:OnCombatStart(delay)
+	self:SetStage(1)
+	timerAddsSpawn:Start()
+	self.vb.eggsLeft = 30
 end
 
-function mod:CHAT_MSG_MONSTER_YELL(msg)
-	if msg == L.YellPull then
-		timerAddsSpawn:Start()
-		self:SetStage(1)
-		self.vb.eggsLeft = 30
-	end
-end
-
-function mod:UNIT_SPELLCAST_SUCCEEDED(_, spellName)
-	if spellName == "Destroy Egg" then
-		self.vb.eggsLeft = self.vb.eggsLeft - 1
-		warnEggsLeft:Show(string.format("%d/%d",30-self.vb.eggsLeft,30))
-		
-		if self.vb.eggsLeft == 0 then 
-			warnPhase2:Show()
-			self:SetStage(2)
-		end
-	end
-end
-
-function mod:SPELL_AURA_APPLIED(args)
-	if args.spellId == 23023 and args:IsDestTypePlayer() then
-		warnConflagration:Show(args.destName)
-		timerConflagration:Start(args.destName)
-	end
-end
-
-function mod:SPELL_CAST_START (args)
-	if args.spellId == 23023 and args:IsDestTypePlayer() then
+function mod:SPELL_CAST_START(args)
+	if args.spellId == 22425 then
 		if self.Options.SpecWarn22425moveto then
-			specWarnFireballVolley:Show(DBM_COMMON_L.BREAK_LOS)
+			specWarnFireballVolley:Show(DBM_CORE_L.BREAK_LOS)
 			specWarnFireballVolley:Play("findshelter")
 		else
 			warnFireballVolley:Show()
@@ -67,8 +52,48 @@ function mod:SPELL_CAST_START (args)
 	end
 end
 
-function mod:SPELL_AURA_REMOVED(args)
-	if args.spellId == 23023 then
-		timerConflagration:Start(args.destName)
+function mod:SPELL_CAST_SUCCESS(args)
+	if args.spellId == 23040 and self.vb.phase < 2 then
+		warnPhase2:Show()
+		self:SetStage(2)
+	end
+end
+
+function mod:SPELL_AURA_APPLIED(args)
+	if args.spellId == 23023 and args:IsDestTypePlayer() then
+		warnConflagration:CombinedShow(0.3, args.destName)
+	end
+end
+
+--For some reason this no longer works
+function mod:CHAT_MSG_MONSTER_YELL(msg)
+	if (msg == L.YellEgg1 or msg == L.YellEgg2 or msg == L.YellEgg3) and self.vb.phase < 2 and self.vb.eggsLeft > 1 then
+		self.vb.eggsLeft = self.vb.eggsLeft - 1
+		warnEggsLeft:Show(string.format("%d/%d",30-self.vb.eggsLeft,30))
+	end
+end
+
+function mod:CHAT_MSG_MONSTER_EMOTE(msg)
+	if (msg == L.Phase2Emote or msg:find(L.Phase2Emote)) and self.vb.phase < 2 then
+		self:SendSync("Phase2")
+	end
+end
+
+function mod:UNIT_DIED(args)
+	local cid = self:GetCIDFromGUID(args.destGUID)
+	if cid == 12435 then--Only trigger kill for unit_died if he dies in phase 2 with everyone alive, otherwise it's an auto wipe.
+		if DBM:NumRealAlivePlayers() > 0 and self.vb.phase == 2 then
+			DBM:EndCombat(self)
+		else
+			DBM:EndCombat(self, true)--Pass wipe arg end combat
+		end
+	end
+end
+
+function mod:OnSync(msg, name)
+	if msg == "Phase2" and self.vb.phase < 2 then
+		warnPhase2:Show()
+		self:SetStage(2)
+		timerConflag:Start(12)
 	end
 end

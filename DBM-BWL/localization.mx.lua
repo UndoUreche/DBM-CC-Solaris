@@ -1,4 +1,4 @@
-if GetLocale() ~= "esES" then return end
+if GetLocale() ~= "esMX" then return end
 local L
 
 -----------------
@@ -20,10 +20,10 @@ L:SetOptionLocalization({
 
 L:SetMiscLocalization({
 	Phase2Emote	= "huyen mientras se consume el poder del orbe.",
-	YellEgg1	= "¡Pagarás por obligarme a hacer esto!",
-	YellEgg2	= "¡Idiotas! ¡Esos huevos son más valiosos que los vuestros!",
-	YellEgg3	= "¡No, otro no! ¡Haré que os corten la cabeza por esta atrocidad!",
-	YellPull	= "¡Tenemos intrusos en El Criadero! ¡Haced sonar la alarma! ¡Proteged los huevos a toda costa!"
+	YellEgg1	= "¡Pagarán por obligarme a hacer esto!",
+	YellEgg2	= "¡Locos! ¡Esos huevos son más valiosos de lo que creen!",
+	YellEgg3	= "¡No, otro no! ¡Rodarán sus cabezas por esta infamia!",
+	YellPull	= "¡Los invasores han penetrado en El Criadero! ¡Activa la alarma! ¡Hay que proteger los huevos a toda costa!"
 })
 
 -------------------
@@ -36,7 +36,7 @@ L:SetGeneralLocalization({
 })
 
 L:SetMiscLocalization({
-	Event				= "¡Demasiado tarde, amigos! La corrupción de Nefarius me ha vencido... No... No puedo controlarme."
+	Event				= "¡Demasiado tarde, amigos! Ahora estoy poseído por la corrupción de Nefarius... No puedo... controlarme."
 })
 
 -----------------
@@ -45,11 +45,11 @@ L:SetMiscLocalization({
 L = DBM:GetModLocalization("Broodlord")
 
 L:SetGeneralLocalization({
-	name	= "Señor de prole Capazote"
+	name	= "Señor de linaje Capazote"
 })
 
 L:SetMiscLocalization({
-	Pull	= "¡Ninguno de los vuestros debería estar aquí! ¡Os habéis condenado vosotros mismos!"
+	Pull	= "¡Nadie de su raza debería estar aquí! ¡Están condenados!"
 })
 
 ---------------
@@ -175,17 +175,17 @@ L:SetOptionLocalization({
 
 L:SetMiscLocalization({
 	YellP1		= "¡Que comiencen los juegos!",
-	YellP2		= "Bien hecho, esbirros. La valentía de los mortales empieza a menguar. Ahora, ¡veamos cómo se enfrentan al verdadero Señor de la Cubre de Roca Negra!",
-	YellP3		= "¡Imposible! ¡Levantaos, esbirros! ¡Servid a vuestro maestro una vez más!",
-	YellShaman	= "¡Chamanes, mostradme lo que pueden hacer vuestros totems!",
-	YellPaladin	= "Paladines... He oído que tenéis muchas vidas. Demostrádmelo.",
-	YellDruid	= "Los druidas y vuestro estúpido poder de cambiar de forma. ¡Veámoslo en acción!",
-	YellPriest	= "¡Sacerdotes! Si vais a seguir curando de esa forma, ¡podíamos hacerlo más interesante!",
-	YellWarrior	= "¡Vamos guerreros, sé que podéis golpear más fuerte que eso! ¡Veámoslo!",
-	YellRogue	= "¿Pícaros? ¡Dejad de esconderos y enfrentaos a mí!",
-	YellWarlock	= "Brujos... No deberíais estar jugando con magia que no comprendéis. ¿Veis lo que pasa?",
-	YellHunter	= "¡Cazadores y vuestras molestas cerbatanas!",
-	YellMage	= "¿Magos también? Deberíais tener más cuidado cuando jugáis con la magia..."
+	YellP2		= "Bien hecho, mis esbirros. El coraje de los mortales empieza a mermar. ¡Veamos ahora cómo se enfrentan al verdadero Señor de la Cubre de Roca Negra!",
+	YellP3		= "¡Imposible! ¡Levántense, mis esbirros! ¡Sirvan a su amo una vez más!",
+	YellShaman	= "¡Chamanes, muéstrenme lo que pueden hacer sus tótems!",
+	YellPaladin	= "Paladines... He oído que tienen muchas vidas. Demuéstrenmelo.",
+	YellDruid	= "Los druidas y su estúpido poder de cambiar de forma. ¡Veámoslo en acción!",
+	YellPriest	= "¡Sacerdotes! Si van a seguir curando de esa forma, ¡podíamos hacerlo más interesante!",
+	YellWarrior	= "¡Vamos guerreros, sé que pueden golpear más fuerte que eso! ¡Veámoslo!",
+	YellRogue	= "¿Pícaros? ¡Dejen de esconderse y enfréntense a mí!",
+	YellWarlock	= "Brujos... No deberían estar jugando con magia que no comprenden. ¿Ven lo que pasa?",
+	YellHunter	= "¡Cazadores y sus molestas cerbatanas!",
+	YellMage	= "¿Magos también? Deberían tener más cuidado cuando juegan con la magia...",
 --	YellDK		= "¡Caballeros de la Muerte... venid aquí!",
 --	YellMonk	= "Monjes, ¿no os mareáis con tanta vuelta?",
 --	YellDH		= "¿Cazadores de demonios? Qué raro eso de taparos los ojos así. ¿No os cuesta ver lo que tenéis alrededor?"--Demon Hunter call; I know this hasn't been implemented yet in DBM, but I added it just in case.

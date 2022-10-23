@@ -1,40 +1,66 @@
 local mod	= DBM:NewMod("Firemaw", "DBM-BWL", 1)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision(("$Revision: 168 $"):sub(12, -3))
+mod:SetRevision(("$Revision: 7007 $"):sub(12, -3))
 mod:SetCreatureID(11983)
+
+mod:SetModelID(6377)
 mod:RegisterCombat("combat")
 
-mod:RegisterEvents(
-	"SPELL_CAST_START",
-	"SPELL_CAST_SUCCESS"
+mod:RegisterEventsInCombat(
+	"SPELL_CAST_START 23339 22539",
+--	"SPELL_AURA_APPLIED_DOSE 23341",
+	"SPELL_CAST_SUCCESS 23341"
 )
 
-local warnWingBuffet	= mod:NewCastAnnounce(23339)
-local warnShadowFlame	= mod:NewCastAnnounce(22539)
-local warnFlameBuffet	= mod:NewSpellAnnounce(23341)
+--(ability.id = 23339 or ability.id = 22539) and type = "begincast" or ability.id = 23341 and type = "cast"
+local warnWingBuffet		= mod:NewCastAnnounce(23339, 2)
+local warnShadowFlame		= mod:NewCastAnnounce(22539, 2)
+local warnFlameBuffet		= mod:NewCountAnnounce(23341, 3, nil, nil, DBM_CORE_L.AUTO_ANNOUNCE_OPTIONS.stack:format(23341))
 
-local timerWingBuffet	= mod:NewNextTimer(31, 23339)
-local timerShadowFlame	= mod:NewCastTimer(2, 22539)
-local timerFlameBuffetCD = mod:NewNextTimer(5, 23341)
+local timerWingBuffet		= mod:NewCDTimer(30, 23339, nil, nil, nil, 2)--Verified on classic 31-36
+local timerShadowFlameCD	= mod:NewCDTimer(15, 22539, nil, false)--14-21
+local timerFlameBuffetCD	= mod:NewCDTimer(5, 23341, nil, false)
 
 function mod:OnCombatStart(delay)
-	timerWingBuffet:Start(-delay)
+	timerShadowFlameCD:Start(18-delay)
+	timerWingBuffet:Start(30-delay)
+	timerFlameBuffetCD:Start(5-delay)
 end
 
-function mod:SPELL_CAST_START(args)
-	if args.spellId == 23339 and self:IsInCombat() then
+function mod:SPELL_CAST_START(args)--did not see ebon use any of these abilities
+	if args.spellId == 23339 then
 		warnWingBuffet:Show()
 		timerWingBuffet:Start()
-	elseif args.spellId == 22539 and self:IsInCombat() then
-		timerShadowFlame:Start()
+	elseif args.spellId == 22539 then
 		warnShadowFlame:Show()
+		timerShadowFlameCD:Start()
 	end
 end
 
-function mod:SPELL_CAST_SUCCESS(args)
+function mod:SPELL_CAST_SUCEESS(args)
 	if args.spellId == 23341 then
-		warnFlameBuffet:Show()
 		timerFlameBuffetCD:Start()
+	end
+end
+
+--function mod:SPELL_AURA_APPLIED_DOSE(args)
+--	if args.spellId == 23341 and args:IsPlayer() then
+--		timerFlameBuffetCD:Start()
+--		local amount = args.amount or 1
+--		if (amount >= 4) and (amount % 2 == 0) then--Starting at 4, every even amount warn stack
+--			warnFlameBuffet:Show(amount)
+--		end
+--	end
+--end
+
+function mod:UNIT_DIED(args)
+	local cid = self:GetCIDFromGUID(args.destGUID)
+	if cid == 11983 then--Only trigger kill for unit_died if he dies in phase 2 with everyone alive, otherwise it's an auto wipe.
+		if DBM:NumRealAlivePlayers() > 0 then
+			DBM:EndCombat(self)
+		else
+			DBM:EndCombat(self, true)--Pass wipe arg end combat
+		end
 	end
 end

@@ -1,53 +1,54 @@
 local mod	= DBM:NewMod("Broodlord", "DBM-BWL", 1)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision(("$Revision: 168 $"):sub(12, -3))
+mod:SetRevision(("$Revision: 7007 $"):sub(12, -3))
 mod:SetCreatureID(12017)
-mod:RegisterCombat("combat")
 
-mod:RegisterEvents(
-	"SPELL_CAST_SUCCESS",
-	"SPELL_AURA_APPLIED",
-	"UNIT_THREAT_SITUATION_UPDATE"
+mod:SetModelID(14308)
+mod:RegisterCombat("yell", L.Pull)--L.Pull is backup for classic, since classic probably won't have ENCOUNTER_START to rely on and player regen never works for this boss
+
+mod:RegisterEventsInCombat(
+	"SPELL_CAST_SUCCESS 23331 18670",
+	"SPELL_AURA_APPLIED 24573",
+	"SPELL_AURA_REMOVED 24573"
 )
 
-local warnBlastWave	= mod:NewSpellAnnounce(23331)
-local warnKnockAway	= mod:NewSpellAnnounce(18670)
-local warnMortal	= mod:NewTargetAnnounce(24573)
+--Mortal Strike: 10-20, Blast Wave: 12-32, Knock Away: 13-30. i.e., timers on this fight would be near useless
+--(ability.id = 18670 or ability.id = 23331 or ability.id = 24573) and type = "cast"
+local warnBlastWave		= mod:NewSpellAnnounce(23331, 2)
+local warnKnockAway		= mod:NewSpellAnnounce(25778, 3)
+local warnMortal		= mod:NewTargetNoFilterAnnounce(24573, 2, nil, "Tank|Healer", 4)
 
-local timerMortal	= mod:NewTargetTimer(5, 24573)
-
-function mod:OnCombatStart(delay)
-end
-
---It's unfortunate this is a shared spellid.
---cause you are almost always in combat before pulling this boss which breaks "IsInCombat" detection
---these 2 of these warnings will never work.
+local timerMortal		= mod:NewTargetTimer(5, 24573, nil, "Tank|Healer", 4, 5, nil, DBM_CORE_L.TANK_ICON)
 
 function mod:SPELL_CAST_SUCCESS(args)
-
-	if args.spellId == 23331 then
+	if args.spellId == 23331 and args:IsSrcTypeHostile() then
 		warnBlastWave:Show()
-	elseif args.spellId == 18670 and self:IsInCombat() then
+	elseif args.spellId == 25778 then
 		warnKnockAway:Show()
 	end
 end
 
 function mod:SPELL_AURA_APPLIED(args)
-	if args.spellId == 24573 and self:IsInCombat() then
+	if args.spellId == 24573 and args:IsDestTypePlayer() then
 		warnMortal:Show(args.destName)
 		timerMortal:Start(args.destName)
 	end
 end
 
-function mod:UNIT_THREAT_SITUATION_UPDATE(unit)
-	if UnitExists("boss1") then
-		local playerTanking = UnitDetailedThreatSituation("player", "boos1")
-		
-		print(playerTanking)
-		
-		if unit == "player" and playerTanking then
-			print("pula2")
+function mod:SPELL_AURA_REMOVED(args)
+	if args.spellId == 24573 and args:IsDestTypePlayer() then
+		timerMortal:Stop(args.destName)
+	end
+end
+
+function mod:UNIT_DIED(args)
+	local cid = self:GetCIDFromGUID(args.destGUID)
+	if cid == 12017 then--Only trigger kill for unit_died if he dies in phase 2 with everyone alive, otherwise it's an auto wipe.
+		if DBM:NumRealAlivePlayers() > 0 then
+			DBM:EndCombat(self)
+		else
+			DBM:EndCombat(self, true)--Pass wipe arg end combat
 		end
 	end
 end
