@@ -82,9 +82,9 @@ local function currentFullDate()
 end
 
 DBM = {
-	Revision = parseCurseDate("20220909160016"),
-	DisplayVersion = "9.2.23 alpha", -- the string that is shown as version
-	ReleaseRevision = releaseDate(2022, 8, 21) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
+	Revision = parseCurseDate("20221022095815"),
+	DisplayVersion = "9.2.25 alpha", -- the string that is shown as version
+	ReleaseRevision = releaseDate(2022, 10, 4) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
 }
 
 local fakeBWVersion = 7558
@@ -424,7 +424,7 @@ local newerVersionPerson, cSyncSender, iconSetRevision, iconSetPerson, loadcIds,
 -- False variables
 local voiceSessionDisabled, statusGuildDisabled, statusWhisperDisabled, targetEventsRegistered, combatInitialized, healthCombatInitialized, watchFrameRestore, bossuIdFound, timerRequestInProgress, encounterInProgress = false, false, false, false, false, false, false, false, false, false
 -- Nil variables
-local currentSpecID, currentSpecName, currentSpecGroup, pformat, loadOptions, checkWipe, checkBossHealth, checkCustomBossHealth, fireEvent, LastInstanceType, breakTimerStart, AddMsg, delayedFunction, handleSync, savedDifficulty, difficultyText, difficultyIndex, encounterDifficulty, encounterDifficultyText, encounterDifficultyIndex
+local currentSpecID, currentSpecName, currentSpecGroup, pformat, loadOptions, checkWipe, checkBossHealth, checkCustomBossHealth, fireEvent, LastInstanceType, breakTimerStart, AddMsg, delayedFunction, handleSync, savedDifficulty, difficultyText, difficultyIndex, encounterDifficulty, encounterDifficultyText, encounterDifficultyIndex, lastGroupLeader
 -- 0 variables
 local dbmToc, cSyncReceived, showConstantReminder, updateNotificationDisplayed, LastGroupSize = 0, 0, 0, 0
 local LastInstanceMapID = -1
@@ -1747,7 +1747,7 @@ do
 			return
 		end
 		if sender and ignore[sender] then return end
-		text = text:sub(1, 16)
+--		text = text:sub(1, 16) -- I don't see any point in limiting text to 16 char string
 		text = text:gsub("%%t", UnitName("target") or "<no target>")
 		if time < 3 then
 			self:AddMsg(L.PIZZA_ERROR_USAGE)
@@ -1887,6 +1887,9 @@ do
 					raid[name].guid = UnitGUID(id) or ""
 					raid[name].updated = true
 					raidGuids[UnitGUID(id) or ""] = name
+					if rank == 2 then
+						lastGroupLeader = name
+					end
 				end
 			end
 			private.enableIcons = false
@@ -1955,6 +1958,9 @@ do
 				raid[name].groupId = i
 				raid[name].updated = true
 				raidGuids[UnitGUID(id) or ""] = name
+				if rank >= 1 then
+					lastGroupLeader = name
+				end
 			end
 			private.enableIcons = false
 			twipe(iconSeter)
@@ -2001,6 +2007,7 @@ do
 			raid[playerName].displayVersion = DBM.DisplayVersion
 			raid[playerName].locale = GetLocale()
 			raidGuids[UnitGUID("player")] = playerName
+			lastGroupLeader = nil
 		end
 	end
 
@@ -2084,7 +2091,7 @@ do
 		return raid[name] and raid[name].id
 	end
 
-	local mobUids = {
+	local fullUids = {
 		"boss1", "boss2", "boss3", "boss4", "boss5",
 		"mouseover", "target", "focus", "focustarget", "targettarget", "mouseovertarget",
 		"party1target", "party2target", "party3target", "party4target",
@@ -2094,14 +2101,19 @@ do
 		"raid31target", "raid32target", "raid33target", "raid34target", "raid35target", "raid36target", "raid37target", "raid38target", "raid39target", "raid40target"
 	}
 
-	function DBM:GetEnemyUnitIdByGUID(guid)
-		for _, unitId in ipairs(mobUids) do
+	local bossTargetuIds = {
+		"boss1", "boss2", "boss3", "boss4", "boss5", "focus", "target", "mouseover"
+	}
+
+	--Not to be confused with GetUnitIdFromCID
+	function DBM:GetUnitIdFromGUID(guid, scanOnlyBoss)
+		local usedTable = scanOnlyBoss and bossTargetuIds or fullUids
+		for _, unitId in ipairs(usedTable) do
 			local guid2 = UnitGUID(unitId)
 			if guid == guid2 then
 				return unitId
 			end
 		end
-		return CL.UNKNOWN
 	end
 
 	function DBM:GetPlayerGUIDByName(name)
@@ -2112,8 +2124,9 @@ do
 		return playerName, playerLevel, playerRealm
 	end
 
+	--Intentionally grabs server name at all times, usually to make sure warning/infoframe target info can name match the combat log in the table
 	function DBM:GetUnitFullName(uId)
-		if not uId then return nil end
+		if not uId then return end
 		return GetUnitName(uId, true)
 	end
 
@@ -2137,9 +2150,9 @@ do
 		return raidGuids[guid] and raidGuids[guid]:gsub("%-.*$", "")
 	end
 
-	function DBM:GetGroupId(name)
-		local raidMember = raid[name] or raid[GetUnitName(name) or ""]
-		return raidMember and raidMember.groupId or 0
+	function DBM:GetGroupId(name, higher)
+		local raidMember = raid[name] or raid[GetUnitName(name, true) or ""]
+		return raidMember and raidMember.groupId or UnitInRaid(name) or higher and 99 or 0
 	end
 end
 
@@ -2256,20 +2269,15 @@ function DBM:GetBossUnitId(name, bossOnly)--Deprecated, only old mods use this
 	return returnUnitID
 end
 
-function DBM:GetUnitIdFromGUID(cidOrGuid, bossOnly)
+--Not to be confused with GetUnitIdFromGUID
+function DBM:GetUnitIdFromCID(creatureID, bossOnly)
 	local returnUnitID
 	for i = 1, 5 do
 		local unitId = "boss"..i
 		local bossGUID = UnitGUID(unitId)
-		if type(cidOrGuid) == "number" then--CID passed
-			local cid = self:GetCIDFromGUID(bossGUID)
-			if cid == cidOrGuid then
-				returnUnitID = unitId
-			end
-		else--GUID passed
-			if bossGUID == cidOrGuid then
-				returnUnitID = unitId
-			end
+		local cid = self:GetCIDFromGUID(bossGUID)
+		if cid == creatureID then
+			returnUnitID = unitId
 		end
 	end
 	--Didn't find valid unitID from boss units, scan raid targets
@@ -2277,8 +2285,8 @@ function DBM:GetUnitIdFromGUID(cidOrGuid, bossOnly)
 		for uId in DBM:GetGroupMembers() do -- Do not use self on this function, because self might be bossModPrototype
 			local unitId = uId .. "target"
 			local bossGUID = UnitGUID(unitId)
-			local cid = self:GetCIDFromGUID(cidOrGuid)
-			if bossGUID == cidOrGuid or cid == cidOrGuid then
+			local cid = self:GetCIDFromGUID(bossGUID)
+			if cid == creatureID then
 				returnUnitID = unitId
 			end
 		end
@@ -2477,7 +2485,7 @@ end
 function DBM:PLAYER_LEVEL_CHANGED()
 	playerLevel = UnitLevel("player")
 	if playerLevel < 15 and playerLevel > 9 then
-		self:PLAYER_TALENT_UPDATE()
+		self:CHARACTER_POINTS_CHANGED()
 	end
 end
 
@@ -2857,22 +2865,33 @@ function DBM:READY_CHECK()
 	self:Schedule(4, self.TransitionToDungeonBGM, self)
 end
 
-function DBM:PLAYER_TALENT_UPDATE()
-	local lastSpecID = currentSpecID
-	if GetNumTalentTabs() == 0 then
-		self:Debug("No talents detected. Registering PLAYER_ALIVE for talent data")
-		self:RegisterEvents("PLAYER_ALIVE")
+do
+	local function throttledTalentCheck(self)
+		local lastSpecID = currentSpecID
+		if GetNumTalentTabs() == 0 then
+			self:Debug("No talents detected. Registering PLAYER_ALIVE for talent data")
+			self:RegisterEvents("PLAYER_ALIVE")
+		end
+		self:SetCurrentSpecInfo() -- always delay a bit (previously had it at 0.1s) because Unit API like UnitExists and UnitClass were returning nil on this event.
+		if currentSpecID ~= lastSpecID then--Don't fire specchanged unless spec actually has changed.
+			self:SpecChanged()
+		end
 	end
-	self:Schedule(0.1, self.SetCurrentSpecInfo) -- delay a bit because Unit API like UnitExists and UnitClass were returning nil on this event.
-	if currentSpecID ~= lastSpecID then--Don't fire specchanged unless spec actually has changed.
-		self:SpecChanged()
-	end
-end
-DBM.CHARACTER_POINTS_CHANGED = DBM.PLAYER_TALENT_UPDATE
 
-function DBM:PLAYER_ALIVE()
-	self:PLAYER_TALENT_UPDATE()
-	mainFrame:UnregisterEvent("PLAYER_ALIVE")
+	--Throttle checks on talent point updates so that if multiple CHARACTER_POINTS_CHANGED fire in succession
+	--It doesnt spam DBMs code and cause performance lag
+	function DBM:CHARACTER_POINTS_CHANGED() -- Classic/BCC support
+		self:Unschedule(throttledTalentCheck)
+		self:Schedule(2, throttledTalentCheck, self)
+	end
+	--Throttle this api too.
+	DBM.PLAYER_TALENT_UPDATE = DBM.CHARACTER_POINTS_CHANGED -- Wrath support
+
+	-- This workaround is likely not needed anymore since talent check is now delayed by two seconds
+	function DBM:PLAYER_ALIVE()
+		self:CHARACTER_POINTS_CHANGED()
+		mainFrame:UnregisterEvent("PLAYER_ALIVE")
+	end
 end
 
 do
@@ -3318,7 +3337,7 @@ do
 				modHFRevision = tonumber(modHFRevision or 0) or 0
 				startHp = tonumber(startHp or -1) or -1
 				--if dbmRevision < 10481 then return end
-				if mod and delay and (not mod.zones or mod.zones[LastInstanceMapID] or mod.zones[LastInstanceZoneName]) and (not mod.minSyncRevision or modRevision >= mod.minSyncRevision) then
+				if mod and delay and (not mod.zones or mod.zones[LastInstanceMapID] or mod.zones[LastInstanceZoneName]) and (not mod.minSyncRevision or modRevision >= mod.minSyncRevision) and not (#inCombat > 0 and mod.noMultiBoss) then
 					DBM:StartCombat(mod, delay + lag, "SYNC from - "..sender, true, startHp, event)
 					if mod.revision < modHFRevision then--mod.revision because we want to compare to OUR revision not senders
 						--There is a newer RELEASE version of DBM out that has this mods fixes that we do not possess
@@ -3834,9 +3853,9 @@ do
 			end
 		end
 
-		guildSyncHandlers["DBMv4-GCB"] = function(_, modId, ver, difficulty, name)
+		guildSyncHandlers["DBMv4-GCB"] = function(_, modId, ver, difficulty, name, groupLeader)
 			if not DBM.Options.ShowGuildMessages or not difficulty then return end
-			if not ver or ver ~= "2" then return end--Ignore old versions
+			if not ver or ver ~= "4" then return end--Ignore old versions
 			if DBM:AntiSpam(10, "GCB") then
 				if IsInInstance() then return end--Simple filter, if you are inside an instance, just filter it, if not in instance, good to go.
 				difficulty = tonumber(difficulty)
@@ -3853,14 +3872,14 @@ do
 				else
 					difficultyName = PLAYER_DIFFICULTY1
 				end
-				DBM:AddMsg(L.GUILD_COMBAT_STARTED:format(difficultyName.."-"..bossName))
+				DBM:AddMsg(L.GUILD_COMBAT_STARTED:format(difficultyName.."-"..bossName, groupLeader))-- "%s has been engaged by %s's guild group"
 			end
 		end
 
-		guildSyncHandlers["DBMv4-GCE"] = function(_, modId, ver, wipe, time, difficulty, name, wipeHP)
+		guildSyncHandlers["DBMv4-GCE"] = function(_, modId, ver, wipe, time, difficulty, name, groupLeader, wipeHP)
 			if not DBM.Options.ShowGuildMessages or not difficulty then return end
-			if not ver or ver ~="5" then return end--Ignore old versions
-			if DBM:AntiSpam(5, "GCE") then
+			if not ver or ver ~="8" then return end--Ignore old versions
+			if DBM:AntiSpam(10, "GCE") then
 				if IsInInstance() then return end--Simple filter, if you are inside an instance, just filter it, if not in instance, good to go.
 				difficulty = tonumber(difficulty)
 				if not DBM.Options.ShowGuildMessagesPlus then return end
@@ -3877,9 +3896,9 @@ do
 					difficultyName = PLAYER_DIFFICULTY1
 				end
 				if wipe == "1" then
-					DBM:AddMsg(L.GUILD_COMBAT_ENDED_AT:format(difficultyName.."-"..bossName, wipeHP, time))
+					DBM:AddMsg(L.GUILD_COMBAT_ENDED_AT:format(groupLeader or CL.UNKNOWN, difficultyName.."-"..bossName, wipeHP, time))--"%s's Guild group has wiped on %s (%s) after %s.
 				else
-					DBM:AddMsg(L.GUILD_BOSS_DOWN:format(difficultyName.."-"..bossName, time))
+					DBM:AddMsg(L.GUILD_BOSS_DOWN:format(difficultyName.."-"..bossName, groupLeader or CL.UNKNOWN, time))--"%s has been defeated by %s's guild group after %s!"
 				end
 			end
 		end
@@ -4692,9 +4711,9 @@ do
 		local combat = combatInfo[LastInstanceMapID] or combatInfo[LastInstanceZoneName]
 		if dbmIsEnabled and combat then
 			for _, v in ipairs(combat) do
-				if v.type == type and checkEntry(v.msgs, msg) or v.type == type .. "_regex" and checkExpressionList(v.msgs, msg) then
+				if v.type == type and checkEntry(v.msgs, msg) or v.type == type .. "_regex" and checkExpressionList(v.msgs, msg) and not (#inCombat > 0 and v.noMultiBoss) then
 					self:StartCombat(v.mod, 0, "MONSTER_MESSAGE")
-				elseif v.type == "combat_" .. type .. "find" and tContains(v.msgs, msg) or v.type == "combat_" .. type and checkEntry(v.msgs, msg) then
+				elseif v.type == "combat_" .. type .. "find" and tContains(v.msgs, msg) or v.type == "combat_" .. type and checkEntry(v.msgs, msg) and not (#inCombat > 0 and v.noMultiBoss) then
 					if IsInInstance() then--Indoor boss that uses both combat and message for combat, so in other words (such as hodir), don't require "target" of boss for yell like scanForCombat does for World Bosses
 						self:StartCombat(v.mod, 0, "MONSTER_MESSAGE")
 					else--World Boss
@@ -4769,7 +4788,7 @@ do
 	function DBM:CHAT_MSG_RAID_BOSS_WHISPER(msg)
 		--Make it easier for devs to detect whispers they are unable to see
 		--TINTERFACE\\ICONS\\ability_socererking_arcanewrath.blp:20|t You have been branded by |cFFF00000|Hspell:156238|h[Arcane Wrath]|h|r!"
-		if IsInGroup() and not _G["BigWigs"] then
+		if msg and msg ~= "" and IsInGroup() and not _G["BigWigs"] then
 			SendAddonMessage("Transcriptor", msg, IsInRaid() and "RAID" or "PARTY")--Send any emote to transcriptor, even if no spellid
 		end
 	end
@@ -4904,9 +4923,9 @@ do
 		if not statusGuildDisabled and updateNotificationDisplayed == 0 then
 			if thisTime then--Wipe event
 				if wipeHP then
-					SendAddonMessage(DBMPrefix.."-GCE", modId.."\t6\t1\t"..thisTime.."\t"..difficultyIndex.."\t"..name.."\t"..wipeHP, "GUILD")
+					SendAddonMessage(DBMPrefix.."-GCE", modId.."\t8\t1\t"..thisTime.."\t"..difficultyIndex.."\t"..name.."\t"..lastGroupLeader.."\t"..wipeHP, "GUILD")
 				else
-					SendAddonMessage(DBMPrefix.."-GCE", modId.."\t6\t0\t"..thisTime.."\t"..difficultyIndex.."\t"..name, "GUILD")
+					SendAddonMessage(DBMPrefix.."-GCE", modId.."\t8\t0\t"..thisTime.."\t"..difficultyIndex.."\t"..name.."\t"..lastGroupLeader, "GUILD")
 				end
 			else
 				SendAddonMessage(DBMPrefix.."-GCB", modId.."\t3\t"..difficultyIndex.."\t"..name, "GUILD")
@@ -5563,6 +5582,7 @@ end
 do
 	-- From Kader's Compat lib
 	local LGTRoleTable = {melee = "DAMAGER", caster = "DAMAGER", healer = "HEALER", tank = "TANK"}
+	local roleIconTable = {["DAMAGER"] = CL.DAMAGE_ICON, ["HEALER"] = CL.HEALER_ICON, ["TANK"] = CL.TANK_ICON, ["NONE"] = "|TInterface\\Icons\\INV_Misc_QuestionMark:16:16:0:0:64:64:5:59:5:59|t"}
 	local specsTable = {
 		["MAGE"] = {62, 63, 64},
 		["PRIEST"] = {256, 257, 258},
@@ -5697,6 +5717,15 @@ do
 		else
 			currentSpecID, currentSpecName = fallbackClassToRole[playerClass], playerClass
 		end
+	end
+
+	function DBM:GetUnitRole(uId, class)
+		return GetSpecializationRole(uId, class)
+	end
+
+	function DBM:GetUnitRoleIcon(uId, class)
+		local role = GetSpecializationRole(uId, class)
+		return roleIconTable[role]
 	end
 end
 
@@ -6448,10 +6477,10 @@ do
 			testWarning3 = testMod:NewAnnounce("%s", 3, "Interface\\Icons\\Spell_Fire_SelfDestruct")
 			testTimer1 = testMod:NewTimer(20, "%s", "Interface\\Icons\\Spell_Nature_WispSplode", nil, nil)
 			testTimer2 = testMod:NewTimer(20, "%s ", "Interface\\Icons\\INV_Misc_Head_Orc_01", nil, nil, 1)
-			testTimer3 = testMod:NewTimer(20, "%s  ", "Interface\\Icons\\Spell_Shadow_Shadesofdarkness", nil, nil, 3, L.MAGIC_ICON, nil, 1, 4)--inlineIcon, keep, countdown, countdownMax
-			testTimer4 = testMod:NewTimer(20, "%s   ", "Interface\\Icons\\Spell_Nature_WispSplode", nil, nil, 4, L.INTERRUPT_ICON)
-			testTimer5 = testMod:NewTimer(20, "%s    ", "Interface\\Icons\\Spell_Fire_SelfDestruct", nil, nil, 2, L.HEALER_ICON, nil, 3, 4)--inlineIcon, keep, countdown, countdownMax
-			testTimer6 = testMod:NewTimer(20, "%s     ", "Interface\\Icons\\Spell_Nature_WispSplode", nil, nil, 5, L.TANK_ICON, nil, 2, 4)--inlineIcon, keep, countdown, countdownMax
+			testTimer3 = testMod:NewTimer(20, "%s  ", "Interface\\Icons\\Spell_Shadow_Shadesofdarkness", nil, nil, 3, CL.MAGIC_ICON, nil, 1, 4)--inlineIcon, keep, countdown, countdownMax
+			testTimer4 = testMod:NewTimer(20, "%s   ", "Interface\\Icons\\Spell_Nature_WispSplode", nil, nil, 4, CL.INTERRUPT_ICON)
+			testTimer5 = testMod:NewTimer(20, "%s    ", "Interface\\Icons\\Spell_Fire_SelfDestruct", nil, nil, 2, CL.HEALER_ICON, nil, 3, 4)--inlineIcon, keep, countdown, countdownMax
+			testTimer6 = testMod:NewTimer(20, "%s     ", "Interface\\Icons\\Spell_Nature_WispSplode", nil, nil, 5, CL.TANK_ICON, nil, 2, 4)--inlineIcon, keep, countdown, countdownMax
 			testTimer7 = testMod:NewTimer(20, "%s      ", "Interface\\Icons\\Spell_Nature_WispSplode", nil, nil, 6)
 			testTimer8 = testMod:NewTimer(20, "%s       ", "Interface\\Icons\\Spell_Nature_WispSplode", nil, nil, 7)
 			testSpecialWarning1 = testMod:NewSpecialWarning("%s", nil, nil, nil, 1, 2)
@@ -6869,65 +6898,12 @@ function bossModPrototype:IsValidWarning(sourceGUID, customunitID, loose)
 	if customunitID then
 		if UnitExists(customunitID) and UnitGUID(customunitID) == sourceGUID and UnitAffectingCombat(customunitID) then return true end
 	else
-		local unitId = DBM:GetEnemyUnitIdByGUID(sourceGUID)
-		if UnitExists(unitId) and UnitAffectingCombat(unitId) then
+		local unitId = DBM:GetUnitIdFromGUID(sourceGUID)
+		if unitId and UnitExists(unitId) and UnitAffectingCombat(unitId) then
 			return true
 		end
 	end
 	return false
-end
-
---force param is used when CheckInterruptFilter is actually being used for a simpe target/focus check and nothing more.
---checkCooldown should never be passed with skip or COUNT interrupt warnings. It should be passed with any other interrupt filter
-function bossModPrototype:CheckInterruptFilter(sourceGUID, force, checkCooldown, ignoreTandF)
-	if DBM.Options.FilterInterrupt2 == "None" and not force then return true end --user doesn't want to use interrupt filter, always return true
-	--Pummel, Mind Freeze, Counterspell, Kick, Feral Charge, Silence, Wind Shear
-	local InterruptAvailable = true
-	local requireCooldown = checkCooldown
-	if (DBM.Options.FilterInterrupt2 == "onlyTandF") or self.isTrashMod and (DBM.Options.FilterInterrupt2 == "TandFandBossCooldown") then
-		requireCooldown = false
-	end
-	if requireCooldown and (UnitIsDeadOrGhost("player") or (GetSpellCooldown(6552)) ~= 0 or (GetSpellCooldown(47528)) ~= 0 or (GetSpellCooldown(2139)) ~= 0 or (GetSpellCooldown(1766)) ~= 0 or (GetSpellCooldown(49377)) ~= 0 or (GetSpellCooldown(15487)) ~= 0 or (GetSpellCooldown(57994)) ~= 0) then
-		InterruptAvailable = false --checkCooldown check requested and player has no spell that can interrupt available (or is dead)
-	end
-	local unitID = (UnitGUID("target") == sourceGUID) and "target" or (UnitGUID("focus") == sourceGUID) and "focus" or nil
-	if InterruptAvailable and (ignoreTandF or unitID) then
-		--Check if it's casting something that's not interruptable at the moment
-		--retail: needed since many mobs can have interrupt immunity with same spellIds as other mobs that can be interrupted
-		if unitID then
-			if UnitCastingInfo(unitID) then
-				local _, _, _, _, _, _, _, _, notInterruptible = UnitCastingInfo(unitID)
-				if notInterruptible then return false end
-			elseif UnitChannelInfo(unitID) then
-				local _, _, _, _, _, _, _, _, notInterruptible = UnitChannelInfo(unitID)
-				if notInterruptible then return false end
-			end
-		end
-		return true
-	end
-	return false
-end
-
-do
-	local lastCheck, lastReturn = 0, true
-	function bossModPrototype:CheckDispelFilter()
-		if not DBM.Options.FilterDispel then return true end
-		--Druid: Abolish Poison (2893), Cure Poison (8946), Remove Curse (2782); Priest: Dispel Magic (527), Abolish Disease (552), Cure Disease (528), Mass Dispel (32375); Paladin: Cleanse (4987), Purify (1152); Shaman: Cleanse Spirit (51886), Cure Toxins (526); Mage: Remove Curse (475)
-		--start, duration, enable = GetSpellCooldown
-		--start & duration == 0 if spell not on cd
-		if UnitIsDeadOrGhost("player") then return false end --if dead, can't dispel
-		if GetTime() - lastCheck < 0.1 then--Recently returned status, return same status to save cpu from aggressive api checks caused by CheckDispelFilter running on multiple raid members getting debuffed at once
-			return lastReturn
-		end
-		if (GetSpellCooldown(2893)) ~= 0 or (GetSpellCooldown(8946)) ~= 0 or (GetSpellCooldown(2782)) ~= 0 or (GetSpellCooldown(527)) ~= 0 or (GetSpellCooldown(528)) ~= 0 or (GetSpellCooldown(552)) ~= 0 or (GetSpellCooldown(32375)) ~= 0 or (GetSpellCooldown(4987)) ~= 0  or (GetSpellCooldown(1152)) ~= 0 or (GetSpellCooldown(51886)) ~= 0 or (GetSpellCooldown(526)) ~= 0 or (GetSpellCooldown(475)) ~= 0 then
-			lastCheck = GetTime()
-			lastReturn = false
-			return false
-		end
-		lastCheck = GetTime()
-		lastReturn = true
-		return true
-	end
 end
 
 function bossModPrototype:IsEquipmentSetAvailable(setName)
@@ -6958,6 +6934,7 @@ bossModPrototype.HasMapRestrictions = DBM.HasMapRestrictions
 bossModPrototype.GetUnitCreatureId = DBM.GetUnitCreatureId
 bossModPrototype.GetCIDFromGUID = DBM.GetCIDFromGUID
 bossModPrototype.IsCreatureGUID = DBM.IsCreatureGUID
+bossModPrototype.GetUnitIdFromCID = DBM.GetUnitIdFromCID
 bossModPrototype.GetUnitIdFromGUID = DBM.GetUnitIdFromGUID
 bossModPrototype.CheckNearby = DBM.CheckNearby
 bossModPrototype.IsTrivial = DBM.IsTrivial
@@ -7044,7 +7021,12 @@ do
 	function bossModPrototype:CheckBossDistance(cidOrGuid, onlyBoss, itemId, distance, defaultReturn)
 		if not DBM.Options.DontShowFarWarnings then return true end--Global disable.
 		cidOrGuid = cidOrGuid or self.creatureId
-		local uId = DBM:GetUnitIdFromGUID(cidOrGuid, onlyBoss)
+		local uId
+		if type(cidOrGuid) == "number" then--CID passed
+			uId = DBM:GetUnitIdFromCID(cidOrGuid, onlyBoss)
+		else--GUID
+			uId = DBM:GetUnitIdFromGUID(cidOrGuid, onlyBoss)
+		end
 		if uId then
 			itemId = itemId or 32698
 			local inRange = IsItemInRange(itemId, uId)
@@ -7285,8 +7267,12 @@ end
 function bossModPrototype:IsDps(uId)
 	if uId then--External unit call.
 		--no SpecID checks because SpecID is only availalbe with DBM/Bigwigs, but both DBM/Bigwigs auto set DAMAGER/HEALER/TANK roles anyways so it'd be redundant
-		local _, _, isDamager = UnitGroupRolesAssigned(uId)
-		return isDamager or not GetPartyAssignment("MAINTANK", uId, 1)
+		if IsPartyLFG() then -- On WotLK, Role API only works on LFG
+			local _, _, isDamager = UnitGroupRolesAssigned(uId)
+			return isDamager -- or not GetPartyAssignment("MAINTANK", uId, 1) -- Using this GetPartyAssignment API here makes no sense, since it being a non MAINTANK could be a healer...
+		else
+			return DBM:GetUnitRole(uId) == "DAMAGER"
+		end
 	end
 	if not currentSpecID then
 		DBM:SetCurrentSpecInfo()
@@ -7294,94 +7280,86 @@ function bossModPrototype:IsDps(uId)
 	return private.specRoleTable[currentSpecID]["Dps"]
 end
 
-function bossModPrototype:IsHealer(uId)
+function DBM:IsHealer(uId)
 	if uId then--External unit call.
 		--no SpecID checks because SpecID is only availalbe with DBM/Bigwigs, but both DBM/Bigwigs auto set DAMAGER/HEALER/TANK roles anyways so it'd be redundant
-		local _, isHealer = UnitGroupRolesAssigned(uId)
-		return isHealer
+		if IsPartyLFG() then -- On WotLK, Role API only works on LFG
+			local _, isHealer = UnitGroupRolesAssigned(uId)
+			return isHealer
+		else
+			return DBM:GetUnitRole(uId) == "HEALER"
+		end
 	end
 	if not currentSpecID then
 		DBM:SetCurrentSpecInfo()
 	end
 	return private.specRoleTable[currentSpecID]["Healer"]
 end
+bossModPrototype.IsHealer = DBM.IsHealer
 
-function bossModPrototype:IsTanking(unit, boss, isName, onlyRequested, bossGUID, includeTarget, onlyS3)
-	if isName then--Passed combat log name, so pull unit ID
-		unit = DBM:GetRaidUnitId(unit)
+function bossModPrototype:IsTanking(playerUnitID, enemyUnitID, isName, onlyRequested, enemyGUID, includeTarget, onlyS3)
+	--Didn't have playerUnitID so combat log name was passed
+	if isName then
+		playerUnitID = DBM:GetRaidUnitId(playerUnitID)
 	end
-	if not unit then
+	if not playerUnitID then
 		DBM:Debug("IsTanking passed with invalid unit", 2)
 		return false
 	end
-	--Prefer threat target first
-	if boss then--Only checking one bossID as requested
+	--If we don't know enemy unit token, but know it's GUID
+	if not enemyUnitID and enemyGUID then
+		enemyUnitID = DBM:GetUnitIdFromGUID(enemyGUID)
+	end
+
+	--Threat/Tanking Checks
+	--We have both units. No need to find unitID
+	if enemyUnitID then
 		--Check threat first
-		local tanking, status = UnitDetailedThreatSituation(unit, boss)
+		local tanking, status = UnitDetailedThreatSituation(playerUnitID, enemyUnitID)
 		if (not onlyS3 and tanking) or (status == 3) then
 			return true
 		end
 		--Non threat fallback
-		if includeTarget and UnitExists(boss) then
-			local guid = UnitGUID(boss)
-			local _, targetuid = self:GetBossTarget(guid, true)
-			if UnitIsUnit(unit, targetuid) then
+		if includeTarget and UnitExists(enemyUnitID.."target") then
+			if UnitIsUnit(playerUnitID, enemyUnitID.."target") then
 				return true
 			end
 		end
-	else--Check all of them if one isn't defined
+	end
+	--if onlyRequested is false/nil, it means we also accept anyone that's a tank role or tanking any boss unit
+	if not onlyRequested then
+		--Use these as fallback if threat target not found
+		if GetPartyAssignment("MAINTANK", playerUnitID, 1) then
+			return true
+		end
+		--no SpecID checks because SpecID is only availalbe with DBM/Bigwigs, but both DBM/Bigwigs auto set DAMAGER/HEALER/TANK roles anyways so it'd be redundant
+		if IsPartyLFG() then -- On WotLK, Role API only works on LFG
+			local isTank = UnitGroupRolesAssigned(playerUnitID)
+			if isTank then
+				return true
+			end
+		else
+			if DBM:GetUnitRole(playerUnitID) == "TANK" then
+				return true
+			end
+		end
 		for i = 1, 5 do
 			local unitID = "boss"..i
 			local guid = UnitGUID(unitID)
 			--No GUID, any unit having threat returns true, GUID, only specific unit matching guid
-			if not bossGUID or (guid and guid == bossGUID) then
+			if not enemyGUID or (guid and guid == enemyGUID) then
 				--Check threat first
-				local tanking, status = UnitDetailedThreatSituation(unit, unitID)
+				local tanking, status = UnitDetailedThreatSituation(playerUnitID, unitID)
 				if (not onlyS3 and tanking) or (status == 3) then
 					return true
 				end
 				--Non threat fallback
-				if includeTarget and UnitExists(unitID) then
-					local _, targetuid = self:GetBossTarget(guid, true)
-					if UnitIsUnit(unit, targetuid) then
+				if includeTarget and UnitExists(unitID.."target") then
+					if UnitIsUnit(playerUnitID, unitID.."target") then
 						return true
 					end
 				end
 			end
-		end
-		--Check group targets if no boss unitIDs found and bossGUID passed.
-		--This allows IsTanking to be used in situations boss UnitIds don't exist
-		if bossGUID then
-			local groupType = (IsInRaid() and "raid") or "party"
-			for i = 0, GetNumGroupMembers() do
-				local unitID = (i == 0 and "target") or groupType..i.."target"
-				local guid = UnitGUID(unitID)
-				if guid and guid == bossGUID then
-					--Check threat first
-					local tanking, status = UnitDetailedThreatSituation(unit, unitID)
-					if (not onlyS3 and tanking) or (status == 3) then
-						return true
-					end
-					--Non threat fallback
-					if includeTarget and UnitExists(unitID) then
-						local _, targetuid = self:GetBossTarget(guid, true)
-						if UnitIsUnit(unit, targetuid) then
-							return true
-						end
-					end
-				end
-			end
-		end
-	end
-	if not onlyRequested then
-		--Use these as fallback if threat target not found
-		if GetPartyAssignment("MAINTANK", unit, 1) then
-			return true
-		end
-		--no SpecID checks because SpecID is only availalbe with DBM/Bigwigs, but both DBM/Bigwigs auto set DAMAGER/HEALER/TANK roles anyways so it'd be redundant
-		local isTank = UnitGroupRolesAssigned(unit)
-		if isTank then
-			return true
 		end
 	end
 	return false
@@ -7400,6 +7378,168 @@ function bossModPrototype:GetNumAliveTanks()
 	return count
 end
 
+-----------------------
+--  Filter Methods  --
+-----------------------
+
+do
+	local interruptSpells = {
+		[1766] = true,--Rogue Kick
+		[2139] = true,--Mage Counterspell
+		[6552] = true,--Warrior Pummel
+		[15487] = true,--Priest Silence
+		[47528] = true,--Death Knight Mind Freeze
+		[49377] = true,--Druid Feral Charge
+		[57994] = true,--Shaman Wind Shear
+	}
+	--onlyTandF param is used when CheckInterruptFilter is actually being used for a simple target/focus check and nothing more.
+	--checkCooldown should always be passed true except for special rotations like count warnings when you should be alerted it's your turn even if you dropped ball and put it on CD at wrong time
+	--ignoreTandF is passed usually when interrupt is on a main boss or event that is global to entire raid and should always be alerted regardless of targetting.
+	function bossModPrototype:CheckInterruptFilter(sourceGUID, checkOnlyTandF, checkCooldown, ignoreTandF)
+		--Just return true if interrupt filtering is disabled (and it's actually for an interrupt)
+		if DBM.Options.FilterInterrupt2 == "None" and not checkOnlyTandF then return true end
+
+		local unitID = (UnitGUID("target") == sourceGUID) and "target" or (UnitGUID("focus") == sourceGUID) and "focus"
+
+		--Just return true if target or focus is ONLY requirement (not an interrupt check) and we already confirmed T and F
+		if unitID and checkOnlyTandF then return true end--checkOnlyTandF means this isn't an interrupt check at all, skip all the rest and return true if we met TandF rquirement
+
+		--TandF required in all checks except "None" or if ignoreTandF is passed
+		--Just return false if source isn't our target or focus, no need to do further checks
+		if not ignoreTandF and not unitID then
+			return false
+		end
+
+		--Check if cooldown check is actually required
+		local cooldownRequired = checkCooldown--First set to default value defined by arg
+		if cooldownRequired and ((DBM.Options.FilterInterrupt2 == "onlyTandF") or self.isTrashMod and (DBM.Options.FilterInterrupt2 == "TandFandBossCooldown")) then
+			cooldownRequired = false
+		end
+
+		local InterruptAvailable = true--We want to default to true versus false, since some interrupts don't require CD checks
+		if cooldownRequired then
+			for spellID, _ in pairs(interruptSpells) do
+				--For an inverse check, don't need to check if it's known, if it's on cooldown it's known
+				--This is possible since no class has 2 interrupt spells (well, actual interrupt spells)
+				if (GetSpellCooldown(spellID)) ~= 0 then--Spell is on cooldown
+					InterruptAvailable = false
+				end
+			end
+		end
+		if InterruptAvailable then
+			--Check if it's casting something that's not interruptable at the moment
+			--needed for torghast since many mobs can have interrupt immunity with same spellIds as other mobs that can be interrupted
+			if unitID then
+				if UnitCastingInfo(unitID) then
+					local _, _, _, _, _, _, _, _, notInterruptible = UnitCastingInfo(unitID)
+					if notInterruptible then return false end
+				elseif UnitChannelInfo(unitID) then
+					local _, _, _, _, _, _, _, notInterruptible = UnitChannelInfo(unitID)
+					if notInterruptible then return false end
+				end
+			end
+			return true
+		end
+		return false
+	end
+end
+
+do
+	--lazyCheck mostly for migration, doesn't distinguish dispel types
+	local lazyCheck = {
+		[2782] = true,--Druid: Remove Curse (Curse and Poison)
+		[2893] = true,--Druid: Abolish Poison (Poison)
+		[8946] = true,--Druid: Cure Poison (Poison)
+		[527] = true,--Priest: Dispel Magic (Magic and Disease)
+		[528] = true,--Priest: Cure Disease (Disease)
+		[552] = true,--Priest: Abolish Disease (Disease)
+		[32375] = true,--Priest: Mass Dispel (Magic and Disease)
+		[1022] = true,--Paladin: Hand of Protection (Bleed)
+		[1152] = true,--Paladin: Purify (Poison and Disease)
+		[4987] = true,--Paladin: Cleanse (Magic, Poison and Disease)
+		[526] = true,--Shaman: Cure Toxins (Poison and Disease)
+		[51886] = true,--Shaman: Cleanse Spirit (Curse, Poison and Disease)
+		[475] = true,--Mage: Remove Curse (Curse)
+	}
+	--Obviously only checks spells relevant for the dispel type
+	local typeCheck = {
+		["magic"] = {
+			[527] = true,--Priest: Dispel Magic (Magic and Disease)
+			[32375] = true,--Priest: Mass Dispel (Magic and Disease)
+			[4987] = true,--Paladin: Cleanse (Magic, Poison and Disease)
+			[77130] = true,--Shaman: Purify Spirit (Magic and Curse)
+		},
+		["curse"] = {
+			[2782] = true,--Druid: Remove Curse (Curse and Poison)
+			[51886] = DBM:IsHealer() and true,--Shaman: Cleanse Spirit (Curse, Poison and Disease)
+			[475] = true,--Mage: Remove Curse (Curse)
+		},
+		["poison"] = {
+			[2782] = true,--Druid: Remove Corruption (Curse and Poison)
+			[2893] = true,--Druid: Abolish Poison (Poison)
+			[8946] = true,--Druid: Cure Poison (Poison)
+			[1152] = true,--Paladin: Purify (Poison and Disease)
+			[4987] = true,--Paladin: Cleanse (Magic, Poison and Disease)
+			[526] = true,--Shaman: Cure Toxins (Poison and Disease)
+			[51886] = DBM:IsHealer() and true,--Shaman: Cleanse Spirit (Curse, Poison and Disease)
+		},
+		["disease"] = {
+			[527] = true,--Priest: Dispel Magic (Magic and Disease)
+			[528] = true,--Priest: Cure Disease (Disease)
+			[552] = true,--Priest: Abolish Disease (Disease)
+			[32375] = true,--Priest: Mass Dispel (Magic and Disease)
+			[1152] = true,--Paladin: Purify (Poison and Disease)
+			[4987] = true,--Paladin: Cleanse (Magic, Poison and Disease)
+			[526] = true,--Shaman: Cure Toxins (Poison and Disease)
+			[51886] = DBM:IsHealer() and true,--Shaman: Cleanse Spirit (Curse, Poison and Disease)
+		},
+		["bleed"] = {
+			[1022] = true,--Paladin: Hand of Protection (Bleed)
+		},
+	}
+	local lastCheck, lastReturn = 0, true
+	function bossModPrototype:CheckDispelFilter(dispelType)
+		if not DBM.Options.FilterDispel then return true end
+		-- WotLK: Druid: Abolish Poison (2893), Cure Poison (8946), Remove Curse (2782); Priest: Dispel Magic (527), Abolish Disease (552), Cure Disease (528), Mass Dispel (32375); Paladin: Cleanse (4987), Purify (1152); Shaman: Cleanse Spirit (51886), Cure Toxins (526); Mage: Remove Curse (475), Warlock (pet Felhunter): Devour Magic (48011)
+		--start, duration, enable = GetSpellCooldown
+		--start & duration == 0 if spell not on cd
+		if UnitIsDeadOrGhost("player") then return false end--if dead, can't dispel
+		if GetTime() - lastCheck < 0.1 then--Recently returned status, return same status to save cpu from aggressive api checks caused by CheckDispelFilter running on multiple raid members getting debuffed at once
+			return lastReturn
+		end
+		if dispelType then
+			--Devour Magic requires checking if Felhunter pet is out (Warlock only)
+			--Only checking 48011 (rank 7) for convenience, since API returns 0 for every other rank below it (possibly an unwanted behaviour with API and pet)
+			if dispelType == "magic" and (GetSpellCooldown(48011)) == 0 and (UnitExists("pet") and self:GetCIDFromGUID(UnitGUID("pet")) == 6) then
+				lastCheck = GetTime()
+				lastReturn = true
+				return true
+			end
+			--We cannot do inverse check here because some classes actually have two dispels for same type (such as evoker)
+			--Therefor, we can't go false if only one of them are on cooldown. We have to go true of any of them aren't on CD instead
+			--As such, we have to check if a spell is known in addition to it not being on cooldown
+			for spellID, _ in pairs(typeCheck[dispelType]) do
+				if typeCheck[dispelType][spellID] and IsSpellKnown(spellID) and (GetSpellCooldown(spellID)) == 0 then--Spell is known and not on cooldown
+					lastCheck = GetTime()
+					lastReturn = true
+					return true
+				end
+			end
+		else--use lazy check until all mods are migrated to define type
+			for spellID, _ in pairs(lazyCheck) do
+				if IsSpellKnown(spellID) and (GetSpellCooldown(spellID)) == 0 then--Spell is known and not on cooldown
+					lastCheck = GetTime()
+					lastReturn = true
+					return true
+				end
+			end
+		end
+		lastCheck = GetTime()
+		lastReturn = false
+		return false
+	end
+end
+
 -------------------------
 --  Boss Health Frame  --
 -------------------------
@@ -7410,6 +7550,7 @@ end
 ----------------------------
 --  Boss Health Function  --
 ----------------------------
+--This accepts both CID and GUID
 function DBM:GetBossHP(cIdOrGUID, onlyHighest)
 	local uId = bossHealthuIdCache[cIdOrGUID] or "target"
 	local guid = UnitGUID(uId)
@@ -8831,6 +8972,7 @@ do
 		["switch"] = "spell",
 		["switchcount"] = "count",
 --		["adds"] = "spell",
+--		["addscount"] = "spell",
 --		["addscustom"] = "spell",
 		["targetchange"] = "target",
 		["gtfo"] = "spell",
@@ -8907,6 +9049,7 @@ do
 		["switch"] = "switch",
 		["switchcount"] = "switch",
 		["adds"] = "switch",
+		["addscount"] = "switch",
 		["addscustom"] = "switch",
 		["targetchange"] = "switch",
 		["gtfo"] = "gtfo",
@@ -9032,9 +9175,9 @@ do
 			--Icon: Texture path/id for icon
 			--Type: Announce type
 			----Types: spell, ends, fades, soon, bait, dispel, interrupt, interruptcount, you, youcount, youpos, soakpos, target, targetcount, defensive, taunt, close, move, keepmove, stopmove,
-			----gtfo, dodge, dodgecount, dodgeloc, moveaway, moveawaycount, moveto, soak, jump, run, cast, lookaway, reflect, count, sooncount, stack, switch, switchcount, adds, addscustom, targetchange, prewarn
+			----gtfo, dodge, dodgecount, dodgeloc, moveaway, moveawaycount, moveto, soak, jump, run, cast, lookaway, reflect, count, sooncount, stack, switch, switchcount, adds, addscount, addscustom, targetchange, prewarn
 			------General Target Messages (but since it's a special warning, it applies to you in some way): target, targetcount
-			------Fight Changes (Stages, adds, boss buff/debuff, etc): adds, addscustom, targetchange, switch, switchcount, ends
+			------Fight Changes (Stages, adds, boss buff/debuff, etc): adds, addscount, addscustom, targetchange, switch, switchcount, ends
 			------General (can really apply to anything): spell, count, soon, sooncount, prewarn
 			------Personal/Role (Applies to you, or your job): Everything Else
 			--SpellId: Raw spell or encounter journal Id if available.
@@ -9106,6 +9249,7 @@ do
 --		["switch"] = "spell",
 --		["switchcount"] = "count",
 		["adds"] = "mobsoon",--Remaps sound to say mobs incoming only, not to kill them or cc them or anything else.
+		["addscount"] = "mobsoon",
 		["addscustom"] = "mobsoon",--Remaps sound to say mobs incoming only, not to kill them or cc them or anything else.
 --		["targetchange"] = "target",
 --		["gtfo"] = "spell",
@@ -9463,6 +9607,10 @@ do
 
 	function bossModPrototype:NewSpecialWarningAdds(spellId, optionDefault, ...)
 		return newSpecialWarning(self, "adds", spellId, nil, optionDefault, ...)
+	end
+
+	function bossModPrototype:NewSpecialWarningAddsCount(spellId, optionDefault, ...)
+		return newSpecialWarning(self, "addscount", spellId, nil, optionDefault, ...)
 	end
 
 	function bossModPrototype:NewSpecialWarningAddsCustom(spellId, optionDefault, ...)
@@ -10574,6 +10722,10 @@ function bossModPrototype:AddSetIconOption(name, spellId, default, iconType, ico
 		self.localization.options[name] = spellId and L.AUTO_ICONS_OPTION_TARGETS_ALPHA:format(spellId) or self.localization.options[name]
 	elseif iconType == 7 then
 		self.localization.options[name] = spellId and L.AUTO_ICONS_OPTION_TARGETS_ROSTER:format(spellId) or self.localization.options[name]
+	elseif iconType == 8 then
+		self.localization.options[name] = spellId and L.AUTO_ICONS_OPTION_TARGETS_TANK_A:format(spellId) or self.localization.options[name]
+	elseif iconType == 9 then
+		self.localization.options[name] = spellId and L.AUTO_ICONS_OPTION_TARGETS_TANK_R:format(spellId) or self.localization.options[name]
 	else--Type 0 (Generic for targets)
 		self.localization.options[name] = spellId and L.AUTO_ICONS_OPTION_TARGETS:format(spellId) or self.localization.options[name]
 	end
@@ -10862,7 +11014,7 @@ function bossModPrototype:SetOptionCategory(name, cat, optionType)
 	for _, options in pairs(self.optionCategories) do
 		removeEntry(options, name)
 	end
-	if self.addon and not self.addon.oldOptions and DBM.Options.GroupOptionsBySpell and self.groupSpells[name] and not (optionType == "gtfo" or optionType == "adds" or optionType == "addscustom" or optionType:find("stage") or cat == "icon" and DBM.Options.GroupOptionsExcludeIcon) then
+	if self.addon and not self.addon.oldOptions and DBM.Options.GroupOptionsBySpell and self.groupSpells[name] and not (optionType == "gtfo" or optionType == "adds" or optionType == "addscount" or optionType == "addscustom" or optionType:find("stage") or cat == "icon" and DBM.Options.GroupOptionsExcludeIcon) then
 		local sSpell = self.groupSpells[name]
 		if not self.groupOptions[sSpell] then
 			self.groupOptions[sSpell] = {}
@@ -11160,6 +11312,14 @@ do
 
 	function bossModPrototype:SetIcon(...)
 		return iconsModule:SetIcon(self, ...)
+	end
+
+	function bossModPrototype:SetIconByTable(...)
+		return iconsModule:SetIconByTable(self, ...)
+	end
+
+	function bossModPrototype:SetUnsortedIcon(...)
+		return iconsModule:SetUnsortedIcon(self, ...)
 	end
 
 	--Backwards compat for old mods using this method, which is now merged into SetSortedIcon
