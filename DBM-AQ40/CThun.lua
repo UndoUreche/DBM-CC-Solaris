@@ -107,7 +107,7 @@ function mod:OnCombatStart(delay)
 	self:ScheduleMethod(51-delay, "DarkGlare")
 	
 	if self.Options.RangeFrame then
-		DBM.RangeCheck:Show(10)
+		DBM.RangeCheck:Show(15)
 	end
 end
 
@@ -145,9 +145,11 @@ function mod:DarkGlare()
 	timerDarkGlareCD:Schedule(39)
 
 	timerClawTentacle:Cancel()
+	timerClawTentacle:Unschedule()
 	timerEyeTentacle:Cancel()
+	timerEyeTentacle:Unschedule()
 
-	timerClawTentacle:Schedule(39, 8)
+	timerClawTentacle:Schedule(39)
 	timerEyeTentacle:Schedule(39, 45)
 	
 	self:ScheduleMethod(89, "DarkGlare")
