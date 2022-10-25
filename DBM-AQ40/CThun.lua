@@ -112,7 +112,6 @@ function mod:OnCombatStart(delay)
 end
 
 function mod:OnCombatEnd(wipe, isSecondRun)
-
 	timerClawTentacle:Stop()
 	timerDarkGlareCD:Stop()
 	timerEyeTentacle:Stop()
@@ -122,7 +121,6 @@ function mod:OnCombatEnd(wipe, isSecondRun)
 	self:UnscheduleMethod("GiantClawTentacle")
 	self:UnscheduleMethod("GiantEyeTentacle")
 
-	table.wipe(diedTentacles)
 	if self.Options.RangeFrame then
 		DBM.RangeCheck:Hide()
 	end
@@ -304,8 +302,7 @@ function mod:CHAT_MSG_ADDON(prefix, msg)
 	if not self:IsInCombat() then return end
 	
 	if prefix == "DBM_CTHUN_WEAKENED" and not UnitIsDeadOrGhost("player") then 
-		self:UnscheduleMethod("Weakened")
-		self:ScheduleMethod(0.5, "Weakened")
+		self:SendSync("Weakened")
 	end
 end
 
@@ -313,11 +310,16 @@ end
 	-- weakened = false 
 -- end
 
-function mod:Weakened()
-	if not self:IsInCombat() then 
-		return 
+function mod:OnSync(msg)
+	if not self:IsInCombat() then return end
+	if msg == "Weakened" then
+		self:UnscheduleMethod("doWeakened")
+		self:ScheduleMethod(0.3, "doWeakened")
 	end
-	
+end
+
+function mod:doWeakened() 
+
 	table.wipe(fleshTentacles)
 	specWarnWeakened:Show()
 	specWarnWeakened:Play("targetchange")
