@@ -11,8 +11,8 @@ mod:SetWipeTime(25)
 
 mod:RegisterEventsInCombat(
 	"SPELL_CAST_START 26134",
-	"SPELL_CAST_SUCCESS 26139 26478",
-	-- "SPELL_DAMAGE 26478",
+	"SPELL_CAST_SUCCESS 26139 26478 26029",
+	"SPELL_AURA_APPLIED_DOSE 26476",
 	"SPELL_AURA_APPLIED 26476",
 	"SPELL_AURA_REMOVED 26476",
 	"CHAT_MSG_MONSTER_EMOTE",
@@ -44,43 +44,29 @@ mod:AddSetIconOption("SetIconOnEyeBeam", 26134, true, false, {1})
 mod:AddInfoFrameOption(nil, true)
 
 local firstBossMod = DBM:GetModByName("AQ40Trash")
-local playersInStomach = {}
+local playerStacks = {}
 local fleshTentacles, diedTentacles = {}, {}
 local tentacleMurderCounter = 0
--- local weakened = false
 
 local updateInfoFrame
 do
 	local twipe = table.wipe
 	local lines = {}
 	local sortedLines = {}
+	
 	local function addLine(key, value)
-		-- sort by insertion order
 		lines[key] = value
 		sortedLines[#sortedLines + 1] = key
 	end
-	updateInfoFrame = function()
+	
+		updateInfoFrame = function()
 		twipe(lines)
 		twipe(sortedLines)
-		--First, process players in stomach and gather tentacle information and debuff stacks
-		for i = 1, #playersInStomach do
-			local name = playersInStomach[i]
-			local uId = DBM:GetRaidUnitId(name)
-			if uId then
-				--First, display their stomach debuff stacks
-				local spellName, _, count = DBM:UnitDebuff(uId, 26476)
-				if spellName and count then
-					addLine(name, count)
-				end
-				--Also, process their target information for tentacles
-				local targetuId = uId.."target"
-				local guid = UnitGUID(targetuId)
-				if guid and (mod:GetCIDFromGUID(guid) == 15802) and not diedTentacles[guid] then--Targetting Flesh Tentacle
-					fleshTentacles[guid] = math.floor(UnitHealth(targetuId) / UnitHealthMax(targetuId) * 100)
-				end
-			end
+		
+		for name, stacks in pairs(playerStacks) do 
+			addLine(name, stacks)
 		end
-		--Now, show tentacle data after it's been updated from player processing
+		
 		local nLines = 0
 		for _, health in pairs(fleshTentacles) do
 			nLines = nLines + 1
@@ -88,15 +74,15 @@ do
 		end
 		return lines, sortedLines
 	end
+
 end
 
 function mod:OnCombatStart(delay)
-	table.wipe(playersInStomach)
+	table.wipe(playerStacks)
 	table.wipe(fleshTentacles)
 	table.wipe(diedTentacles)
 	
 	tentacleMurderCounter = 0
-	--weakened = false
 	
 	self:SetStage(1)
 	
@@ -198,8 +184,7 @@ function mod:SPELL_CAST_START(args)
 end
 
 function mod:SPELL_CAST_SUCCESS(args)
-	if args.spellId == 26139 then
-		 
+	if args.spellId == 26139 or args.spellId == 26478 or args.spellId == 26029 then
 		 local cid = self:GetCIDFromGUID(args.sourceGUID)
 		 
 		 if self:AntiSpam(5, cid) then
@@ -215,49 +200,62 @@ function mod:SPELL_CAST_SUCCESS(args)
 				timerClawTentacle:Stop()
 				
 				timerClawTentacle:Start()
+			elseif cid == 15728 then
+				timerGiantClawTentacle:Stop()
+				self:UnscheduleMethod("GiantClawTentacle")
+	
+				timerGiantClawTentacle:Start(59)
+	
+				self:ScheduleMethod(59, "GiantClawTentacle")
+				
+			elseif cid == 15334 then
+				timerGiantEyeTentacle:Stop()
+				self:UnscheduleMethod("GiantEyeTentacle")
+				
+				timerGiantEyeTentacle:Start(59)
+				self:ScheduleMethod(59, "GiantEyeTentacle")
+				
+			-- elseif args.spellId == 15589 then
+				-- self:UnscheduleMethod("DarkGlare")
+				
+				-- self:ScheduleMethod(0, "DarkGlare")
+				
+				-- print("scheduled glare")
 			end
 		end
 	end
 end
 
--- function mod:SPELL_DAMAGE(_, sourceName, _, _, _, _, spellId) 
-
-	-- if spellId == 26478 and not weakened then
-		 
-		-- if sourceName  ==  "Giant Eye Tentacle" then -- Giant Eye Tentacle
-			-- timerGiantEyeTentacle:Stop()
-			-- self:UnscheduleMethod("GiantEyeTentacle")
-			
-			-- timerGiantEyeTentacle:Start()
-			-- self:ScheduleMethod(60, "GiantEyeTentacle")
-			
-		-- elseif sourceName  ==  "Giant Claw Tentacle" then -- Giant Claw Tentacle
-			-- timerGiantClawTentacle:Stop()
-			-- self:UnscheduleMethod("GiantClawTentacle")
-			
-			-- timerGiantClawTentacle:Start()
-			-- self:ScheduleMethod(60, "GiantClawTentacle")
-		-- end
-	-- end
--- end
-
 function mod:SPELL_AURA_APPLIED(args)
 	if args.spellId == 26476 then
-		--I'm aware debuff stacks, but it's a context that doesn't matter to this mod
-		if not tContains(playersInStomach, args.destName) then
-			table.insert(playersInStomach, args.destName)
-		end
-		if self.Options.InfoFrame and not DBM.InfoFrame:IsShown() then
-			DBM.InfoFrame:SetHeader(L.Stomach)
-			DBM.InfoFrame:Show(42, "function", updateInfoFrame, false, false)
-			DBM.InfoFrame:SetColumns(1)
-		end
+		self:SendSync("PlayerStomachIn", args.destName)
 	end
 end
 
 function mod:SPELL_AURA_REMOVED(args)
 	if args.spellId == 26476 then
-		tDeleteItem(playersInStomach, args.destName)
+		self:SendSync("PlayerStomachOut", args.destName)
+	end
+end
+
+function mod:SPELL_AURA_APPLIED_DOSE(args) 
+	
+	for name, _ in pairs(playerStacks) do
+	
+		local uId = DBM:GetRaidUnitId(name)
+		if uId then
+			
+			local spellName, _, _, count = DBM:UnitDebuff(uId, 26476)
+			if spellName and count then
+				self:SendSync("PlayerStomachStacksUpdate", name, tonumber(count))
+			end
+
+			local targetuId = uId.."target"
+			local guid = UnitGUID(targetuId)
+			if guid and (mod:GetCIDFromGUID(guid) == 15802) and not diedTentacles[guid] then--Targetting Flesh Tentacle
+				self:SendSync("PlayerStomachTentacleUpdate", guid, math.floor(UnitHealth(targetuId) / UnitHealthMax(targetuId) * 100))
+			end	
+		end
 	end
 end
 
@@ -274,6 +272,7 @@ function mod:UNIT_DIED(args)
 		warnPhase2:Show()
 		
 		timerDarkGlareCD:Stop()
+		timerDarkGlare:Stop()
 		self:UnscheduleMethod("DarkGlare")
 		
 		timerEyeTentacle:Stop()
@@ -295,29 +294,51 @@ function mod:UNIT_DIED(args)
 		if tentacleMurderCounter >= 2 then
 			tentacleMurderCounter = 0
 			
-			SendAddonMessage("DBM_CTHUN_WEAKENED", "", "RAID");
+			self:SendSync("Weakened")
 		end
 	end
 end
 
-function mod:CHAT_MSG_ADDON(prefix, msg) 
-	if not self:IsInCombat() then return end
-	
-	if prefix == "DBM_CTHUN_WEAKENED" and not UnitIsDeadOrGhost("player") then 
-		self:SendSync("Weakened")
-	end
-end
-
--- local function disableWeakenedState() 
-	-- weakened = false 
--- end
-
-function mod:OnSync(msg)
+function mod:OnSync(msg, id, value)
 	if not self:IsInCombat() then return end
 	if msg == "Weakened" then
 		self:UnscheduleMethod("doWeakened")
 		self:ScheduleMethod(0.3, "doWeakened")
+		
+		for k, _ in pairs(fleshTentacles) do 
+			
+			fleshTentacles[k] = nil
+		end
+	
+	elseif msg == "PlayerStomachOut" then
+		
+		playerStacks[id] = nil
+	
+	elseif msg == "PlayerStomachIn" then
+	
+		playerStacks[id] = 1.0
+		
+		if self.Options.InfoFrame and not DBM.InfoFrame:IsShown() then
+			DBM.InfoFrame:SetHeader(L.Stomach)
+			DBM.InfoFrame:Show(42, "function", updateInfoFrame, false, false)
+			DBM.InfoFrame:SetColumns(1)
+		end	
+		
+	elseif msg == "PlayerStomachTentacleUpdate" then
+		
+		if fleshTentacles[id] == nil or fleshTentacles[id] > value then
+			fleshTentacles[id] = value	
+		end
+		
+	elseif msg == "PlayerStomachStacksUpdate" then
+		
+		value = tonumber(value)
+		
+		if playerStacks[id] < value then
+			playerStacks[id] = value
+		end
 	end
+	
 end
 
 function mod:doWeakened() 
@@ -339,9 +360,6 @@ function mod:doWeakened()
 	self:ScheduleMethod(53, "GiantClawTentacle")
 	timerGiantEyeTentacle:Schedule(45, 38)
 	self:ScheduleMethod(83, "GiantEyeTentacle")
-	
-	-- weakened = true
-	-- self:Schedule(45, disableWeakenedState)
 	
 	if self.Options.InfoFrame then
 		DBM.InfoFrame:Hide()
