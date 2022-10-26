@@ -45,7 +45,7 @@ mod:AddInfoFrameOption(nil, true)
 
 local firstBossMod = DBM:GetModByName("AQ40Trash")
 local playerStacks = {}
-local fleshTentacles, diedTentacles = {}, {}
+local fleshTentacles = {}
 local tentacleMurderCounter = 0
 
 local updateInfoFrame
@@ -70,7 +70,7 @@ do
 		local nLines = 0
 		for _, health in pairs(fleshTentacles) do
 			nLines = nLines + 1
-			addLine(L.FleshTent .. " " .. nLines, health .. '%')
+			addLine(L.FleshTent .. " " .. nLines .. "   ", health .. '%')
 		end
 		return lines, sortedLines
 	end
@@ -80,7 +80,6 @@ end
 function mod:OnCombatStart(delay)
 	table.wipe(playerStacks)
 	table.wipe(fleshTentacles)
-	table.wipe(diedTentacles)
 	
 	tentacleMurderCounter = 0
 	
@@ -252,7 +251,7 @@ function mod:SPELL_AURA_APPLIED_DOSE(args)
 
 			local targetuId = uId.."target"
 			local guid = UnitGUID(targetuId)
-			if guid and (mod:GetCIDFromGUID(guid) == 15802) and not diedTentacles[guid] then--Targetting Flesh Tentacle
+			if guid and (mod:GetCIDFromGUID(guid) == 15802) then--Targetting Flesh Tentacle
 				self:SendSync("PlayerStomachTentacleUpdate", guid, math.floor(UnitHealth(targetuId) / UnitHealthMax(targetuId) * 100))
 			end	
 		end
@@ -286,8 +285,7 @@ function mod:UNIT_DIED(args)
 		self:ScheduleMethod(41, "GiantEyeTentacle")
 		
 	elseif args.destName == "Flesh Tentacle" then
-		fleshTentacles[args.destGUID] = nil
-		diedTentacles[args.destGUID] = true
+		fleshTentacles[args.destGUID] = 0
 		
 		tentacleMurderCounter = tentacleMurderCounter + 1
 		
