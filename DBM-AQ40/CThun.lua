@@ -16,6 +16,7 @@ mod:RegisterEventsInCombat(
 	"SPELL_AURA_APPLIED 26476",
 	"SPELL_AURA_REMOVED 26476",
 	"CHAT_MSG_MONSTER_EMOTE",
+	"UNIT_HEALTH mouseover target",
 	"UNIT_DIED",
 	"CHAT_MSG_ADDON"
 )
@@ -47,6 +48,7 @@ local firstBossMod = DBM:GetModByName("AQ40Trash")
 local playerStacks = {}
 local fleshTentacles = {}
 local tentacleMurderCounter = 0
+-- local darkGalreCounter = 0
 
 local updateInfoFrame
 do
@@ -67,10 +69,17 @@ do
 			addLine(name, stacks)
 		end
 		
-		local nLines = 0
-		for _, health in pairs(fleshTentacles) do
-			nLines = nLines + 1
-			addLine(L.FleshTent .. " " .. nLines .. "   ", health .. '%')
+		for k, health in pairs(fleshTentacles) do
+			if k ~= "first" then
+				
+				if fleshTentacles["first"] == k then
+					addLine(L.FleshTent .. " 1   ", health .. '%')
+				else
+					addLine(L.FleshTent .. " 2   ", health .. '%')
+				end
+			
+				
+			end
 		end
 		return lines, sortedLines
 	end
@@ -82,6 +91,7 @@ function mod:OnCombatStart(delay)
 	table.wipe(fleshTentacles)
 	
 	tentacleMurderCounter = 0
+	-- darkGalreCounter = 0
 	
 	self:SetStage(1)
 	
@@ -214,12 +224,18 @@ function mod:SPELL_CAST_SUCCESS(args)
 				timerGiantEyeTentacle:Start(59)
 				self:ScheduleMethod(59, "GiantEyeTentacle")
 				
-			-- elseif args.spellId == 15589 then
-				-- self:UnscheduleMethod("DarkGlare")
+			-- elseif cid == 15589 then
+			
+				-- if darkGalreCounter % 8 == 0 then
+					
+					-- timerDarkGlare:Unschedule()
+					-- timerDarkGlare:Start()
+					-- self:UnscheduleMethod("DarkGlare")
+					
+					-- self:ScheduleMethod(0, "DarkGlare")
+				-- end
 				
-				-- self:ScheduleMethod(0, "DarkGlare")
-				
-				-- print("scheduled glare")
+				-- darkGalreCounter = darkGalreCounter + 1;
 			end
 		end
 	end
@@ -237,8 +253,18 @@ function mod:SPELL_AURA_REMOVED(args)
 	end
 end
 
+function mod:UNIT_HEALTH(uId)
+	if self:GetUnitCreatureId(uId) == 15802 then
+
+		self:ScheduleMethod(0, "syncInfoFrameData")
+	end
+end
+
 function mod:SPELL_AURA_APPLIED_DOSE(args) 
-	
+	self:ScheduleMethod(0, "syncInfoFrameData")
+end
+
+function mod:syncInfoFrameData() 
 	for name, _ in pairs(playerStacks) do
 	
 		local uId = DBM:GetRaidUnitId(name)
@@ -303,10 +329,7 @@ function mod:OnSync(msg, id, value)
 		self:UnscheduleMethod("doWeakened")
 		self:ScheduleMethod(0.3, "doWeakened")
 		
-		for k, _ in pairs(fleshTentacles) do 
-			
-			fleshTentacles[k] = nil
-		end
+		table.wipe(fleshTentacles)
 	
 	elseif msg == "PlayerStomachOut" then
 		
@@ -323,6 +346,10 @@ function mod:OnSync(msg, id, value)
 		end	
 		
 	elseif msg == "PlayerStomachTentacleUpdate" then
+	
+		if fleshTentacles["first"] == nil then --yes it's stupid, but it's late and honestly fuck effort
+			fleshTentacles["first"] = id
+		end
 		
 		if fleshTentacles[id] == nil or fleshTentacles[id] > value then
 			fleshTentacles[id] = value	
