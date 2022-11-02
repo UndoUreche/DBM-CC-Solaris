@@ -34,17 +34,13 @@ local timerBlastCD			= mod:NewNextTimer(20, 26102, nil, nil, nil, 2)
 mod.vb.prewarn_Berserk = false
 mod.vb.Berserked = false
 
-local function StartSubmergeTimer()
-	timerForcedSubmerge:Start()
-end
-
 function mod:OnCombatStart(delay)
 	self.vb.prewarn_Berserk = false
 	self.vb.Berserked = false
 	timerSweepCD:Start(22-delay)
 	timerBlastCD:Start(-delay)
 	timerSubmerge:Start(90-delay)
-	self:Schedule(4, StartSubmergeTimer)
+	timerForcedSubmerge:Schedule(4)
 end
 
 local function Emerge()
@@ -52,6 +48,7 @@ local function Emerge()
 	timerSweepCD:Start(22)
 	timerBlastCD:Start(24)
 	timerSubmerge:Start(90)
+	timerForcedSubmerge:Schedule(4)
 end
 
 function mod:SPELL_AURA_APPLIED(args)
@@ -77,16 +74,16 @@ end
 function mod:SWING_DAMAGE(_, source)
 	if source == "Ouro" and not self.vb.Berserked  then 
 		timerForcedSubmerge:Cancel()
-		self:Unschedule(StartSubmergeTimer)
-		self:Schedule(4, StartSubmergeTimer)
+		timerForcedSubmerge:Unschedule()
+		timerForcedSubmerge:Schedule(4)
 	end
 end
 
 function mod:SWING_MISSED(_, source)
 	if source == "Ouro" and not self.vb.Berserked then 
 		timerForcedSubmerge:Cancel()
-		self:Unschedule(StartSubmergeTimer)
-		self:Schedule(4, StartSubmergeTimer)
+		timerForcedSubmerge:Unschedule()
+		timerForcedSubmerge:Schedule(4)
 	end
 end
 
@@ -98,8 +95,9 @@ function mod:SPELL_SUMMON(args)
 			timerSubmerge:Stop()
 			warnSubmerge:Show()
 			timerEmerge:Start()
+			timerForcedSubmerge:Cancel()
+			timerForcedSubmerge:Unschedule()
 			self:Schedule(30, Emerge)
-			self:Schedule(34, StartSubmergeTimer)
 			
 		elseif self.vb.Berserked then
 			timerMounds:Start()
