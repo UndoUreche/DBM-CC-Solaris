@@ -47,7 +47,6 @@ mod:AddInfoFrameOption(nil, true)
 local firstBossMod = DBM:GetModByName("AQ40Trash")
 local playerStacks = {}
 local fleshTentacles = {}
-local tentacleMurderCounter = 0
 -- local darkGalreCounter = 0
 
 local updateInfoFrame
@@ -90,7 +89,6 @@ function mod:OnCombatStart(delay)
 	table.wipe(playerStacks)
 	table.wipe(fleshTentacles)
 	
-	tentacleMurderCounter = 0
 	-- darkGalreCounter = 0
 	
 	self:SetStage(1)
@@ -312,14 +310,6 @@ function mod:UNIT_DIED(args)
 		
 	elseif args.destName == "Flesh Tentacle" then
 		fleshTentacles[args.destGUID] = 0
-		
-		tentacleMurderCounter = tentacleMurderCounter + 1
-		
-		if tentacleMurderCounter >= 2 then
-			tentacleMurderCounter = 0
-			
-			self:SendSync("Weakened")
-		end
 	end
 end
 
