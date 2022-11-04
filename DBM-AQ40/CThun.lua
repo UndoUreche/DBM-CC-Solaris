@@ -263,9 +263,11 @@ function mod:SPELL_AURA_APPLIED_DOSE(args)
 end
 
 function mod:syncInfoFrameData() 
+
 	for name, _ in pairs(playerStacks) do
-	
+		
 		local uId = DBM:GetRaidUnitId(name)
+		
 		if uId then
 			
 			local spellName, _, _, count = DBM:UnitDebuff(uId, 26476)
@@ -275,7 +277,8 @@ function mod:syncInfoFrameData()
 
 			local targetuId = uId.."target"
 			local guid = UnitGUID(targetuId)
-			if guid and (mod:GetCIDFromGUID(guid) == 15802) then--Targetting Flesh Tentacle
+			
+			if guid and (mod:GetCIDFromGUID(guid) == 15802) then --Targetting Flesh Tentacle
 				self:SendSync("PlayerStomachTentacleUpdate", guid, math.floor(UnitHealth(targetuId) / UnitHealthMax(targetuId) * 100))
 			end	
 		end
@@ -315,6 +318,7 @@ end
 
 function mod:OnSync(msg, id, value)
 	if not self:IsInCombat() then return end
+	
 	if msg == "Weakened" then
 		self:UnscheduleMethod("doWeakened")
 		self:ScheduleMethod(0.3, "doWeakened")
@@ -335,13 +339,17 @@ function mod:OnSync(msg, id, value)
 			DBM.InfoFrame:SetColumns(1)
 		end	
 		
-	elseif msg == "PlayerStomachTentacleUpdate" then
 	
+		
+	elseif msg == "PlayerStomachTentacleUpdate" then
+		
 		if fleshTentacles["first"] == nil then --yes it's stupid, but it's late and honestly fuck effort
 			fleshTentacles["first"] = id
 		end
 		
-		if fleshTentacles[id] == nil or fleshTentacles[id] > value then
+		if fleshTentacles[id] == nil 
+			or (value ~= nil and tonumber(fleshTentacles[id]) > tonumber(value)) then
+			
 			fleshTentacles[id] = value	
 		end
 		
@@ -359,6 +367,7 @@ end
 function mod:doWeakened() 
 
 	table.wipe(fleshTentacles)
+
 	specWarnWeakened:Show()
 	specWarnWeakened:Play("targetchange")
 
