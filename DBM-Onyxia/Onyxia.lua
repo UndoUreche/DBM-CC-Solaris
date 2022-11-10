@@ -28,7 +28,8 @@ local warnPhase2Soon		= mod:NewPrePhaseAnnounce(2)
 local warnPhase3Soon		= mod:NewPrePhaseAnnounce(3)
 
 --local preWarnDeepBreath	 = mod:NewSoonAnnounce(17086, 2)--Experimental, if it is off please let me know.
-local specWarnBreath		= mod:NewSpecialWarningSpell(18584, nil, nil, nil, 2, 2)
+local specWarnBreath		= mod:NewSpecialWarning("specWarnBreath", nil, nil, nil, 1, 2, nil, nil, 18584)
+
 local specWarnBellowingRoar	= mod:NewSpecialWarningSpell(18431, nil, nil, nil, 2, 2)
 local yellFireball			= mod:NewYell(18392)
 local specWarnBlastNova		= mod:NewSpecialWarningRun(68958, "Melee", nil, nil, 4, 2)
@@ -43,6 +44,7 @@ local timerAchieve			= mod:NewAchievementTimer(300, 4405)
 local timerAchieveWhelps	= mod:NewAchievementTimer(10, 4406)
 
 mod:AddBoolOption("SoundWTF3", false, "sound")
+mod:AddBoolOption("SoundJammes", false, "sound")
 
 mod.vb.warned_preP2 = false
 mod.vb.warned_preP3 = false
@@ -93,10 +95,17 @@ function mod:SPELL_CAST_START(args)
 	if spellId == 68958 then
 		specWarnBlastNova:Show()
 	elseif args:IsSpellID(17086, 18351, 18564, 18576) or args:IsSpellID(18584, 18596, 18609, 18617) then	-- 1 ID for each direction
+	
+		if self.Options.SoundJammes then 
+			PlaySoundFile("Interface\\AddOns\\DBM-Onyxia\\sounds\\james.mp3");
+		end
+		
 		specWarnBreath:Show()
 		timerBreath:Start()
 		timerNextDeepBreath:Start()
 --		preWarnDeepBreath:Schedule(35)			  -- Pre-Warn Deep Breath
+		
+
 	elseif args:IsSpellID(18435, 68970) then		-- Flame Breath (Ground phases)
 		timerNextFlameBreath:Start()
 	elseif spellId == 68959 then--Ignite Weapon (Onyxian Lair Guard spawn)
