@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("Ebonroc", "DBM-BWL", 1)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision(("$Revision: 7007 $"):sub(12, -3))
+mod:SetRevision("20220518110528")
 mod:SetCreatureID(14601)
 
 mod:SetModelID(6377)
@@ -21,51 +21,61 @@ local warnShadow			= mod:NewTargetNoFilterAnnounce(23340, 4, nil, "Tank|Healer",
 local specWarnShadowYou		= mod:NewSpecialWarningYou(23340, nil, nil, nil, 1, 2)
 local specWarnShadow		= mod:NewSpecialWarningTaunt(23340, nil, nil, nil, 1, 2)
 
-local timerWingBuffet		= mod:NewCDTimer(30, 23339, nil, nil, nil, 2)
-local timerShadowFlameCD	= mod:NewCDTimer(15, 22539, nil, false)--14-21
-local timerShadow			= mod:NewTargetTimer(8, 23340, nil, "Tank|Healer", 3, 5, nil, DBM_CORE_L.TANK_ICON)
+local timerWingBuffet		= mod:NewCDTimer(31-1, 23339, nil, nil, nil, 2)
+local timerShadowFlameCD	= mod:NewCDTimer(14+1, 22539, nil, false)--14-21
+local timerShadow			= mod:NewTargetTimer(8, 23340, nil, "Tank|Healer", 3, 5, nil, DBM_COMMON_L.TANK_ICON)
 
 function mod:OnCombatStart(delay)
 	timerShadowFlameCD:Start(18-delay)
 	timerWingBuffet:Start(30-delay)
 end
 
-function mod:SPELL_CAST_START(args)--did not see ebon use any of these abilities
-	if args.spellId == 23339 then
-		warnWingBuffet:Show()
-		timerWingBuffet:Start()
-	elseif args.spellId == 22539 then
-		warnShadowFlame:Show()
-		timerShadowFlameCD:Start()
-	end
-end
-
-function mod:SPELL_AURA_APPLIED(args)
-	if args.spellId == 23340 then
-		if args:IsPlayer() then
-			specWarnShadowYou:Show()
-			specWarnShadowYou:Play("targetyou")
-		else
-			if self.Options.SpecWarn23340taunt and (self:IsTank() or not DBM.Options.FilterTankSpec) then
-				specWarnShadow:Show(args.destName)
-				specWarnShadow:Play("tauntboss")
-			else
-				warnShadow:Show(args.destName)
-			end
+do
+	local WingBuffet, ShadowFlame = DBM:GetSpellInfo(23339), DBM:GetSpellInfo(22539)
+	function mod:SPELL_CAST_START(args)--did not see ebon use any of these abilities
+		--if args.spellId == 23339 then
+		if args.spellName == WingBuffet then
+			warnWingBuffet:Show()
+			timerWingBuffet:Start()
+		--elseif args.spellId == 22539 then
+		elseif args.spellName == ShadowFlame then
+			warnShadowFlame:Show()
+			timerShadowFlameCD:Start()
 		end
-		timerShadow:Start(args.destName)
 	end
 end
 
-function mod:SPELL_AURA_REMOVED(args)
-	if args.spellId == 23340 then
-		timerShadow:Stop(args.destName)
+do
+	local ShadowofEbonroc = DBM:GetSpellInfo(23340)
+	function mod:SPELL_AURA_APPLIED(args)
+		--if args.spellId == 23340 then
+		if args.spellName == ShadowofEbonroc then
+			if args:IsPlayer() then
+				specWarnShadowYou:Show()
+				specWarnShadowYou:Play("targetyou")
+			else
+				if self.Options.SpecWarn23340taunt and (self:IsTank() or not DBM.Options.FilterTankSpec) then
+					specWarnShadow:Show(args.destName)
+					specWarnShadow:Play("tauntboss")
+				else
+					warnShadow:Show(args.destName)
+				end
+			end
+			timerShadow:Start(args.destName)
+		end
+	end
+
+	function mod:SPELL_AURA_REMOVED(args)
+		--if args.spellId == 23340 then
+		if args.spellName == ShadowofEbonroc then
+			timerShadow:Stop(args.destName)
+		end
 	end
 end
 
 function mod:UNIT_DIED(args)
 	local cid = self:GetCIDFromGUID(args.destGUID)
-	if cid == 14601 then--Only trigger kill for unit_died if he dies in phase 2 with everyone alive, otherwise it's an auto wipe.
+	if cid == 14601 then
 		if DBM:NumRealAlivePlayers() > 0 then
 			DBM:EndCombat(self)
 		else

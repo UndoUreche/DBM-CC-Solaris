@@ -202,6 +202,10 @@ end
 --local trackedHudMarkers = {}
 SLASH_DEADLYBOSSMODS1 = "/dbm"
 SlashCmdList["DEADLYBOSSMODS"] = function(msg)
+	if not private.dbmIsEnabled then
+		DBM:ForceDisableSpam()
+		return
+	end
 	local cmd = msg:lower()
 	if cmd == "ver" or cmd == "version" then
 		DBM:ShowVersions(false)
@@ -423,8 +427,8 @@ SlashCmdList["DEADLYBOSSMODS"] = function(msg)
 --			elseif subCmd == "map" then
 --				DBM.Arrow:ShowRunTo(yNum, zNum, 0, nil, true)
 --				return
-			elseif DBM:GetRaidUnitId(subCmd) then
-				DBM.Arrow:ShowRunTo(subCmd)
+			elseif DBM:GetRaidUnitId(DBM:Capitalize(subCmd)) then
+				DBM.Arrow:ShowRunTo(DBM:Capitalize(subCmd))
 				return
 			end
 		end
@@ -458,9 +462,9 @@ SlashCmdList["DEADLYBOSSMODS"] = function(msg)
 		local map, mapx, mapy = GetMapInfo()
 		local mapID = GetCurrentMapAreaID() or "nil"
 		if DBM:HasMapRestrictions() then
-			DBM:AddMsg(("Location Information\nYou are at zone %u (%s).\nLocal Map ID %u (%s)"):format(map, GetRealZoneText(map), mapID, GetZoneText()))
+			DBM:AddMsg(("Location Information\nYou are at zone %s (%s).\nLocal Map ID %u (%s)"):format(map, GetRealZoneText(map), mapID, GetZoneText()))
 		else
-			DBM:AddMsg(("Location Information\nYou are at zone %u (%s): x=%f, y=%f.\nLocal Map ID %u (%s): x=%f, y=%f"):format(map, GetRealZoneText(map), x, y, mapID, GetZoneText(),mapx, mapy))
+			DBM:AddMsg(("Location Information\nYou are at zone %s (%s): x=%f, y=%f.\nLocal Map ID %u (%s): x=%f, y=%f"):format(map, GetRealZoneText(map), x, y, mapID, GetZoneText(),mapx, mapy))
 		end
 	elseif cmd:sub(1, 7) == "request" then
 		DBM:Unschedule(DBM.RequestTimers)

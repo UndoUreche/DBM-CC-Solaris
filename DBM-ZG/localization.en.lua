@@ -5,55 +5,26 @@ local L
 -------------------
 L = DBM:GetModLocalization("Venoxis")
 
-L:SetGeneralLocalization{
+L:SetGeneralLocalization({
 	name = "High Priest Venoxis"
-}
-L:SetWarningLocalization{
-	warnPhase2Soon	= "Phase 2 soon"
-}
-L:SetOptionLocalization{
-	warnPhase2Soon	= "Announce when phase 2 is about to start",
-	RangeFrame		= "Show range frame"
-}
+})
 
 -------------------
 --  Jeklik  --
 -------------------
 L = DBM:GetModLocalization("Jeklik")
 
-L:SetGeneralLocalization{
+L:SetGeneralLocalization({
 	name = "High Priestess Jeklik"
-}
-
-L:SetMiscLocalization{
-	SummonBats	= "I command you to rain fire down upon these invaders!"
-}
-
-L:SetTimerLocalization{
-	TimerBats	= "Fire Bats CD",
-}
-L:SetOptionLocalization{
-	TimerBats	= "Show timer for fire bats cooldown",
-	WarnPhase2Soon		= "Show pre-warning for Phase 2"
-}
-
-L:SetWarningLocalization{
-	WarnPhase2Soon		= "Phase 2 Soon"
-}
+})
 
 -------------------
 --  Marli  --
 -------------------
 L = DBM:GetModLocalization("Marli")
 
-L:SetGeneralLocalization{
+L:SetGeneralLocalization({
 	name = "High Priestess Mar'li"
-}
-
-L:SetMiscLocalization({
-	Transform1	= "Draw me to your web mistress Shadra, unleash your venom!",
-	Transform2	= "Shadra, make of me your avatar!",
-	TransformBack	= "The brood shall not fall!"
 })
 
 -------------------
@@ -61,9 +32,9 @@ L:SetMiscLocalization({
 -------------------
 L = DBM:GetModLocalization("Thekal")
 
-L:SetGeneralLocalization{
+L:SetGeneralLocalization({
 	name = "High Priest Thekal"
-}
+})
 
 L:SetWarningLocalization({
 	WarnSimulKill	= "First add down - Resurrection in ~10 seconds"
@@ -92,12 +63,8 @@ L:SetMiscLocalization({
 -------------------
 L = DBM:GetModLocalization("Arlokk")
 
-L:SetGeneralLocalization{
+L:SetGeneralLocalization({
 	name = "High Priestess Arlokk"
-}
-
-L:SetMiscLocalization({
-	CombatStart	= "Bethekk, your priestess calls upon your might!",
 })
 
 -------------------
@@ -105,32 +72,26 @@ L:SetMiscLocalization({
 -------------------
 L = DBM:GetModLocalization("Hakkar")
 
-L:SetGeneralLocalization{
+L:SetGeneralLocalization({
 	name = "Hakkar the Soulflayer"
-}
+})
 
+L:SetMiscLocalization({
+	Pull		= "PRIDE HERALDS THE END OF YOUR WORLD.  COME, MORTALS!  FACE THE WRATH OF THE SOULFLAYER!"
+})
 -------------------
 --  Bloodlord  --
 -------------------
 L = DBM:GetModLocalization("Bloodlord")
 
-L:SetGeneralLocalization{
+L:SetGeneralLocalization({
 	name = "Bloodlord Mandokir"
-}
-L:SetMiscLocalization{
-	Bloodlord 	= "Bloodlord Mandokir",
-	Ohgan		= "Ohgan"
-}
-
-L:SetTimerLocalization{
-	TimerWhirlWind	= "WhirlWind CD",
-}
-L:SetOptionLocalization{
-	TimerWhirlWind	= "Show timer for whirlwind cooldown",
-}
+})
 
 L:SetMiscLocalization({
-	Gaze		= "I'm keeping my eye on you, "
+	Bloodlord	= "Bloodlord Mandokir",
+	Ohgan		= "Ohgan",
+	GazeYell	= "I'm watching you"
 })
 
 -------------------
@@ -138,30 +99,31 @@ L:SetMiscLocalization({
 -------------------
 L = DBM:GetModLocalization("EdgeOfMadness")
 
-L:SetGeneralLocalization{
+L:SetGeneralLocalization({
 	name = "Edge of Madness"
-}
-L:SetMiscLocalization{
+})
+
+L:SetMiscLocalization({
 	Hazzarah = "Hazza'rah",
 	Renataki = "Renataki",
 	Wushoolay = "Wushoolay",
 	Grilek = "Gri'lek"
-}
+})
 
 -------------------
 --  Gahz'ranka  --
 -------------------
 L = DBM:GetModLocalization("Gahzranka")
 
-L:SetGeneralLocalization{
+L:SetGeneralLocalization({
 	name = "Gahz'ranka"
-}
+})
 
 -------------------
 --  Jindo  --
 -------------------
 L = DBM:GetModLocalization("Jindo")
 
-L:SetGeneralLocalization{
+L:SetGeneralLocalization({
 	name = "Jin'do the Hexxer"
-}
+})

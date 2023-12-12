@@ -3,7 +3,6 @@ local L		= mod:GetLocalizedStrings()
 
 mod:SetRevision("20220813164045")
 mod:SetCreatureID(21212)
---mod:SetModelID(20748)
 mod:SetUsedIcons(1)
 mod:SetHotfixNoticeRev(20210919000000)
 mod:SetMinSyncRevision(20210919000000)
@@ -33,18 +32,19 @@ local warnPhase3		= mod:NewPhaseAnnounce(3)
 --local specWarnCore		= mod:NewSpecialWarning("SpecWarnCore", nil, nil, nil, 1, 8)
 local specWarnCharge	= mod:NewSpecialWarningMoveAway(38280, nil, nil, nil, 1, 2)
 local yellCharge		= mod:NewYell(38280)
-local specWarnElemental	= mod:NewSpecialWarning("SpecWarnElemental")--Changed from soon to a now warning. the soon warning not accurate because of 11 second variation so not useful special warning.
+local specWarnElemental	= mod:NewSpecialWarning("SpecWarnElemental")
 local specWarnToxic		= mod:NewSpecialWarningMove(38575, nil, nil, nil, 1, 2)
 
-local timerEntangleCD	= mod:NewCDTimer(20.9, 38316, nil, nil, nil, 3, nil, nil, true) -- Added "keep" arg. 10s variance (25 man FM log 2022/07/27 || 25 man FM log 2022/08/11) - Stage 1/25.9, Stage 3/30.0, 22.9, 24.2, 27.8 || Stage 1/24.8, Stage 3/30.0, 21.4, 20.9, 29.0, 28.6
+--newTimer(self, timerType, timer, spellId, timerText, optionDefault, optionName, colorType, texture, inlineIcon, keep, countdown, countdownMax, r, g, b)
+local timerEntangleCD	= mod:NewCDTimer(18.2, 38316, nil, nil, nil, 3)
 local timerCharge		= mod:NewTargetTimer(20, 38280, nil, nil, nil, 3)
-local timerChargeCD		= mod:NewCDTimer(10.2, 38280, nil, nil, nil, 3, nil, nil, true) -- Added "keep" arg. 10s variance (25 man FM log 2022/07/27 || 25 man FM log 2022/08/11) - Stage 1/20.0, 19.0, 17.8, Stage 3/15.5, 14.2, 18.7, 18.8, 19.1, 10.5, 17.5 || Stage 1/10.2, 15.9, 11.3, Stage 3/17.5, 12.7, 19.2, 19.9, 15.8, 12.0, 19.9
-local timerShockBlastCD	= mod:NewCDTimer(10.1, 38509, nil, nil, nil, 3, nil, nil, true) -- Added "keep" arg. 10s variance (25 man FM log 2022/07/27 || 25 man FM log 2022/08/11) - Stage 1/16.3, 17.8, 11.7, Stage 3/27.8, 11.0, 19.0, 11.3, 17.7, 17.2, 17.4 || Stage 1/16.2, 10.1, Stage 3/24.3, 19.8, 14.1, 10.7, 10.6, 19.3, 12.0, 14.7
-local timerElemental	= mod:NewTimer(22, "TimerElementalActive", 39088, nil, nil, 1)--Blizz says they are active 20 seconds per patch notes, but my logs don't match those results. 22 second up time.
-local timerElementalCD	= mod:NewTimer(45, "TimerElemental", 39088, nil, nil, 1)--46-57 variation. because of high variation the pre warning special warning not useful, fortunately we can detect spawns with precise timing.
-local timerStrider		= mod:NewTimer(63, "TimerStrider", 475, nil, nil, 1)
-local timerNaga			= mod:NewTimer(47.5, "TimerNaga", 2120, nil, nil, 1)
---local timerMC			= mod:NewCDTimer(21, 38511, nil, nil, nil, 3) -- removed in patch 2.1.
+local timerChargeCD		= mod:NewCDTimer(7.25, 38280, nil, false, nil, 3)
+local timerShockBlastCD	= mod:NewCDTimer(10.85, 38509, nil, nil, nil, 3)
+
+local timerElementalCD	= mod:NewTimer(50, "TimerElemental", 39088, nil, nil, 1)
+local timerElemental	= mod:NewTimer(15, "TimerElementalActive", 39088, nil, nil, 1)
+local timerStrider		= mod:NewTimer(60, "TimerStrider", 475, nil, nil, 1)
+local timerNaga			= mod:NewTimer(45, "TimerNaga", 2120, nil, nil, 1)
 
 mod:AddRangeFrameOption(10, 38280)
 mod:AddSetIconOption("ChargeIcon", 38280, false, false, {1})
@@ -57,33 +57,13 @@ mod.vb.elementalCount = 1
 --local lootmethod, masterlooterRaidID
 local elementals = {}
 
-local function StriderSpawn(self)
-	self.vb.striderCount = self.vb.striderCount + 1
-	warnStrider:Schedule(57, tostring(self.vb.striderCount))
-	timerStrider:Start(nil, tostring(self.vb.striderCount))
-	self:Schedule(63, StriderSpawn, self)
-end
-
-local function NagaSpawn(self)
-	warnNaga:Schedule(42.5, tostring(self.vb.nagaCount))
-	self.vb.nagaCount = self.vb.nagaCount + 1
-	timerNaga:Start(nil, tostring(self.vb.nagaCount))
-	self:Schedule(47.5, NagaSpawn, self)
-end
-
 function mod:OnCombatStart(delay)
 	table.wipe(elementals)
 	self:SetStage(1)
-	self.vb.shieldLeft = 4
-	self.vb.nagaCount = 1
-	self.vb.striderCount = 1
-	self.vb.elementalCount = 1
-	timerEntangleCD:Start(29.5-delay) -- REVIEW! variance? (25 man FM log 2022/07/27 || 25 man FM log 2022/08/11) - 29.5 || 29.5
-	timerChargeCD:Start(11.6-delay) -- REVIEW! 10s variance? (25 man FM log 2022/07/27 || 25 man FM log 2022/08/11) - 11.6 || 16.3
-	timerShockBlastCD:Start(15.2-delay) -- REVIEW! 10s variance? (25 man FM log 2022/07/27 || 25 man FM log 2022/08/11) - 25.2 || 15.2
---	if DBM:IsInGroup() and DBM:GetRaidRank() == 2 then
---		lootmethod, _, masterlooterRaidID = GetLootMethod()
---	end
+
+	timerEntangleCD:Start(25.45-delay)
+	timerChargeCD:Start(18.15-delay)
+	timerShockBlastCD:Start(14.55-delay)
 end
 
 function mod:OnCombatEnd()
@@ -102,9 +82,11 @@ end
 
 function mod:SPELL_AURA_APPLIED(args)
 	local spellId = args.spellId
+	
 	if spellId == 38280 then
 		timerCharge:Start(args.destName)
 		timerChargeCD:Start()
+		
 		if args:IsPlayer() then
 			specWarnCharge:Show()
 			specWarnCharge:Play("runout")
@@ -151,6 +133,8 @@ function mod:SPELL_CAST_START(args)
 	if args.spellId == 38253 and not elementals[args.sourceGUID] then
 		specWarnElemental:Show()
 		timerElemental:Start()
+		timerElementalCD:Start(nil, tostring(self.vb.elementalCount))
+		warnElemental:Schedule(45, tostring(self.vb.elementalCount))
 		elementals[args.sourceGUID] = true
 	end
 end
@@ -169,8 +153,6 @@ function mod:UNIT_DIED(args)
 	local cid = self:GetCIDFromGUID(args.destGUID)
 	if cid == 22009 then
 		self.vb.elementalCount = self.vb.elementalCount + 1
-		timerElementalCD:Start(nil, tostring(self.vb.elementalCount))
-		warnElemental:Schedule(45, tostring(self.vb.elementalCount))
 	end
 end
 
@@ -182,23 +164,45 @@ function mod:UNIT_SPELLCAST_FAILED_QUIET_UNFILTERED(uId, spellName)
 	end
 end
 
+local function NagaSpawn(self)
+	warnNaga:Schedule(42.5, tostring(self.vb.nagaCount))
+	self.vb.nagaCount = self.vb.nagaCount + 1
+	timerNaga:Start(nil, tostring(self.vb.nagaCount))
+	self:Schedule(47.5, NagaSpawn, self)
+end
+
+local function StriderSpawn(self)
+	self.vb.striderCount = self.vb.striderCount + 1
+	warnStrider:Schedule(57, tostring(self.vb.striderCount))
+	timerStrider:Start(nil, tostring(self.vb.striderCount))
+	self:Schedule(63, StriderSpawn, self)
+end
+
 function mod:CHAT_MSG_MONSTER_YELL(msg)
+
 	if msg == L.DBM_VASHJ_YELL_PHASE2 or msg:find(L.DBM_VASHJ_YELL_PHASE2) then
 		self:SetStage(2)
+		warnPhase2:Show()
+		
+		timerEntangleCD:Cancel()
+		timerChargeCD:Cancel()
+		timerShockBlastCD:Cancel()
+		
 		self.vb.nagaCount = 1
 		self.vb.striderCount = 1
 		self.vb.elementalCount = 1
 		self.vb.shieldLeft = 4
-		warnPhase2:Show()
-		timerChargeCD:Cancel()
+		
 		timerNaga:Start(nil, tostring(self.vb.nagaCount))
-		warnNaga:Schedule(42.5, tostring(self.vb.elementalCount))
-		self:Schedule(47.5, NagaSpawn, self)
+		warnNaga:Schedule(45, tostring(self.vb.elementalCount))
+		self:Schedule(45, NagaSpawn, self)
+		
 		timerElementalCD:Start(nil, tostring(self.vb.elementalCount))
 		warnElemental:Schedule(45, tostring(self.vb.elementalCount))
+		
 		timerStrider:Start(nil, tostring(self.vb.striderCount))
-		warnStrider:Schedule(57, tostring(self.vb.striderCount))
-		self:Schedule(63, StriderSpawn, self)
+		warnStrider:Schedule(60, tostring(self.vb.striderCount))
+		self:Schedule(60, StriderSpawn, self)
 --		if DBM:IsInGroup() and self.Options.AutoChangeLootToFFA and DBM:GetRaidRank() == 2 then
 --			SetLootMethod("freeforall")
 --		end
@@ -208,16 +212,22 @@ function mod:CHAT_MSG_MONSTER_YELL(msg)
 	elseif msg == L.DBM_VASHJ_YELL_PHASE3 or msg:find(L.DBM_VASHJ_YELL_PHASE3) then
 		self:SetStage(3)
 		warnPhase3:Show()
+		
+		timerEntangleCD:Start(25.45)
+		timerChargeCD:Start(18.15)
+		timerShockBlastCD:Start(14.55)
+		
 		timerNaga:Cancel()
 		warnNaga:Cancel()
 		timerElementalCD:Cancel()
 		warnElemental:Cancel()
 		timerStrider:Cancel()
 		warnStrider:Cancel()
+		
 		self:Unschedule(NagaSpawn)
 		self:Unschedule(StriderSpawn)
 		self:UnregisterShortTermEvents()
-		timerChargeCD:Start()
+		
 --		if DBM:IsInGroup() and self.Options.AutoChangeLootToFFA and DBM:GetRaidRank() == 2 then
 --			if masterlooterRaidID then
 --				SetLootMethod(lootmethod, "raid"..masterlooterRaidID)

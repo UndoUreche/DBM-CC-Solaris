@@ -1,20 +1,20 @@
 local mod	= DBM:NewMod("YoggSaron", "DBM-Ulduar")
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20220824200953")
+mod:SetRevision("20230221142915")
 mod:SetCreatureID(33288)
 mod:RegisterCombat("combat_yell", L.YellPull)
 mod:SetUsedIcons(1, 2, 3, 4, 5, 6, 7, 8)
 
 mod:RegisterEventsInCombat(
-	"SPELL_CAST_START 64059 64189 63138", --63830 63802",
+	"SPELL_CAST_START 64059 64189 63138 63830 63802",
 	"SPELL_CAST_SUCCESS 64144 64465", --64167 64163",
 	"SPELL_SUMMON 62979",
 	"SPELL_AURA_APPLIED 63802 63830 63881 64126 64125 63138 63894 64775 64163 64465",
 	"SPELL_AURA_REMOVED 63802 63894 64163 63830 63138 63881 64465",
 	"SPELL_AURA_REMOVED_DOSE 63050",
-	"UNIT_HEALTH",
-	"UNIT_SPELLCAST_START boss1"
+	"UNIT_HEALTH"
+--	"UNIT_SPELLCAST_START boss1"
 )
 
 --General
@@ -57,9 +57,10 @@ local warnBrainLink					= mod:NewTargetAnnounce(63802, 3)
 local specWarnBrainLink				= mod:NewSpecialWarningYou(63802, nil, nil, nil, 1, 2)
 local specWarnMalady				= mod:NewSpecialWarningYou(63830, nil, nil, nil, 1, 2)
 local specWarnMaladyNear			= mod:NewSpecialWarningClose(63830, nil, nil, nil, 1, 2)
+local yellMalady					= mod:NewYell(63830)
 
 local timerBrainLinkCD				= mod:NewCDTimer(23, 63802, nil, nil, nil, 3) -- 3s variance [23-26] + portalled players incurring in a possible ~50-80s variance (25 man NM log 2022/07/10 || S3 HM log 2022/07/21) - 25.4, 26.0 || 25.5, 24.1 ; 24.7, 23.9 ; 24.7, 23.7, 24.1
-local timerMaladyCD					= mod:NewCDTimer(19.6, 63830, nil, nil, nil, 3) -- 7s variance [18-25] + portalled players incurring in a possible ~50-80s variance (25 man NM log 2022/07/10 || S3 HM log 2022/07/21) - 22.3, 22.0 || 21.3, 20.6, 20.2, 52.1, 20.4, 60.8, 20.8, 60.4, 24.8 ; 19.6, 24.5, 60.8, 22.7, 56.8, 21.5, 22.4, 46.5
+local timerMaladyCD					= mod:NewCDTimer(18.7, 63830, nil, nil, nil, 3) -- 7s variance [18-25] + portalled players incurring in a possible ~50-80s variance (25 man NM log 2022/07/10 || S3 HM log 2022/07/21 || 25m Lordaeron 2022/10/09 || 25m Lordaeron 2022/10/30) - 22.3, 22.0 || 21.3, 20.6, 20.2, 52.1, 20.4, 60.8, 20.8, 60.4, 24.8 ; 19.6, 24.5, 60.8, 22.7, 56.8, 21.5, 22.4, 46.5 || 26.0, 19.4, 63.6, 24.1, 51.3, 24.2 || 18.8, 23.0, 24.9, 52.0, 23.4
 
 mod:AddSetIconOption("SetIconOnBrainLinkTarget", 63802, true, false, {1, 2})
 mod:AddSetIconOption("SetIconOnFearTarget", 63830, true, false, {6})
@@ -80,9 +81,9 @@ local yellSqueeze					= mod:NewYell(64125)  -- Constrictor Tentacle
 
 -- Descent into Madness
 mod:AddTimerLine(L.DescentIntoMadness)
-local warnBrainPortalSoon			= mod:NewAnnounce("WarnBrainPortalSoon", 2, 57687, nil, nil, nil, 64027)
+local warnBrainPortalSoon			= mod:NewAnnounce("WarnBrainPortalSoon", 2, 57687, nil, nil, nil, 64027) -- 10 second pre-warn
 
-local specWarnBrainPortalSoon		= mod:NewSpecialWarning("SpecWarnBrainPortalSoon", false, nil, nil, nil, nil, nil, 57687, 64027)
+local specWarnBrainPortalSoon		= mod:NewSpecialWarning("SpecWarnBrainPortalSoon", false, nil, nil, nil, nil, nil, 57687, 64027) -- 3 second special pre-warn
 
 local timerBrainPortal				= mod:NewTimer(20, "NextPortal", 57687, nil, nil, 5, nil, nil, nil, nil, nil, nil, nil, 64027)
 
@@ -188,21 +189,21 @@ function mod:SPELL_CAST_START(args)
 		timerMadness:Start()
 		warnMadness:Show()
 		timerBrainPortal:Schedule(60) -- Log reviewed [60 schedule + 20 timer] (25 man NM log 2022/07/10 || S3 HM log 2022/07/21) - 80.0 || 80.0, 80.1 ; 80.0, 80.0, 80.0
-		warnBrainPortalSoon:Schedule(77)
+		warnBrainPortalSoon:Schedule(70)
 		specWarnBrainPortalSoon:Schedule(77)
 		specWarnMadnessOutNow:Schedule(55) -- TO DO: implement brain room check?
---	elseif spellId == 64189 then		--Deafening Roar
---		timerNextDeafeningRoar:Start()
---		warnDeafeningRoarSoon:Schedule(53)
---		timerCastDeafeningRoar:Start()
---		specWarnDeafeningRoar:Show()
---		specWarnDeafeningRoar:Play("silencesoon")
+	elseif spellId == 64189 then		--Deafening Roar
+		timerNextDeafeningRoar:Start()
+		warnDeafeningRoarSoon:Schedule(53)
+		timerCastDeafeningRoar:Start()
+		specWarnDeafeningRoar:Show()
+		specWarnDeafeningRoar:Play("silencesoon")
 	elseif spellId == 63138 then		--Sara's Fervor
 		self:BossTargetScanner(args.sourceGUID, "FervorTarget", 0.1, 12, true, nil, nil, nil, true)
---	elseif spellId == 63830 then	-- Malady of the Mind. Moved to AURA_APPLIED since CLEU cast events are sometimes misfiring on Warmane. Might not be enough since there was one case where only SPELL_AURA_REFRESH fired.
---		timerMaladyCD:Start()
---	elseif spellId == 63802 then	-- Brain Link. Moved to AURA_APPLIED since CLEU cast events are sometimes misfiring on Warmane
---		timerBrainLinkCD:Start()
+	elseif spellId == 63830 then	-- Malady of the Mind
+		timerMaladyCD:Start()
+	elseif spellId == 63802 then	-- Brain Link
+		timerBrainLinkCD:Start()
 	end
 end
 
@@ -218,7 +219,7 @@ function mod:SPELL_CAST_SUCCESS(args)
 --	elseif args:IsSpellID(64167, 64163) and self:AntiSpam(3, 3) then	-- Lunatic Gaze, not needed since it's running below on SAA/SAR
 --		timerLunaticGaze:Start()
 --		timerBrainPortal:Start(60) -- Why?
---		warnBrainPortalSoon:Schedule(55) -- Why?
+--		warnBrainPortalSoon:Schedule(50) -- Why?
 	end
 end
 
@@ -247,9 +248,9 @@ function mod:SPELL_AURA_APPLIED(args)
 		else
 			self:Schedule(0.5, warnBrainLinkWarning, self)
 		end
-		if self:AntiSpam(5, 2) then
-			timerBrainLinkCD:Start()
-		end
+--		if self:AntiSpam(5, 2) then
+--			timerBrainLinkCD:Start()
+--		end
 	elseif args:IsSpellID(63830, 63881) then   -- Malady of the Mind (Death Coil)
 		if self.Options.SetIconOnFearTarget then
 			self:SetIcon(args.destName, 6, 30)
@@ -257,6 +258,7 @@ function mod:SPELL_AURA_APPLIED(args)
 		if args:IsPlayer() then
 			specWarnMalady:Show()
 			specWarnMalady:Play("targetyou")
+			yellMalady:Yell()
 		elseif self:CheckNearby(11, args.destName) then
 			specWarnMaladyNear:Show(args.destName)
 			specWarnMaladyNear:Play("runaway")
@@ -272,7 +274,7 @@ function mod:SPELL_AURA_APPLIED(args)
 				end
 			end
 		end
-		timerMaladyCD:Start()
+--		timerMaladyCD:Start() -- malady jumps would refire this and mess with the timer. Revert to cast_start
 	elseif args:IsSpellID(64126, 64125) then	-- Squeeze
 		warnSqueeze:Show(args.destName)
 		if args:IsPlayer() then
@@ -294,7 +296,7 @@ function mod:SPELL_AURA_APPLIED(args)
 		timerMaladyCD:Start(17.8)	-- (25 man NM log 2022/07/10 || S3 HM log 2022/07/21) - 18 || 18.0 ; 17.9 ; 17.8
 		timerBrainLinkCD:Start(23)	-- (25 man NM log 2022/07/10 || S3 HM log 2022/07/21) - 23 || 23.0 ; 23.0
 		timerBrainPortal:Start(59)	-- (25 man NM log 2022/07/10 || S3 HM log 2022/07/21) - 59 || 59.8 ; 59.7 ; 59.5
-		warnBrainPortalSoon:Schedule(56)
+		warnBrainPortalSoon:Schedule(49)
 		specWarnBrainPortalSoon:Schedule(56)
 		warnP2:Show()
 		warnP2:Play("ptwo")
@@ -310,7 +312,7 @@ function mod:SPELL_AURA_APPLIED(args)
 		timerLunaticGaze:Start()
 	elseif spellId == 64465 then -- Shadow Beacon
 		if self.Options.SetIconOnBeacon then
-			self:ScanForMobs(args.destGUID, 2, self.vb.beaconIcon, 1, 0.2, 10, "SetIconOnBeacon")
+			self:ScanForMobs(args.destGUID, 2, self.vb.beaconIcon, 1, nil, 6, "SetIconOnBeacon", true, nil, nil, true)
 		end
 		self.vb.beaconIcon = self.vb.beaconIcon - 1
 		if self.vb.beaconIcon == 0 then
@@ -334,7 +336,7 @@ function mod:SPELL_AURA_REMOVED(args)
 		self:SetIcon(args.destName, 0)
 	elseif spellId == 64465 then -- Shadow Beacon
 		if self.Options.SetIconOnBeacon then
-			self:ScanForMobs(args.destGUID, 2, 0, 1, 0.2, 12, "SetIconOnBeacon")
+			self:ScanForMobs(args.destGUID, 2, 0, 1, nil, 6, "SetIconOnBeacon", true, nil, nil, true)
 		end
 	end
 end
@@ -357,7 +359,7 @@ function mod:UNIT_HEALTH(uId)
 	end
 end
 
-function mod:UNIT_SPELLCAST_START(_, spellName)
+--[[function mod:UNIT_SPELLCAST_START(_, spellName)
 	if spellName == GetSpellInfo(64189) then
 		timerNextDeafeningRoar:Start()
 		warnDeafeningRoarSoon:Schedule(53)
@@ -365,8 +367,7 @@ function mod:UNIT_SPELLCAST_START(_, spellName)
 		specWarnDeafeningRoar:Show()
 		specWarnDeafeningRoar:Play("silencesoon")
 	end
-end
-
+end]]
 
 function mod:OnSync(msg)
 	if msg == "Phase3" then

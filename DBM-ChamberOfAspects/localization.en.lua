@@ -11,6 +11,10 @@ L:SetGeneralLocalization({
 	name = "Shadron"
 })
 
+L:SetMiscLocalization({
+	YellShadronPull	= "I fear nothing! Least of all you!",
+})
+
 ----------------
 --  Tenebron  --
 ----------------
@@ -20,6 +24,10 @@ L:SetGeneralLocalization({
 	name = "Tenebron"
 })
 
+L:SetMiscLocalization({
+	YellTenebronPull	= "You have no place here! Your place... is among the departed!",
+})
+
 ----------------
 --  Vesperon  --
 ----------------
@@ -27,6 +35,10 @@ L = DBM:GetModLocalization("Vesperon")
 
 L:SetGeneralLocalization({
 	name = "Vesperon"
+})
+
+L:SetMiscLocalization({
+	YellVesperonPull	= "You pose no threat, lesser beings! Give me your worst!",
 })
 
 ------------------
@@ -83,6 +95,7 @@ L:SetOptionLocalization({
 })
 
 L:SetMiscLocalization({
+	YellSarthPull	= "It is my charge to watch over these eggs. I will see you burn before any harm comes to them!",
 	Wall			= "The lava surrounding %s churns!",
 	Portal			= "%s begins to open a Twilight Portal!",
 	NameTenebron	= "Tenebron",
@@ -166,10 +179,15 @@ L:SetWarningLocalization({
 	TwilightCutterCast	= "Casting Twilight Cutter: 5 sec"
 })
 
+L:SetTimerLocalization({
+	TimerCutterSpawn	= "Twilight Cutter beam"
+})
+
 L:SetOptionLocalization({
 	TwilightCutterCast		= "Show warning when $spell:74769 is being cast",
 	AnnounceAlternatePhase	= "Show warnings/timers for phase you aren't in as well",
-	SetIconOnConsumption	= "Set icons on $spell:74562 or $spell:74792 targets"--So we can use single functions for both versions of spell.
+	SetIconOnConsumption	= "Set icons on $spell:74562 or $spell:74792 targets",--So we can use single functions for both versions of spell.
+	TimerCutterSpawn		= "Show timer until next $spell:74769 is beamed (disables Next and Cast timers)"
 })
 
 L:SetMiscLocalization({

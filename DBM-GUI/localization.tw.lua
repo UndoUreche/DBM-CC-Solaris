@@ -3,7 +3,7 @@ if not DBM_GUI_L then DBM_GUI_L = {} end
 
 local L = DBM_GUI_L
 
-L.MainFrame	= "Deadly Boss Mods"
+--L.MainFrame	= "Deadly Boss Mods"
 
 L.TranslationByPrefix		= "向后移植 "
 L.TranslationBy			= "Barsoom, Bunny67, Zidras"
@@ -125,6 +125,8 @@ L.LogCurrentMPlus			= "當前等級傳奇+地下城"--Retail Only
 L.LogCurrentMythicZero		= "當前等級傳奇0層地下城"--Retail Only
 L.LogTWDungeons				= "時光漫遊 或 克羅米時光地下城"--Retail Only
 L.LogCurrentHeroic			= "當前等級英雄地下城 (注意：如果您通過地城搜尋器佇列英雄並想要記錄，請關閉地城搜尋器過濾)"
+L.LogCurrentNormal			= "當前等級普通模式地下城 (注意：如果您通過地城搜尋器佇列英雄並想要記錄，請關閉地城搜尋器過濾)"
+L.LogTrivialDungeons		= "低等隊伍副本 (低於角色等級)"
 --
 L.Area_3rdParty				= "協力插件選項"
 L.oRA3AnnounceConsumables	= "在戰鬥開始時通告oRA3消耗品檢查"
@@ -441,7 +443,6 @@ L.SWFNever					= "永不"
 L.FilterInterrupts			= "如果施法者不是你的目標/專注目標(總是)。"
 L.FilterInterrupts2			= "如果施法者不是你的目標/專注目標(總是)或中斷在冷卻中(只適用首領)"
 L.FilterInterrupts3			= "如果施法者不是你的目標/專注目標(總是)或中斷在冷卻中(首領&小怪)"
-L.FilterInterrupts4			= "永遠過濾中斷警告 (你不想看到它們的時候)"
 L.FilterInterruptNoteName	= "過濾可中斷技能的警告(與次數)，如果自訂註記警告沒有包含你的名字"
 L.FilterDispels				= "過濾可驅散技能如果你的驅散技正在冷卻中"
 L.FilterTrashWarnings		= "在普通與英雄地城過濾所有的小怪警告"
@@ -520,4 +521,3 @@ L.LARGE = "大"
 L.SMALL = "小"
 L.PLAYER_DIFFICULTY6 = "傳奇模式" -- ID: 24525
 L.PLAYER_DIFFICULTY_TIMEWALKER = "時光漫遊" -- ID: 25846
-L.SPECIALIZATION = "專精" -- ID: 22433

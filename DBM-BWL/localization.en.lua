@@ -22,7 +22,7 @@ L:SetMiscLocalization({
 	YellEgg1 = "You'll pay for forcing me to do this!",
 	YellEgg2 = "Fools! These eggs are more precious than you know!",
 	YellEgg3 = "No - not another one! I'll have your heads for this atrocity!",
-	YellPull 	= "Intruders have breached the hatchery! Sound the alarm! Protect the eggs at all costs!\n" --chromiecraft only has the newline
+	YellPull = "Intruders have breached the hatchery! Sound the alarm! Protect the eggs at all costs!\n" --chromiecraft only has the newline
 })
 -------------------
 --  Vaelastrasz  --
@@ -174,6 +174,8 @@ L:SetOptionLocalization({
 L:SetMiscLocalization({
 	YellP1		= "Let the games begin!",
 	YellP2		= "Well done, my minions. The mortals' courage begins to wane! Now, let's see how they contend with the true Lord of Blackrock Spire!!!",
+	YellP2CC	= "Enough! Now you vermin shall feel the force of my birthright, the fury of the earth itself",
+	YellP2CC2	= "BURN! You wretches! BURN!",
 	YellP3		= "Impossible! Rise my minions!  Serve your master once more!",
 	YellShaman	= "Shamans, show me",
 	YellPaladin	= "Paladins... I've heard you have many lives. Show me.",
@@ -186,4 +188,13 @@ L:SetMiscLocalization({
 	YellMage	= "Mages too? You should be more careful when you play with magic...",
 	YellDK		= "Death Knights... get over here!",
 	YellMonk	= "Monk"
+})
+
+-----------------
+-- BWL: Trash  --
+-----------------
+L = DBM:GetModLocalization("BWLTrash")
+
+L:SetGeneralLocalization({
+	name = "BWL: Trash"
 })

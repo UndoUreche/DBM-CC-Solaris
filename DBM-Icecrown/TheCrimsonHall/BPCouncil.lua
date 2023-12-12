@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("BPCouncil", "DBM-Icecrown", 3)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20220908165836")
+mod:SetRevision("20230827165223")
 mod:SetCreatureID(37970, 37972, 37973)
 mod:SetUsedIcons(1, 5, 6, 7, 8)
 mod:SetBossHPInfoToHighest()
@@ -21,8 +21,9 @@ mod:RegisterEvents(
 
 mod:RegisterEventsInCombat(
 	"SPELL_CAST_START 72037 72039 73037 73038 73039 71718 72040",
-	"SPELL_AURA_APPLIED 70952 70981 70982 72999 71807 72796 72797 72798",
+	"SPELL_AURA_APPLIED 70952 70981 70982 72999 71807 72796 72797 72798 71822",
 	"SPELL_AURA_APPLIED_DOSE 72999",
+	"SPELL_AURA_REMOVED 71822",
 	"SPELL_SUMMON 71943",
 	"CHAT_MSG_RAID_BOSS_EMOTE",
 	"UNIT_SPELLCAST_SUCCEEDED boss1 boss2 boss3"
@@ -48,9 +49,11 @@ local timerShadowPrison			= mod:NewBuffFadesTimer(10, 72999, nil, nil, nil, 5) -
 mod:AddBoolOption("ShadowPrisonMetronome", false, "misc", nil, nil, nil, 72999)
 
 -- Kinetic Bomb
-local warnKineticBomb			= mod:NewSpellAnnounce(72053, 3, nil, "Ranged")
+local warnKineticBomb			= mod:NewSpellAnnounce(72053, 3, nil, false)
 
-local timerKineticBombCD		= mod:NewCDTimer(18, 72053, nil, "Ranged", nil, 1, nil, nil, true) -- REVIEW! 5s variance? Added "keep" arg. (10N Icecrown 2022/08/25) - 19.2, 23.6, 22.2, 18.5, 19.2
+local specWarnKineticBomb		= mod:NewSpecialWarningCount(72053, "Ranged", nil, nil, 1)
+
+local timerKineticBombCD		= mod:NewCDCountTimer(18, 72053, nil, "Ranged", nil, 1, nil, nil, true) -- ~6s variance [18.0-23.9] Added "keep" arg. (10N Icecrown 2022/08/25 || 25H Lordaeron 2022/12/07 || 25H Lordaeron [2023-08-23]@[21:05:58]) - 19.2, 23.6, 22.2, 18.5, 19.2 || 18.5, 18.3, 22.1, 19.2, 20.8, 20.4, 19.7, 21.6, 20.9, 19.5, 20.5 || pull:19.8, 23.9, 21.9, 19.6, 21.4, 23.9, 18.5, 22.0, 18.5, 21.9, 21.6
 
 local soundKineticBomb			= mod:NewSound(72053, nil, "Ranged")
 
@@ -65,13 +68,13 @@ local yellVortex				= mod:NewYellMe(72037)
 local specWarnVortexNear		= mod:NewSpecialWarningClose(72037, nil, nil, nil, 1, 2)
 local specWarnEmpoweredShockV	= mod:NewSpecialWarningMoveAway(72039, nil, nil, nil, 1, 2)
 
-local timerShockVortex			= mod:NewCDTimer(18.4, 72037, nil, nil, nil, 3, nil, nil, true) -- ~5s variance [18.4 - 22.7]. Added "keep" arg. (2 Warmane 2021 logs || 25H Lordaeron 2022/07/09 || 10N Icecrown 2022/08/25 || 25H Lordaeron 2022/09/07) - 19-22s || 20.3, 22.6, 21.3, 19.6, ..., 19.4, 19.7 || 18.5, 18.6 || pull:76.0 (Empowered 30.1), 18.4, 19.4, 22.0, 19.7, 22.7
+local timerShockVortex			= mod:NewCDTimer(18.2, 72037, nil, nil, nil, 3, nil, nil, true) -- ~5s variance [18.2 - 22.7]. Added "keep" arg. (2 Warmane 2021 logs || 25H Lordaeron 2022/07/09 || 10N Icecrown 2022/08/25 || 25H Lordaeron 2022/09/07 || 25H Lordaeron 2022/10/21) - 19-22s || 20.3, 22.6, 21.3, 19.6, ..., 19.4, 19.7 || 18.5, 18.6 || pull:76.0 (Empowered 30.1), 18.4, 19.4, 22.0, 19.7, 22.7 || pull:76.3 (Empowered 16.3 + 30.0), 19.9, 18.2, 22.2
 local timerEmpoweredShockVortex	= mod:NewCDTimer(30, 72039, nil, nil, nil, 3, nil, DBM_COMMON_L.DEADLY_ICON, true) -- Added "keep" arg. (25H Lordaeron 2022/09/07) - pull:15.9, 30.0, 152.4 (20.1 non-empowered)
 
 local soundSpecWarnVortexNear	= mod:NewSoundClose(72037)
 local soundEmpoweredShockV		= mod:NewSound(72039)
 
-mod:AddRangeFrameOption(12, 72037)
+mod:AddRangeFrameOption(12, 72039)
 mod:AddArrowOption("VortexArrow", 72037, true)
 
 -- Prince Taldaram
@@ -84,12 +87,13 @@ local warnGliteringSparks		= mod:NewTargetAnnounce(71807, 2, nil, false)
 local specWarnEmpoweredFlames	= mod:NewSpecialWarningRun(72040, nil, nil, nil, 4, 2)
 local yellEmpoweredFlames		= mod:NewYellMe(72040)
 
-local timerConjureFlamesCD		= mod:NewCDTimer(18, 71718, nil, nil, nil, 3, nil, nil, true) -- normal + empowered. REVIEW! ~11s variance [18.0-29.4]. Added "keep" arg (25H Lordaeron 2022/09/07) -- 20.0, 29.4, 24.3, 18.0, 23.5, 21.3, 27.6, 20.5, 22.3
-local timerGlitteringSparksCD	= mod:NewCDTimer(16.9, 71807, nil, nil, nil, 2, nil, nil, true) -- This is pretty nasty on heroic. Very high variance! Added "keep" arg (10N Icecrown 2022/08/25 || 25H Lordaeron 2022/09/07) - 36, 17.5 || pull:12.5, 43.5, 20.8, 44.3, 38.6, 16.9, 33.3
+local timerConjureFlamesCD		= mod:NewCDTimer(15.3, 71718, nil, nil, nil, 3, nil, nil, true) -- normal + empowered. REVIEW! ~13s variance [15.3-29.4]. Added "keep" arg (25H Lordaeron 2022/09/07 || 25H Lordaeron 2022/10/09 || 25H Lordaeron 2022/10/21) -- 20.0, 29.4, 24.3, 18.0, 23.5, 21.3, 27.6, 20.5, 22.3 || 20.0, 29.9, 22.0, 17.7, 24.6, 29.1, 29.9 || pull:76.3, 19.9, 18.2, 22.2 (Empowered: pull:93.8, 18.7, 15.3)
+local timerGlitteringSparksCD	= mod:NewCDTimer(15.9, 71807, nil, nil, nil, 2, nil, nil, true) -- This is pretty nasty on heroic. Very high variance! Added "keep" arg (10N Icecrown 2022/08/25 || 25H Lordaeron 2022/09/07) - 36, 17.5 || pull:12.5, 43.5, 20.8, 44.3, 38.6, 16.9, 33.3
 
-local soundEmpoweredFlames		= mod:NewSound(72040)
+local soundEmpoweredFlames		= mod:NewSoundYou(72040)
 
 mod:AddSetIconOption("EmpoweredFlameIcon", 72040, true, 0, {1})
+mod:AddArrowOption("EmpoweredFlameArrow", 72040, true)
 
 -- Prince Keleseth
 mod:AddTimerLine(L.Keleseth)
@@ -98,16 +102,20 @@ local warnDarkNucleus			= mod:NewSpellAnnounce(71943, 1, nil, false)	-- instant 
 local timerDarkNucleusCD		= mod:NewCDTimer(10, 71943, nil, false, nil, 5, nil, nil, true)	-- ~6s variance [10.5-16.3]. Added "keep" arg (25H Lordaeron 2022/09/07) - 12.1, 12.2, 14.2, 16.3, 12.2, 10.5, 13.8, 12.1, 14.1, 12.2, 12.1, 14.3, 14.1, 14.3, 13.9, 12.1
 
 mod.vb.kineticIcon = 7
+mod.vb.kineticCount = 0
+local personalNucleusCount = 0
 
 function mod:OnCombatStart(delay)
 	self.vb.kineticIcon = 7
+	self.vb.kineticCount = 0
+	personalNucleusCount = 0
 	berserkTimer:Start(-delay)
 	warnTargetSwitchSoon:Schedule(42-delay)
-	warnTargetSwitchSoon:ScheduleVoice(42, "swapsoon")
+	warnTargetSwitchSoon:ScheduleVoice(42-delay, "swapsoon")
 	timerTargetSwitch:Start(-delay)
-	timerEmpoweredShockVortex:Start(15-delay) -- REVIEW! 5s variance [15-20] (25H Lordaeron 2022/09/07) - 15.9
-	timerKineticBombCD:Start(23.1-delay) -- REVIEW! Lowest possible timer? (25H Lordaeron 2022/07/09 || 25H Lordaeron 2022/07/30 || 10N Icecrown 2022/08/22 || 10N Icecrown 2022/08/25 || 25H Lordaeron 2022/09/07) - 24 || 24 || 27 || 24.9 || 23.1
-	timerDarkNucleusCD:Start(12-delay) -- REVIEW! Lowest possible timer? (25H Lordaeron 2022/07/09 || 25H Lordaeron 2022/07/30 || 10N Icecrown 2022/08/22 || 10N Icecrown 2022/08/25 || 25H Lordaeron 2022/09/07) - 15 || 12 || 14 || 12 || 12.3
+	timerEmpoweredShockVortex:Start(15-delay) -- REVIEW! 5s variance [15-20] (25H Lordaeron 2022/09/07 || 10N Frostmourne 2023-01-22) - 15.9 || 15.6
+	timerKineticBombCD:Start(19.8-delay, 1) -- (25H Lordaeron 2022/07/09 || 25H Lordaeron 2022/07/30 || 10N Icecrown 2022/08/22 || 10N Icecrown 2022/08/25 || 25H Lordaeron 2022/09/07 || 25H Lordaeron 2022/12/07 || 10N Frostmourne 2023-01-22 || 25H Lordaeron [2023-08-23]@[21:05:58]) - 24 || 24 || 27 || 24.9 || 23.1 || 22.1 || 21.6 || 19.8
+	timerDarkNucleusCD:Start(12-delay) -- REVIEW! Lowest possible timer? (25H Lordaeron 2022/07/09 || 25H Lordaeron 2022/07/30 || 10N Icecrown 2022/08/22 || 10N Icecrown 2022/08/25 || 25H Lordaeron 2022/09/07 || 10N Frostmourne 2023-01-22) - 15 || 12 || 14 || 12 || 12.3 || 13.5
 	if self.Options.RangeFrame then
 		DBM.RangeCheck:Show(12)
 	end
@@ -236,7 +244,7 @@ function mod:SPELL_AURA_APPLIED(args)
 	elseif spellId == 72999 then	--Shadow Prison (hard mode)
 		if args:IsPlayer() then
 			timerShadowPrison:Start()
-			if (args.amount or 1) >= 10 then	--Placeholder right now, might use a different value
+			if personalNucleusCount < 3 and (args.amount or 1) >= 10 then	--Placeholder right now, might use a different value. Ignore if player has more than 3 Dark Nucleus
 				specWarnShadowPrison:Show(args.amount)
 				specWarnShadowPrison:Play("stackhigh")
 			end
@@ -255,9 +263,17 @@ function mod:SPELL_AURA_APPLIED(args)
 		end
 	elseif args:IsSpellID(71807, 72796, 72797, 72798) and args:IsDestTypePlayer() then	-- Glittering Sparks(Dot/slow, dangerous on heroic during valanaar)
 		warnGliteringSparks:CombinedShow(1, args.destName)
+	elseif spellId == 71822 and args:IsPlayer() then -- Shadow Resonance (from Dark Nucleus)
+		personalNucleusCount = personalNucleusCount + 1 -- 35% reduction for each nucleus
 	end
 end
 mod.SPELL_AURA_APPLIED_DOSE = mod.SPELL_AURA_APPLIED
+
+function mod:SPELL_AURA_REMOVED(args)
+	if args.spellId == 71822 and args:IsPlayer() then -- Shadow Resonance (from Dark Nucleus)
+		personalNucleusCount = personalNucleusCount - 1
+	end
+end
 
 function mod:SPELL_SUMMON(args)
 	if args.spellId == 71943 then
@@ -282,14 +298,19 @@ function mod:CHAT_MSG_RAID_BOSS_EMOTE(msg, _, _, _, target)
 		if self.Options.EmpoweredFlameIcon then
 			self:SetIcon(target, 1, 10)
 		end
+		if self.Options.EmpoweredFlameArrow then
+			DBM.Arrow:ShowRunTo(target, 0, 0, 10) -- 0 distance (so it doesn't hide with proximity) and 10s hideTime
+		end
 	end
 end
 
 function mod:UNIT_SPELLCAST_SUCCEEDED(_, spellName)
 	if spellName == GetSpellInfo(72080) then -- Kinetic Bomb
+		self.vb.kineticCount = self.vb.kineticCount + 1
 		warnKineticBomb:Show()
+		specWarnKineticBomb:Show(self.vb.kineticCount)
 		soundKineticBomb:Play("Interface\\AddOns\\DBM-Core\\sounds\\RaidAbilities\\KineticSpawn.mp3")
-		timerKineticBombCD:Start()
+		timerKineticBombCD:Start(nil, self.vb.kineticCount+1)
 		if self.Options.SetIconOnKineticBomb then
 			self:ScanForMobs(38454, 2, self.vb.kineticIcon, 5, nil, 12, "SetIconOnKineticBomb", false, nil, true)
 			self.vb.kineticIcon = self.vb.kineticIcon - 1

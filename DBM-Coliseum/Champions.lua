@@ -1,7 +1,9 @@
 local mod	= DBM:NewMod("Champions", "DBM-Coliseum")
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20220907232753")
+local UnitGUID = UnitGUID
+
+mod:SetRevision("20230221160133")
 mod:SetCreatureID(34458, 34451, 34459, 34448, 34449, 34445, 34456, 34447, 34441, 34454, 34444, 34455, 34450, 34453, 34461, 34460, 34469, 34467, 34468, 34471, 34465, 34466, 34473, 34472, 34470, 34463, 34474, 34475)
 mod:SetMinSyncRevision(20220907000000)
 
@@ -79,7 +81,7 @@ local warnHellfire			= mod:NewSpellAnnounce(65816, 4)
 local warnFear				= mod:NewTargetNoFilterAnnounce(65809, 1)		-- 65809
 local warnDeathCoil			= mod:NewTargetNoFilterAnnounce(65820, 1)		-- 65820
 -- Warrior
-local preWarnBladestorm	= mod:NewSoonAnnounce(65947, 3)
+local preWarnBladestorm		= mod:NewSoonAnnounce(65947, 3)
 local warnBladestorm		= mod:NewSpellAnnounce(65947, 4)
 local warnCharge			= mod:NewTargetNoFilterAnnounce(65927, 2)		-- 65927, 65929
 local warnRetaliation		= mod:NewSpellAnnounce(65932, 3)				-- 65932
@@ -110,7 +112,7 @@ local warnWyvernSting		= mod:NewTargetNoFilterAnnounce(65878, 1)		-- 65878, 6587
 local warnFrostTrap			= mod:NewSpellAnnounce(65880, 3)				-- 65880
 local warnDisengage			= mod:NewSpellAnnounce(65869, 3)				-- 65869
 
-local specWarnHellfire		= mod:NewSpecialWarningMove(65816, nil, nil, nil, 1, 2)
+local specWarnHellfire		= mod:NewSpecialWarningGTFO(65816, nil, nil, nil, 1, 8)
 local specWarnHandofProt	= mod:NewSpecialWarningDispel(66009, "RemoveInvulnerabilities", nil, nil, 1, 2)
 local specWarnDivineShield	= mod:NewSpecialWarningDispel(66010, "RemoveInvulnerabilities", nil, nil, 1, 2)
 local specWarnIceBlock		= mod:NewSpecialWarningDispel(65802, "RemoveInvulnerabilities", nil, nil, 1, 2)
@@ -118,19 +120,19 @@ local specWarnHandofFreedom	= mod:NewSpecialWarningDispel(66115, "MagicDispeller
 local specWarnTranquility	= mod:NewSpecialWarningInterrupt(66086)
 local specWarnEarthShield	= mod:NewSpecialWarningDispel(66063, "MagicDispeller")
 local specWarnAvengingWrath = mod:NewSpecialWarningDispel(66011, "MagicDispeller")
-local specWarnBloodlust	= mod:NewSpecialWarningDispel(65980, "MagicDispeller", nil, nil, 1, 2)
+local specWarnBloodlust		= mod:NewSpecialWarningDispel(65980, "MagicDispeller", nil, nil, 1, 2)
 local specWarnHeroism		= mod:NewSpecialWarningDispel(65983, "MagicDispeller", nil, nil, 1, 2)
 
 -- log timers for this fight are all over the place. I suspect it is due to CC, and thus, only fixes I will do are if debug catches early refreshes.
 local timerBladestorm		= mod:NewBuffActiveTimer(8, 65947, nil, nil, nil, 2)
 local timerShadowstepCD		= mod:NewCDTimer(30, 66178, nil, nil, nil, 3) -- (25H Lordaeron 2022/09/03) - pull:25.7
 local timerBlindCD			= mod:NewCDTimer(120, 65960)
-local timerDeathgripCD		= mod:NewCDTimer(21.5, 66017, nil, nil, nil, 3) -- REVIEW! High variance (25H Lordaeron 2022/09/03) - pull:22.9, 31.5, 45.1, 34.9, 24.2, 21.9, 31.1, 61.4, 43.9, 21.5
+local timerDeathgripCD		= mod:NewCDTimer(20.7, 66017, nil, nil, nil, 3) -- REVIEW! High variance (25H Lordaeron 2022/09/03 || 25H Lordaeron 2022/10/12) - pull:22.9, 31.5, 45.1, 34.9, 24.2, 21.9, 31.1, 61.4, 43.9, 21.5 || pull:62.4, 20.7, 21.3, 41.0
 local timerBladestormCD		= mod:NewCDTimer(90.1, 65947, nil, nil, nil, 2) -- (25H Lordaeron 2022/09/03) - pull:49.0, 90.1, 90.1
-local timerFrostTrapCD		= mod:NewCDTimer(31.8, 65880) -- REVIEW! variance? (25H Lordaeron 2022/09/03) - pull:46.2, 31.8
+local timerFrostTrapCD		= mod:NewCDTimer(30, 65880) -- REVIEW! ~5s variance? (25H Lordaeron 2022/09/03 || 25H Lordaeron 2022/09/23-npc:34467 || 25N Lordaeron 2022/10/21-npc:34467) - pull:46.2, 31.8 || pull:22.7, 34.4, 31.6 || pull:47.3, 30.0, 31.8
 local timerDisengageCD		= mod:NewCDTimer(30, 65869) -- REVIEW! variance? (25H Lordaeron 2022/09/03) - pull:32.6, 40.4
 local timerPsychicScreamCD	= mod:NewCDTimer(30, 65543) -- variance (25H Lordaeron 2022/09/03) - pull:49.1, 30.0, 31.7, 30.1, 33.5, 31.3, 30.6, 44.0, 37.2, 31.0
-local timerBlinkCD			= mod:NewCDTimer(17.6, 65793) -- REVIEW! High variance (25H Lordaeron 2022/09/03) - pull:21.1, 17.6, 135.2, 20.2, 44.0, 34.7, 27.3, 18.1, 20.6, 19.2
+local timerBlinkCD			= mod:NewCDTimer(15.1, 65793) -- REVIEW! High variance! diff script per npc? (25H Lordaeron 2022/09/03-npc:34449 || 25H Lordaeron 2022/09/23-npc:34468) - pull:21.1, 17.6, 135.2, 20.2, 44.0, 34.7, 27.3, 18.1, 20.6, 19.2 || pull:19.3, 15.1, 28.5, 15.1, 19.3, 21.2, 92.1, 19.3
 local timerHoJCD			= mod:NewCDTimer(40, 66613) -- REVIEW! variance? (25H Lordaeron 2022/09/03) - pull:178.8
 local timerRepentanceCD		= mod:NewCDTimer(60, 66008)
 local timerHoPCD			= mod:NewCDTimer(300, 66009) -- REVIEW! variance? (25H Lordaeron 2022/09/03) - pull:32.5
@@ -279,10 +281,10 @@ function mod:SPELL_AURA_APPLIED(args)
 	end
 end
 
-function mod:SPELL_DAMAGE(_, sourceName, _, destGUID, _, _, spellId)
+function mod:SPELL_DAMAGE(_, _, _, destGUID, _, _, spellId, spellName)
 	if (spellId == 65817 or spellId ==  68142 or spellId == 68143 or spellId == 68144) and destGUID == UnitGUID("player") and self:AntiSpam() then
-		specWarnHellfire:Show(sourceName)
-		specWarnHellfire:Play("runaway")
+		specWarnHellfire:Show(spellName)
+		specWarnHellfire:Play("watchfeet")
 	end
 end
 mod.SPELL_MISSED = mod.SPELL_DAMAGE

@@ -3,7 +3,7 @@ if not DBM_GUI_L then DBM_GUI_L = {} end
 
 local L = DBM_GUI_L
 
-L.MainFrame = "Deadly Boss Mods"
+--L.MainFrame = "Deadly Boss Mods"
 
 L.TranslationByPrefix		= "Retail rétroportage par "
 L.TranslationBy			= "Barsoom, Bunny67, Zidras"
@@ -110,6 +110,8 @@ L.AutologBosses				= "Enregistrement auto du combat contre un boss en utilisant 
 L.AdvancedAutologBosses		= "Enregistrement auto du combat contre un boss en utilisant Transcriptor"
 L.RecordOnlyBosses			= "N'enregistrer que les boss et exclure tous les trash. Utilisez '/dbm pull' avant les boss pour prendre en compte les potions (pre pot) &amp; ENCOUNTER_START"
 L.LogOnlyNonTrivial			= "N'enregistrer que les combats importants (difficulté normale ou supérieure du contenu actuel de raid &amp; donjons Mythique+)"
+L.LogCurrentNormal			= "Donjons normaux de niveau actuel (Remarque : si vous faites quelque chose d'héroïque via l'outil de recherche de raid et que vous souhaitez que cela soit enregistré, désactivez le filtre LFG)"
+L.LogTrivialDungeons		= "Donjons triviaux (en dessous du niveau du personnage)"
 --
 L.Area_3rdParty				= "Options des Addons tiers"
 L.oRA3AnnounceConsumables	= "Annoncer la vérification des consommables oRA3 au début du combat"
@@ -421,7 +423,6 @@ L.SWFNever					= "Jamais"
 L.FilterInterrupts			= "Si le lanceur n'est pas la cible/focus actuelle (Toujours)."
 L.FilterInterrupts2			= "Si le lanceur n'est pas la cible/focus actuelle (Toujours) ou interruption en recharge (Boss seulement)"
 L.FilterInterrupts3			= "Si le lanceur n'est pas la cible/focus actuelle (Toujours) ou interruption en recharge (Boss &amp; Trash)"
-L.FilterInterrupts4			= "Toujours filtrer les alertes d'interruption (vous ne voulez pas les voir, point)"
 L.FilterInterruptNoteName	= "Filtrer les alertes des sorts interruptibles (avec compte) si l'alerte ne contient pas votre nom dans la note personnalisée"
 L.FilterDispels				= "Filtrer les alertes de dissipations si votre sort de dissipation est en recharge"
 L.FilterTrashWarnings		= "Filtrer toutes les annonces liées aux trash dans les donjons normaux &amp; héroïques"
@@ -502,4 +503,3 @@ L.LARGE = "Grand"
 L.SMALL = "Petit"
 L.PLAYER_DIFFICULTY6 = "Mythique" -- ID: 24525
 L.PLAYER_DIFFICULTY_TIMEWALKER = "Marcheurs du temps" -- ID: 25846
-L.SPECIALIZATION = "Spécialisation" -- ID: 22433

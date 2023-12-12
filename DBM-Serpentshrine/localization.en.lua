@@ -151,7 +151,7 @@ L:SetWarningLocalization({
 
 L:SetTimerLocalization({
 	TimerElementalActive	= "Elemental Active",
-	TimerElemental			= "Elemental CD (%d)",
+	TimerElemental			= "Next Elemental (%d)",
 	TimerStrider			= "Next Strider (%d)",
 	TimerNaga				= "Next Naga (%d)"
 })
@@ -163,7 +163,7 @@ L:SetOptionLocalization({
 	WarnShield			= "Show warning for Phase 2 shield down",
 	WarnLoot			= "Show warning for Tainted Core loot",
 	TimerElementalActive	= "Show timer for how long Tainted Elemental is active",
-	TimerElemental		= "Show timer for Tainted Elemental cooldown",
+	TimerElemental		= "Show timer for next Tainted Elemental",
 	TimerStrider		= "Show timer for next Strider",
 	TimerNaga			= "Show timer for next Naga",
 	SpecWarnElemental	= "Show special warning when Tainted Elemental coming",

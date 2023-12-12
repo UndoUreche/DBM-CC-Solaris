@@ -121,6 +121,8 @@ L.LogCurrentMPlus			= "현재 확장팩 신화+ 던전"--Retail Only
 L.LogCurrentMythicZero		= "현재 확장팩 신화 0단 던전"--Retail Only
 L.LogTWDungeons				= "시간여행 또는 크로미의 시간 레이드"--Retail Only
 L.LogCurrentHeroic			= "현재 확장팩 영웅 던전 (알림: 던전 찾기를 통해 영던을 돌면서 로그를 기록하고 싶다면 던전 찾기 기록 안함 옵션을 끄세요)"
+L.LogCurrentNormal			= "현재 확장팩 일반 던전 (알림: 던전 찾기를 통해 영던을 돌면서 로그를 기록하고 싶다면 던전 찾기 기록 안함 옵션을 끄세요)"
+L.LogTrivialDungeons		= "구 던전 (이전 확장팩)"
 --
 L.Area_3rdParty				= "써드파티 애드온 설정"
 L.oRA3AnnounceConsumables	= "전투 시작시 oRA3 버프 검사 알림"
@@ -415,12 +417,18 @@ L.SpamBlockNoShowTimers		= "모드 타이머 표시 안함 (보스 모드/도전
 L.SpamBlockNoShowUTimers	= "사용자 전송 타이머 표시 안함 (사용자 지정/풀링/휴식)"
 L.SpamBlockNoCountdowns		= "초읽기 음성 재생 안함"
 
+L.Area_SpamFilter_Nameplates		= "이름표 애드온 전체적인 기능 끄기 및 필터 설정"
+L.SpamBlockNoNameplate		= "이름표 오라 표시 안함"
+L.SpamBlockNoBossGUIDs			= "메인 보스 (boss1)의 타이머를 Plater 이름표 오라로 표시 안함\n(Plater에서 해당 기능을 활성화 했다면 일반몹/보스 쫄의 타이머는 볼 수 있습니다)"
+L.SpamBlockTimersWithNameplates		= "Plater에서 오라 쿨타임 설정을 활성화 했을 때 일반몹에선 DBM 타이머 바 보지 않음 (보스 전투에는 적용되지 않고 항상 타이머 바가 표시됩니다)"
+L.NameplateFooter					= "Plater Nameplates를 사용중이라면 이 메뉴에서 추가로 기능을 설정할 수 있습니다"
+
 L.Area_SpamFilter_Misc		= "기타 여러 기능 끄기 및 필터 설정"
 L.SpamBlockNoSetIcon		= "대상에 공격대 징표를 설정하지 않음"
 L.SpamBlockNoRangeFrame		= "거리 창 표시 안함"
 L.SpamBlockNoInfoFrame		= "정보 창 표시 안함"
 L.SpamBlockNoHudMap			= "HUD 표시 안함"
-L.SpamBlockNoNameplate		= "이름표 오라 표시 안함"
+
 L.SpamBlockNoYells			= "말풍선 알림 사용 안함"
 L.SpamBlockNoNoteSync		= "메모 공유 수락 안함"
 
@@ -439,7 +447,6 @@ L.FilterInterruptsHeader	= "상황에 따라 주문 차단 알림을 표시하�
 L.FilterInterrupts			= "주문 시전 몹이 현재 대상/주시 대상이 아닐 때 (항상)"
 L.FilterInterrupts2			= "주문 시전 몹이 현재 대상/주시 대상이 아니거나 (항상) 차단기가 쿨타임일 때 (보스 전투만)"
 L.FilterInterrupts3			= "주문 시전 몹이 현재 대상/주시 대상이 아니거나 (항상) 차단기가 쿨타임일 때 (보스 및 쫄 정리시)"
-L.FilterInterrupts4			= "모든 차단 알림 표시하지 않음 (아예 보고 싶지 않을때)"
 L.FilterInterruptNoteName	= "사용자 메모에 자기 이름이 포함되지 않은 경우 차단 가능 주문의 알림 보지 않기"
 L.FilterDispels				= "해제 주문이 쿨타임일땐 해제 알림 보지 않기"
 L.FilterTrashWarnings		= "일반 및 영웅 던전에선 일반몹 알림 보지 않기"
@@ -516,4 +523,3 @@ L.LARGE = "큼"
 L.SMALL = "작음"
 L.PLAYER_DIFFICULTY6 = "신화" -- ID: 24525
 L.PLAYER_DIFFICULTY_TIMEWALKER = "시간여행" -- ID: 25846
-L.SPECIALIZATION = "전문화" -- ID: 22433

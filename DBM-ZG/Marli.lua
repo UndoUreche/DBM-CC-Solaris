@@ -1,69 +1,58 @@
 local mod	= DBM:NewMod("Marli", "DBM-ZG", 1)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision(("$Revision: 132 $"):sub(12, -3))
+mod:SetRevision("20220518110528")
 mod:SetCreatureID(14510)
+
 mod:RegisterCombat("combat")
 
-mod:RegisterEvents(
-	"SPELL_AURA_APPLIED",
-	"SPELL_AURA_REMOVED",
-	"SPELL_CAST_SUCCESS",
-	"CHAT_MSG_MONSTER_YELL"
+mod:RegisterEventsInCombat(
+	"SPELL_AURA_APPLIED 24111 24300 24109",
+	"SPELL_AURA_REMOVED 24111 24300",
+	"SPELL_CAST_SUCCESS 24083 24110"
 )
 
-local warnSpiders	= mod:NewSpellAnnounce(24083)
-local warnDrain		= mod:NewTargetAnnounce(24300)
-local warnWebs		= mod:NewSpellAnnounce(24110)
-local warnCorrosive	= mod:NewTargetAnnounce(24111)
-local warnEnlarge	= mod:NewSpellAnnounce(24109)
-local warnTransform	= mod:NewSpellAnnounce(24084)
+--TODO, enlarge dispel warning valid?
+local warnSpiders		= mod:NewSpellAnnounce(24083, 2)
+local warnDrain			= mod:NewTargetNoFilterAnnounce(24300, 2, nil, "RemoveMagic|Healer")
+local warnCorrosive		= mod:NewTargetNoFilterAnnounce(24111, 2, nil, "RemovePoison")
+local warnEnlarge		= mod:NewTargetNoFilterAnnounce(24109, 3)
 
-local timerDrain		= mod:NewTargetTimer(7, 24300)
-local timerCorrosive	= mod:NewTargetTimer(30, 24111)
-local timerWebs	= mod:NewCDTimer(15, 24110)
-local timerTransform	= mod:NewNextTimer(60, 24084)
+local specWarnEnlarge	= mod:NewSpecialWarningDispel(24109, "MagicDispeller", nil, nil, 1, 2)
 
-function mod:OnCombatStart(delay)
-	timerTransform:Start()
-end
+local timerDrain		= mod:NewTargetTimer(7, 24300, nil, "RemoveMagic|Healer", nil, 5, nil, DBM_COMMON_L.MAGIC_ICON)
+local timerCorrosive	= mod:NewTargetTimer(30, 24111, nil, "RemovePoison", nil, 5, nil, DBM_COMMON_L.POISON_ICON)
+local timerWeb			= mod:NewTargetTimer(8, 24110, nil, nil, nil, nil, nil, nil)
 
 function mod:SPELL_AURA_APPLIED(args)
 	if args.spellId == 24111 then
 		warnCorrosive:Show(args.destName)
 		timerCorrosive:Start(args.destName)
-	elseif args.spellId == 24300 then
+	elseif args.spellId == 24300 and args:IsDestTypePlayer() then
 		warnDrain:Show(args.destName)
 		timerDrain:Start(args.destName)
 	elseif args.spellId == 24109 then
-		warnEnlarge:Show()
-	elseif args.spellId == 24110 then
-		warnWebs:Show()
+		if self.Options.SpecWarn24109dispel then
+			specWarnEnlarge:Show(args.destName)
+			specWarnEnlarge:Play("dispelboss")
+		else
+			warnEnlarge:Show(args.destName)
+		end
 	end
 end
 
 function mod:SPELL_AURA_REMOVED(args)
-	if args:IsSpellID(24111) then
-		timerCorrosive:Cancel(args.destName)
-	elseif args:IsSpellID(24300) then
-		timerDrain:Cancel(args.destName)
+	if args.spellId == 24111 then
+		timerCorrosive:Stop(args.destName)
+	elseif args.spellId == 24300 and args:IsDestTypePlayer() then
+		timerDrain:Stop(args.destName)
 	end
 end
 
 function mod:SPELL_CAST_SUCCESS(args)
-	if args:IsSpellID(24083) then
+	if args.spellId == 24083 then
 		warnSpiders:Show()
-	elseif args:IsSpellID(24110) then
-		timerWebs:Start(15)
-	end
-end
-
-function mod:CHAT_MSG_MONSTER_YELL(msg)
-	if msg == L.Transform1 or msg == L.Transform2 then
-		warnTransform:Show()
-		timerTransform:Start()
-		timerWebs:Start(5)
-	elseif msg == L.TransformBack then
-		timerWebs:Cancel()
+	elseif args.spellId == 24110 then
+		timerWeb:Show(args.destName)
 	end
 end

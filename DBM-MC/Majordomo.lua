@@ -1,37 +1,65 @@
 local mod	= DBM:NewMod("Majordomo", "DBM-MC", 1)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision(("$Revision: 183 $"):sub(12, -3))
+mod:SetRevision("20220518110528")
 mod:SetCreatureID(12018, 11663, 11664)
-mod:RegisterCombat("combat")
-mod:RegisterKill("yell", L.Kill)
 
-mod:RegisterEvents(
-	"SPELL_CAST_START",
-	"SPELL_CAST_SUCCESS"
+mod:SetModelID(12029)
+
+mod:RegisterCombat("combat")
+--mod:RegisterKill("yell", L.Kill)
+
+mod:RegisterEventsInCombat(
+	"SPELL_CAST_SUCCESS 20619 21075 20534 20618"
 )
 
-local warnMagicReflect	= mod:NewSpellAnnounce(20619)
-local warnDamageShield	= mod:NewSpellAnnounce(21075)
-local warnTeleport		= mod:NewTargetAnnounce(20534)
+local warnTeleport			= mod:NewTargetNoFilterAnnounce(20534)
+local warnTeleportRandom	= mod:NewTargetNoFilterAnnounce(20618)
+local warnDamageShield		= mod:NewSpellAnnounce(21075, 2)
 
-local specWarnMagicReflect		= mod:NewSpecialWarningSpell(20619, not mod:IsMelee())
+local specWarnMagicReflect	= mod:NewSpecialWarningReflect(20619, "CasterDps", nil, 2, 1, 2)
+local specWarnDamageShield	= mod:NewSpecialWarningReflect(21075, false, nil, 2, 1, 2)
 
-local timerMagicReflect	= mod:NewBuffActiveTimer(10, 20619)
-local timerDamageShield	= mod:NewBuffActiveTimer(10, 21075)
+local timerMagicReflect		= mod:NewBuffActiveTimer(10, 20619, nil, nil, nil, 5, nil, DBM_COMMON_L.DAMAGE_ICON)
+local timerDamageShield		= mod:NewBuffActiveTimer(10, 21075, nil, nil, nil, 5, nil, DBM_COMMON_L.DAMAGE_ICON)
+local timerTeleportCD		= mod:NewCDTimer(25+5, 20534, nil, nil, nil, 5, nil, DBM_COMMON_L.TANK_ICON)
+local timerTeleportRandomCD = mod:NewCDTimer(30, 20618, nil, nil, nil, 5, nil, DBM_COMMON_L.TANK_ICON)
+local timerShieldCD			= mod:NewTimer(30.3-0.3, "timerShieldCD", nil, nil, nil, 6, nil, DBM_COMMON_L.DAMAGE_ICON)
 
 function mod:OnCombatStart(delay)
+	timerTeleportCD:Start(19.4-4.4-delay)
+	timerTeleportRandomCD:Start(25-delay)
+	timerShieldCD:Start(27.8+2.2-delay)--27-30
 end
 
-function mod:SPELL_CAST_SUCCESS(args)
-	if args:IsSpellID(20619) then
-		warnMagicReflect:Show()
-		specWarnMagicReflect:Show()
-		timerMagicReflect:Start()
-	elseif args:IsSpellID(21075) then
-		warnDamageShield:Show()
-		timerDamageShield:Start()
-	elseif args:IsSpellID(20534) then
-		warnTeleport:Show(args.destName)
+do
+	local MagicReflect, MeleeReflect, Teleport, TeleportRandom = DBM:GetSpellInfo(20619), DBM:GetSpellInfo(21075), DBM:GetSpellInfo(20534), DBM:GetSpellInfo(20618)
+	function mod:SPELL_CAST_SUCCESS(args)
+		--local spellId = args.spellId
+		local spellName = args.spellName
+		--if spellId == 20619 then
+		if spellName == MagicReflect then
+			specWarnMagicReflect:Show(BOSS)--Always a threat to casters
+			specWarnMagicReflect:Play("stopattack")
+			timerMagicReflect:Start()
+			timerShieldCD:Start()
+		--elseif spellId == 21075 then
+		elseif spellName == MeleeReflect then
+			if self.Options.SpecWarn21075reflect and not self:IsTrivial(75) then
+				specWarnDamageShield:Show(BOSS)
+				specWarnDamageShield:Play("stopattack")
+			else
+				warnDamageShield:Show()
+			end
+			timerDamageShield:Start()
+			timerShieldCD:Start()
+		--elseif spellId == 20534 then
+		elseif spellName == Teleport then
+			warnTeleport:Show(args.destName)
+			timerTeleportCD:Start()
+		elseif spellName == TeleportRandom then
+			warnTeleportRandom:Show(args.destName)
+			timerTeleportRandomCD:Start()
+		end
 	end
 end

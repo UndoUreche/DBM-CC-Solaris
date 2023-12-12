@@ -1,11 +1,10 @@
 local mod	= DBM:NewMod("GunshipBattle", "DBM-Icecrown", 1)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20220702001333")
+mod:SetRevision("20230627225738")
 local addsIcon
 local bossID
 mod:RegisterCombat("combat")
-mod:SetMinSyncRevision(4400)
 if UnitFactionGroup("player") == "Alliance" then
 	--mod:RegisterCombat("yell", L.CombatAlliance)
 	mod:RegisterKill("yell", L.KillAlliance)
@@ -19,6 +18,8 @@ else
 	addsIcon = 23336
 	bossID = 36948
 end
+mod:SetHotfixNoticeRev(20220921000000)
+mod:SetMinSyncRevision(20220921000000) -- prevent old DBM from syncing combatStart on yell Pull
 
 mod:RegisterEvents(
 	"CHAT_MSG_MONSTER_YELL"
@@ -52,20 +53,20 @@ mod:RemoveOption("HealthFrame")
 
 mod.vb.firstMage = false
 
-local function Adds(self)
-	timerAdds:Stop()
+local function Adds(self) -- no longer on a timed loop, since YELL event is available
+--	timerAdds:Stop()
 	timerAdds:Start()
 	warnAddsSoon:Cancel()
 	warnAddsSoon:Schedule(55)
-	self:Unschedule(Adds)
-	self:Schedule(60, Adds, self)
+--	self:Unschedule(Adds)
+--	self:Schedule(60, Adds, self)
 end
 
 function mod:OnCombatStart(delay)
 	DBM.BossHealth:Clear()
-	timerAdds:Start(15-delay) --First adds might come early or late so timer should be taken as a proximity only.
-	warnAddsSoon:Schedule(10)
-	self:Schedule(15, Adds, self)
+	timerAdds:Start(12-delay)
+	warnAddsSoon:Schedule(7-delay)
+--	self:Schedule(12-delay, Adds, self)
 	self.vb.firstMage = false
 	if UnitFactionGroup("player") == "Alliance" then
 		timerBelowZeroCD:Start(39-delay) --Approximate, since it depends on cannon damage. Corrected on yell later
@@ -103,7 +104,7 @@ function mod:SPELL_AURA_APPLIED_DOSE(args)
 end
 
 function mod:SPELL_AURA_REMOVED(args)
-	if args.spellId == 69705 then
+	if args.spellId == 69705 and self:AntiSpam(2, 2) then -- Fires for all Gunship Cannons
 		timerBelowZeroCD:Start()
 	end
 end
@@ -126,7 +127,7 @@ function mod:CHAT_MSG_MONSTER_YELL(msg)
 	elseif msg:find(L.PullHorde) then
 		timerCombatStart:Start(45)
 	elseif (msg:find(L.AddsAlliance) or msg:find(L.AddsHorde)) and self:IsInCombat() then
-		self:Unschedule(Adds)
+--		self:Unschedule(Adds)
 		Adds(self)
 	elseif (msg:find(L.MageAlliance) or msg == L.MageAlliance) and self:IsInCombat() then
 		if not self.vb.firstMage then

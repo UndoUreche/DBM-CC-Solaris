@@ -46,15 +46,6 @@ L:SetGeneralLocalization({
 	name		= "Moam"
 })
 
-L:SetMiscLocalization ({
-
-	StartEmote 	= "%s senses your fear.",
-
-	ExplodeEmote = "%s bristles with energy!"
-
-})
-
-
 ----------
 -- Buru --
 ----------
@@ -75,9 +66,10 @@ L:SetOptionLocalization({
 	SpecWarnPursue	= "Show special warning when you are being pursued",
 	WarnDismember	= DBM_CORE_L.AUTO_ANNOUNCE_OPTIONS.spell:format(96)
 })
-L:SetMiscLocalization{
-	PursueEmote 	= "%a+ sets eyes on (%a+)!"
-}
+
+L:SetMiscLocalization({
+	PursueEmote 	= "%s sets eyes on %s!"
+})
 
 -------------
 -- Ayamiss --

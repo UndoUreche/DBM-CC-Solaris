@@ -1,47 +1,75 @@
 local mod	= DBM:NewMod("Gehennas", "DBM-MC", 1)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision(("$Revision: 183 $"):sub(12, -3))
+mod:SetRevision("20220518110528")
 mod:SetCreatureID(12259)--, 11661
-mod:RegisterCombat("combat", 12259)
 
-mod:RegisterEvents(
-	"SPELL_CAST_SUCCESS",
-	"SPELL_AURA_APPLIED"
+mod:SetModelID(13030)
+mod:RegisterCombat("combat")
+
+mod:RegisterEventsInCombat(
+	"SPELL_CAST_SUCCESS 19716 19717",
+	"SPELL_AURA_APPLIED 20277"
 )
 
---local warnRainFire	= mod:NewSpellAnnounce(19717)
-local warnCurse		= mod:NewSpellAnnounce(19716)
-local warnFist		= mod:NewTargetAnnounce(20277)
+local warnRainFire	= mod:NewSpellAnnounce(19717, 2, nil, false)
+local warnCurse		= mod:NewSpellAnnounce(19716, 3)
+local warnFist		= mod:NewTargetAnnounce(20277, 2, nil, false, 2)
 
-local timerCurse	= mod:NewNextTimer(30, 19716)
-local timerFist		= mod:NewBuffActiveTimer(4, 20277)
+local specWarnGTFO	= mod:NewSpecialWarningGTFO(19717, nil, nil, nil, 1, 8)
 
-local FistTargets = {}
+local timerRoF		= mod:NewCDTimer(6, 19717, nil, false, nil, 3)
+local timerCurse	= mod:NewCDTimer(26.7-0.7, 19716, nil, nil, nil, 3, nil, DBM_COMMON_L.CURSE_ICON)--26-30
+local timerFist		= mod:NewBuffActiveTimer(4, 20277, nil, false, 2, 3)
+
 
 function mod:OnCombatStart(delay)
-	table.wipe(FistTargets)
-end
-
-function mod:warnFistTargets()
-		warnFist:Show(table.concat(FistTargets, "<, >"))
-		timerFist:Start()
-		table.wipe(FistTargets)
-end
-
-function mod:SPELL_CAST_SUCCESS(args)
-	if args:IsSpellID(19716) then
-		timerCurse:Start()
-		warnCurse:Show()
---	elseif args:IsSpellID(19717) and self:IsInCombat() then
---		warnRainFire:Show()
+	timerCurse:Start(6+2-delay)
+	if not self:IsTrivial(75) then
+		self:RegisterShortTermEvents(
+			"SPELL_PERIODIC_DAMAGE 19717",
+			"SPELL_PERIODIC_MISSED 19717"
+		)
 	end
 end
 
-function mod:SPELL_AURA_APPLIED(args)
-	if args:IsSpellID(20277) and args:IsDestTypePlayer() then
-		self:UnscheduleMethod("warnFistTargets")
-		FistTargets[#FistTargets + 1] = args.destName
-		self:ScheduleMethod(0.3, "warnFistTargets")
+function mod:OnCombatEnd()
+	self:UnregisterShortTermEvents()
+end
+
+do
+	local Curse, RainofFire = DBM:GetSpellInfo(19716), DBM:GetSpellInfo(19717)
+	function mod:SPELL_CAST_SUCCESS(args)
+		--if args.spellId == 19716 then
+		if args.spellName == Curse and args:IsSrcTypeHostile() then
+			warnCurse:Show()
+			timerCurse:Start()
+		--elseif args.spellId == 19717 then
+		elseif args.spellName == RainofFire and args:IsSrcTypeHostile() then
+			warnRainFire:Show()
+			timerRoF:Start()
+		end
 	end
+end
+
+do
+	local Fist = DBM:GetSpellInfo(20277)
+	function mod:SPELL_AURA_APPLIED(args)
+		--if args.spellId == 20277 and args:IsDestTypePlayer() then
+		if args.spellName == Fist and args:IsDestTypePlayer() then
+			warnFist:CombinedShow(0.3, args.destName)
+		end
+	end
+end
+
+do
+	local RainofFire = DBM:GetSpellInfo(19717)
+	function mod:SPELL_PERIODIC_DAMAGE(_, _, _, destGUID, destName, _, spellId, spellName)
+		--if spellId == 19717 and destGUID == UnitGUID("player") and self:AntiSpam() then
+		if spellName == RainofFire and destGUID == UnitGUID("player") and self:AntiSpam() then
+			specWarnGTFO:Show(spellName)
+			specWarnGTFO:Play("watchfeet")
+		end
+	end
+	mod.SPELL_PERIODIC_MISSED = mod.SPELL_PERIODIC_DAMAGE
 end

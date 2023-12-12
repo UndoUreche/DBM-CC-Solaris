@@ -3,7 +3,7 @@ if not DBM_GUI_L then DBM_GUI_L = {} end
 
 local L = DBM_GUI_L
 
-L.MainFrame = "Deadly Boss Mods"
+--L.MainFrame = "Deadly Boss Mods"
 
 L.TranslationByPrefix		= "Retail backport von "
 L.TranslationBy			= "Barsoom, Bunny67, Zidras"
@@ -420,6 +420,8 @@ L.LogCurrentMPlus="Aktuelle M+ Dungeons"
 L.LogCurrentMythicZero="Aktuelle Mythische (M0) Dungeons"
 L.LogTWDungeons="Zeitwanderung oder Chromie-Zeit Dungeons"
 L.LogCurrentHeroic="Aktuelle Heroische Dungeons (Falls heroische Filter via Gruppenfinder abgeschlossen werden muss der LFG Filter deaktiviert sein)"
+L.LogCurrentNormal="Aktuelle Normal Dungeons (Falls heroische Filter via Gruppenfinder abgeschlossen werden muss der LFG Filter deaktiviert sein)"
+L.LogTrivialDungeons="Triviale (unter Character Level) Dungeons"
 L.ImportErrorOn="Benutzerdefinierte Töne für Einstellung %s fehlen"
 L.ImportVoiceMissing="Fehlendes Sprachpaket: %s"
 L.TabCategory_Alerts="Warnungen"
@@ -472,7 +474,6 @@ L.SpamBlockNoSpecWarnFlash="Zeige kein Bildschirmblinken für Spezialwarnungen"
 L.Area_SpamFilter_SpecFeatures="Schaltet spezielle Funktionen für Spezialwarnung um"
 L.SpamBlockNoSpecWarnVibrate="Deaktiviere Kontrollervibration bei Spezialwarnungen"
 L.SpamBlockNoSpecWarnSound="Deaktiviert das Abspielen von Sounds für Spezialwarnung (Sprachpakete spielen weiterhin ihre Warnungen ab falls diese aktiviert sind)"
-L.FilterInterrupts4="Deaktiviere alle Meldungen für Unterbrechungen"
 L.OnlyFight="Nur während des Kampfes nachdem jeder Film einmal angesehen wurde."
 L.Tab_Privacy="Einstellungen für die Privatssphäre"
 L.Area_SyncMessages="Optionen zur Addon Synchronisation"
@@ -494,4 +495,3 @@ L.LARGE = "Groß"
 L.SMALL = "Kleine"
 L.PLAYER_DIFFICULTY6 = "Mythisch" -- ID: 24525
 L.PLAYER_DIFFICULTY_TIMEWALKER = "Zeitwanderung" -- ID: 25846
-L.SPECIALIZATION = "Spezialisierung" -- ID: 22433

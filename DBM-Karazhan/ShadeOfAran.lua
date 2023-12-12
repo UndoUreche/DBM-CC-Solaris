@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("Aran", "DBM-Karazhan")
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20220518110528")
+mod:SetRevision("20230128131707")
 mod:SetCreatureID(16524)
 
 mod:SetModelID(16621)
@@ -26,7 +26,7 @@ local specWarnFlameWreath	= mod:NewSpecialWarning("DBM_ARAN_DO_NOT_MOVE", nil, n
 local specWarnArcane		= mod:NewSpecialWarningRun(29973, nil, nil, nil, 4, 7)
 local specWarnBlizzard		= mod:NewSpecialWarningGTFO(29951, nil, nil, nil, 1, 6)
 
-local timerSpecial			= mod:NewTimer(28.9, "timerSpecial", "132866", nil, nil, 2)
+local timerSpecial			= mod:NewTimer(28.9+6.1, "timerSpecial", "132866", nil, nil, 2)
 local timerFlameCast		= mod:NewCastTimer(5, 30004, nil, nil, nil, 3, nil, DBM_COMMON_L.DEADLY_ICON)
 local timerArcaneExplosion	= mod:NewCastTimer(10, 29973, nil, nil, nil, 2)
 local timerFlame			= mod:NewBuffActiveTimer(20.2, 29946, nil, nil, nil, 3, nil, DBM_COMMON_L.DEADLY_ICON)
@@ -52,6 +52,7 @@ end
 
 function mod:OnCombatStart(delay)
 	berserkTimer:Start(-delay)
+	timerSpecial:Start(-delay)
 	self.vb.flameWreathIcon = 8
 	table.wipe(WreathTargets)
 	self.vb.mobIcon = 1
@@ -90,6 +91,9 @@ function mod:SPELL_AURA_APPLIED(args)
 		timerChains:Start(args.destName)
 	elseif args.spellId == 29946 then
 		WreathTargets[#WreathTargets + 1] = args.destName
+		if not self:AntiSpam(3, 3) then
+			timerSpecial:Start()
+		end
 		if args:IsPlayer() then
 			specWarnFlameWreath:Show()
 			specWarnFlameWreath:Play("stopmove")
@@ -118,7 +122,7 @@ function mod:SPELL_SUMMON(args)
 			timerElementals:Show()
 		end
 		if self.Options.ElementalIcons then
-			self:ScanForMobs(args.destGUID, 2, self.vb.mobIcon, 1, 0.1, 10, "ElementalIcons")--creatureID, iconSetMethod, mobIcon, maxIcon, scanInterval, scanningTime, optionName, isFriendly, secondCreatureID, skipMarked
+			self:ScanForMobs(args.destGUID, 2, self.vb.mobIcon, 1, nil, 10, "ElementalIcons")--creatureID, iconSetMethod, mobIcon, maxIcon, scanInterval, scanningTime, optionName, isFriendly, secondCreatureID, skipMarked
 		end
 		self.vb.mobIcon = self.vb.mobIcon + 1
 		if self.vb.mobIcon == 5 then self.vb.mobIcon = 1 end

@@ -37,11 +37,19 @@ L:SetOptionLocalization({
 	WeaponsStatus				= "Special warning at combat start if unequip/equip function is enabled",
 	ShieldHealthFrame			= "Show boss health with a health bar for $spell:70842",
 	SoundWarnCountingMC			= "Play a 5 second audio countdown for Mind Control",
-	RemoveDruidBuff				= "Remove $spell:48469 / $spell:48470 24 seconds into the fight",
-	RemoveDruidBuffOnMCOnly     = "Remove $spell:48469 / $spell:48470 only if $spell:71289 is cast on you",
+--	RemoveDruidBuff				= "Remove $spell:48469 / $spell:48470 24 seconds into the fight",
+	RemoveBuffsOnMC				= "Remove buffs when $spell:71289 is cast on you. Each option is cumulative.",
+	Never						= NEVER, -- don't translate
+	Gift						= "Remove $spell:48469 / $spell:48470. Minimal approach to prevent $spell:33786 resists.",
+	CCFree						= "+ Remove $spell:48169 / $spell:48170. Account for resists of spells in the Shadow school.",
+	ShortOffensiveProcs			= "+ Remove offensive procs that have a low duration. Recommended for raid safety without compromising raid damage output.",
+	MostOffensiveBuffs			= "+ Remove most offensive buffs (mainly for Casters and |cFFFF7C0AFeral Druids|r). Maximum raid safety with loss of damage output and need to self-rebuff/shapeshift!",
 	EqUneqWeapons				= "Unequip/equip weapons if $spell:71289 is cast on you. For equipping to work, create a COMPLETE (with the weapons of choice that will be equipped) equipment set named \"pve\".",
 	EqUneqTimer					= "Remove weapons by timer ALWAYS, not on cast (if ping is high). The option above must be enabled.",
-	BlockWeapons				= "Completely block the unequip/equip functions above"
+	EqUneqFilter				= FILTER, -- don't translate
+	OnlyDPS						= DBM_COMMON_L.DAMAGE_ICON, -- don't translate
+	DPSTank						= DBM_COMMON_L.DAMAGE_ICON..DBM_COMMON_L.TANK_ICON, -- don't translate
+	NoFilter					= DBM_COMMON_L.DAMAGE_ICON..DBM_COMMON_L.TANK_ICON..DBM_COMMON_L.HEALER_ICON -- don't translate
 })
 
 L:SetMiscLocalization({
@@ -100,7 +108,7 @@ L:SetGeneralLocalization({
 
 L:SetOptionLocalization({
 	RunePowerFrame		= "Show Boss Health + $spell:72371 bar",
-	RemoveDI			= "Remove $spell:19752 if used to prevent $spell:72293 cast"
+--	RemoveDI			= "Remove $spell:19752 if used to prevent $spell:72293 cast"
 })
 
 L:SetMiscLocalization({
@@ -207,7 +215,7 @@ L:SetGeneralLocalization({
 
 L:SetMiscLocalization({
 	SwarmingShadows			= "Shadows amass and swarm around (%S+)!",
-	YellFrenzy				= "I'm hungry!"
+	YellFrenzy				= "I'm hungry!" -- Player did not bite; not to be confused with BQL Berserk (This ends NOW!)
 })
 
 -----------------------------
@@ -271,7 +279,7 @@ L:SetOptionLocalization({
 	ClearIconsOnAirphase		= "Clear all icons before air phase",
 	AssignWarnDirectionsCount	= "Assign directions to $spell:70126 targets and count on phase 2",
 	AchievementCheck			= "Announce 'All You Can Eat' achievement warnings to raid<br/>(requires promoted status)",
-	RangeFrame					= "Show dynamic range frame (10/20) based on last used boss ability and player debuffs"
+	RangeFrame					= "Show dynamic range frame (10/20) based on last used boss ability and player debuffs ($spell:69762 shows only on Heroic)"
 })
 
 L:SetMiscLocalization({
@@ -294,7 +302,7 @@ L:SetGeneralLocalization({
 })
 
 L:SetWarningLocalization({
-	ValkyrWarning			= ">%s< has been grabbed!",
+	ValkyrWarning			= "%s >%s< %s has been grabbed!",
 	SpecWarnYouAreValkd		= "You have been grabbed",
 	WarnNecroticPlagueJump	= "Necrotic Plague jumped to >%s<",
 	SpecWarnValkyrLow		= "Valkyr below 55%"

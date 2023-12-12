@@ -8,7 +8,7 @@ if not DBM_GUI_L then DBM_GUI_L = {} end
 
 local L = DBM_GUI_L
 
-L.MainFrame				= "Deadly Boss Mods"
+--L.MainFrame				= "Deadly Boss Mods"
 
 L.TranslationByPrefix		= "向后移植 "
 L.TranslationBy			= "Barsoom, Bunny67, Zidras"
@@ -127,6 +127,8 @@ L.LogTrivialRaids			= "低等级团队"
 L.LogCurrentMPlus			= "当前等级的M+5人本"--Retail Only
 L.LogTWDungeons				= "时光5人本或通过克罗米进入的5人本"--Retail Only
 L.LogCurrentHeroic			= "当前等级的英雄5人本"
+L.LogCurrentNormal			= "当前等级的普通5人本"
+L.LogTrivialDungeons		= "低等级地下城"
 --
 L.Area_3rdParty				= "第三方插件选项"
 L.oRA3AnnounceConsumables	= "在战斗开始时通报oRA3消耗品检查"
@@ -444,7 +446,6 @@ L.SWFNever					= "从不"
 L.FilterInterrupts			= "如果被打断对象不是当前目标/焦点(总是)"
 L.FilterInterrupts2			= "如果被打断对象不是当前目标/焦点(总是)或者打断技能正在冷却(限Boss)"
 L.FilterInterrupts3			= "如果被打断对象不是当前目标/焦点(总是)或者打断技能正在冷却(Boss和小怪)"
-L.FilterInterrupts4			= "始终过滤打断警报 (你不想看到他们的时候)"
 L.FilterInterruptNoteName	= "当自定义注记内没有包含你的名字的时候，过滤掉打断提示 (带计数)"
 L.FilterDispels				= "当驱散技能在冷却时, 过滤掉驱散提示"
 L.FilterTrashWarnings		= "当进入普通或英雄副本时，过滤掉所有小怪警报"
@@ -523,4 +524,3 @@ L.LARGE = "大"
 L.SMALL = "小"
 L.PLAYER_DIFFICULTY6 = "史诗" -- ID: 24525
 L.PLAYER_DIFFICULTY_TIMEWALKER = "时空漫游" -- ID: 25846
-L.SPECIALIZATION = "专精" -- ID: 22433

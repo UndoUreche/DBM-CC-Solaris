@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("Broodlord", "DBM-BWL", 1)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision(("$Revision: 7007 $"):sub(12, -3))
+mod:SetRevision("20220518110528")
 mod:SetCreatureID(12017)
 
 mod:SetModelID(14308)
@@ -16,39 +16,38 @@ mod:RegisterEventsInCombat(
 --Mortal Strike: 10-20, Blast Wave: 12-32, Knock Away: 13-30. i.e., timers on this fight would be near useless
 --(ability.id = 18670 or ability.id = 23331 or ability.id = 24573) and type = "cast"
 local warnBlastWave		= mod:NewSpellAnnounce(23331, 2)
-local warnKnockAway		= mod:NewSpellAnnounce(25778, 3)
+local warnKnockAway		= mod:NewSpellAnnounce(18670, 3)
 local warnMortal		= mod:NewTargetNoFilterAnnounce(24573, 2, nil, "Tank|Healer", 4)
 
-local timerMortal		= mod:NewTargetTimer(5, 24573, nil, "Tank|Healer", 4, 5, nil, DBM_CORE_L.TANK_ICON)
+local timerMortal		= mod:NewTargetTimer(5, 24573, nil, "Tank|Healer", 4, 5, nil, DBM_COMMON_L.TANK_ICON)
 
-function mod:SPELL_CAST_SUCCESS(args)
-	if args.spellId == 23331 and args:IsSrcTypeHostile() then
-		warnBlastWave:Show()
-	elseif args.spellId == 25778 then
-		warnKnockAway:Show()
+do
+	local BlastWave, KnockAway = DBM:GetSpellInfo(23331), DBM:GetSpellInfo(18670)
+	function mod:SPELL_CAST_SUCCESS(args)
+		--if args.spellId == 23331 then
+		if args.spellName == BlastWave and args:IsSrcTypeHostile() then
+			warnBlastWave:Show()
+		--elseif args.spellId == 18670 then
+		elseif args.spellName == KnockAway then
+			warnKnockAway:Show()
+		end
 	end
 end
 
-function mod:SPELL_AURA_APPLIED(args)
-	if args.spellId == 24573 and args:IsDestTypePlayer() then
-		warnMortal:Show(args.destName)
-		timerMortal:Start(args.destName)
+do
+	local MortalStrike = DBM:GetSpellInfo(24573)
+	function mod:SPELL_AURA_APPLIED(args)
+		--if args.spellId == 24573 then
+		if args.spellName == MortalStrike and args:IsDestTypePlayer() then
+			warnMortal:Show(args.destName)
+			timerMortal:Start(args.destName)
+		end
 	end
-end
 
-function mod:SPELL_AURA_REMOVED(args)
-	if args.spellId == 24573 and args:IsDestTypePlayer() then
-		timerMortal:Stop(args.destName)
-	end
-end
-
-function mod:UNIT_DIED(args)
-	local cid = self:GetCIDFromGUID(args.destGUID)
-	if cid == 12017 then--Only trigger kill for unit_died if he dies in phase 2 with everyone alive, otherwise it's an auto wipe.
-		if DBM:NumRealAlivePlayers() > 0 then
-			DBM:EndCombat(self)
-		else
-			DBM:EndCombat(self, true)--Pass wipe arg end combat
+	function mod:SPELL_AURA_REMOVED(args)
+		--if args.spellId == 24573 then
+		if args.spellName == MortalStrike and args:IsDestTypePlayer() then
+			timerMortal:Stop(args.destName)
 		end
 	end
 end

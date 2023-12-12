@@ -1,50 +1,38 @@
 local mod	= DBM:NewMod("Jeklik", "DBM-ZG", 1)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision(("$Revision: 132 $"):sub(12, -3))
+mod:SetRevision("20220518110528")
 mod:SetCreatureID(14517)
+
 mod:RegisterCombat("combat")
 
-mod:RegisterEvents(
-	"SPELL_CAST_START",
-	"SPELL_CAST_SUCCESS",
-	"SPELL_AURA_APPLIED",
-	"SPELL_AURA_REMOVED",
-	"CHAT_MSG_MONSTER_YELL",
-	"UNIT_HEALTH",
-	"SPELL_DAMAGE"
+mod:RegisterEventsInCombat(
+	"SPELL_CAST_START 23954",
+	"SPELL_CAST_SUCCESS 23918 22884",
+	"SPELL_AURA_APPLIED 23952",
+	"SPELL_AURA_REMOVED 23952 23966"
 )
 
-local warnPhase2Soon	= mod:NewAnnounce("WarnPhase2Soon", 1)
-local warnPhase2		= mod:NewPhaseAnnounce(2)
-local specWarnFire 		= mod:NewSpecialWarningMove(23972, nil, nil, nil, 1, 2)
+local warnPhase			= mod:NewPhaseChangeAnnounce()
+local warnSonicBurst	= mod:NewSpellAnnounce(23918, 3)
+local warnPsychicScream	= mod:NewSpellAnnounce(22884, 3)
+local warnPain			= mod:NewTargetNoFilterAnnounce(23952, 2, nil, "RemoveMagic|Healer")
 
-local warnSonicBurst	= mod:NewSpellAnnounce(23918)
-local warnScreech		= mod:NewSpellAnnounce(22884)
-local warnPain			= mod:NewTargetAnnounce(23952)
-local warnHeal			= mod:NewCastAnnounce(23954, 4)
+local specWarnHeal		= mod:NewSpecialWarningInterrupt(23954, "HasInterrupt", nil, nil, 1, 2)
 
-local timerSonicBurst	= mod:NewBuffActiveTimer(10, 23918)
-local timerScreech		= mod:NewBuffActiveTimer(4, 22884)
-local timerPain			= mod:NewTargetTimer(18, 23952)
-local timerHeal			= mod:NewCastTimer(4, 23954)
-local timerHealCD		= mod:NewNextTimer(25, 23954)
-
-local timerCdFlyingBats	= mod:NewTimer(10, "TimerBats")
-
-local warned_preP2
-local phase
-
-function mod:OnCombatStart(delay)
-	warned_preP2 = false
-	phase = 1
-end
+local timerSonicBurst	= mod:NewBuffActiveTimer(10, 23918, nil, nil, nil, 5, nil, DBM_COMMON_L.MAGIC_ICON)
+local timerPsychicScream	= mod:NewBuffActiveTimer(4, 22884, nil, nil, nil, 3)
+local timerPain			= mod:NewTargetTimer(18, 23952, nil, "RemoveMagic|Healer", nil, 5, nil, DBM_COMMON_L.MAGIC_ICON)
+local timerHealCD		= mod:NewNextTimer(20+5, 23954, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
+local timerPsychicScreamCD	= mod:NewCDTimer(35, 22884, nil, false)
 
 function mod:SPELL_CAST_START(args)
-	if args:IsSpellID(23954) then
-		timerHeal:Start()
+	if args.spellId == 23954 and args:IsSrcTypeHostile() then
 		timerHealCD:Start()
-		warnHeal:Show()
+		if self:CheckInterruptFilter(args.sourceGUID, false, true) then
+			specWarnHeal:Show(args.sourceName)
+			specWarnHeal:Play("kickcast")
+		end
 	end
 end
 
@@ -52,49 +40,28 @@ function mod:SPELL_CAST_SUCCESS(args)
 	if args.spellId == 23918 then
 		timerSonicBurst:Start()
 		warnSonicBurst:Show()
-	elseif args.spellId == 22884 and self:IsInCombat() then
-		timerScreech:Start()
-		warnScreech:Show()
+	elseif args.spellId == 22884 and args:IsSrcTypeHostile() then
+		timerPsychicScream:Start()
+		warnPsychicScream:Show()
+		timerPsychicScreamCD:Start()
 	end
 end
 
 function mod:SPELL_AURA_APPLIED(args)
-	if args.spellId == 23952 then
+	if args.spellId == 23952 and args:IsDestTypePlayer() then
 		timerPain:Start(args.destName)
 		warnPain:Show(args.destName)
 	end
 end
 
 function mod:SPELL_AURA_REMOVED(args)
-	if args.spellId == 23952 then
-		timerPain:Cancel(args.destName)
-	end
-end
-
-function mod:UNIT_HEALTH(uId)
-	if phase == 1 and not warned_preP2 and self:GetUnitCreatureId(uId) == 14517 and UnitHealth(uId) / UnitHealthMax(uId) <= 0.61 then
-		warned_preP2 = true
-		warnPhase2Soon:Show()	
-	elseif phase == 1 and warned_preP2 and self:GetUnitCreatureId(uId) == 14517 and UnitHealth(uId) / UnitHealthMax(uId) <= 0.51 then
-		phase = 2;
-		warnPhase2:Show()
-		
+	if args.spellID == 23952 and args:IsDestTypePlayer() then
+		timerPain:Stop(args.destName)
+-- transition into p2 at 50% still missing. should reset timers and start a 25 sec timer for first heal
+	elseif args.spellID == 23966 then
+		warnPhase:Show(2)
+		timerPsychicScreamCD:Stop()
+		timerHealCD:Stop()
 		timerHealCD:Start()
-		timerCdFlyingBats:Cancel()
-		timerCdFlyingBats:Start()
-	end
-end
-
-function mod:SPELL_DAMAGE(_, _, _, destGUID, _, _, spellId)
-	if (spellId == 23972 or spellId == 23970) and destGUID == UnitGUID("player") and self:AntiSpam() then
-		specWarnFire:Show()	
-		specWarnFire:Play("runaway")
-	end
-end
-
-function mod:CHAT_MSG_MONSTER_YELL(msg)
-	if msg == L.SummonBats then
-		timerCdFlyingBats:Cancel()
-		timerCdFlyingBats:Start()
 	end
 end

@@ -11,14 +11,13 @@ mod:SetWipeTime(25)
 
 mod:RegisterEventsInCombat(
 	"SPELL_CAST_START 26134",
-	"SPELL_CAST_SUCCESS 26139 26478 26029",
-	"SPELL_AURA_APPLIED_DOSE 26476",
+--	"SPELL_CAST_SUCCESS 26586",
+	"SPELL_CAST_SUCCESS 26478 26139",
 	"SPELL_AURA_APPLIED 26476",
+	"SPELL_AURA_APPLIED_DOSE 26476",
 	"SPELL_AURA_REMOVED 26476",
 	"CHAT_MSG_MONSTER_EMOTE",
-	"UNIT_HEALTH mouseover target",
-	"UNIT_DIED",
-	"CHAT_MSG_ADDON"
+	"UNIT_DIED"
 )
 
 local warnEyeTentacle			= mod:NewAnnounce("WarnEyeTentacle", 2, 126)
@@ -32,88 +31,85 @@ local specWarnWeakened			= mod:NewSpecialWarning("SpecWarnWeakened", nil, nil, n
 local specWarnEyeBeam			= mod:NewSpecialWarningYou(26134, nil, nil, nil, 1, 2)
 local yellEyeBeam				= mod:NewYell(26134)
 
-local timerDarkGlareCD			= mod:NewNextTimer(50, 26029)
-local timerDarkGlare			= mod:NewBuffActiveTimer(35, 26029)
+-- ChromieCraft Dark Glare is practically 39 + 45
+local timerDarkGlareCD			= mod:NewNextTimer(86-1, 26029)
+local timerDarkGlare			= mod:NewBuffActiveTimer(39, 26029)
 local timerEyeTentacle			= mod:NewTimer(45, "TimerEyeTentacle", 126, nil, nil, 1)
 local timerGiantEyeTentacle		= mod:NewTimer(60, "TimerGiantEyeTentacle", 126, nil, nil, 1)
 local timerClawTentacle			= mod:NewTimer(8, "TimerClawTentacle", 26391, nil, nil, 1) -- every 8 seconds
 local timerGiantClawTentacle	= mod:NewTimer(60, "TimerGiantClawTentacle", 26391, nil, nil, 1)
 local timerWeakened				= mod:NewTimer(45, "TimerWeakened", 28598)
 
-mod:AddRangeFrameOption("15")
+mod:AddRangeFrameOption("12") -- Blizz 10, AzerothCore +2 for regular chars, or 4 for male tauren/draenei
 mod:AddSetIconOption("SetIconOnEyeBeam", 26134, true, false, {1})
 mod:AddInfoFrameOption(nil, true)
 
 local firstBossMod = DBM:GetModByName("AQ40Trash")
-local playerStacks = {}
-local fleshTentacles = {}
--- local darkGalreCounter = 0
+local playersInStomach = {}
+local fleshTentacles, diedTentacles = {}, {}
 
 local updateInfoFrame
 do
 	local twipe = table.wipe
 	local lines = {}
 	local sortedLines = {}
-	
 	local function addLine(key, value)
+		-- sort by insertion order
 		lines[key] = value
 		sortedLines[#sortedLines + 1] = key
 	end
-	
-		updateInfoFrame = function()
+	updateInfoFrame = function()
 		twipe(lines)
 		twipe(sortedLines)
-		
-		for name, stacks in pairs(playerStacks) do 
-			addLine(name, stacks)
-		end
-		
-		for k, health in pairs(fleshTentacles) do
-			if k ~= "first" then
-				
-				if fleshTentacles["first"] == k then
-					addLine(L.FleshTent .. " 1   ", health .. '%')
-				else
-					addLine(L.FleshTent .. " 2   ", health .. '%')
+		--First, process players in stomach and gather tentacle information and debuff stacks
+		for i = 1, #playersInStomach do
+			local name = playersInStomach[i]
+			local uId = DBM:GetRaidUnitId(name)
+			if uId then
+				--First, display their stomach debuff stacks
+				local spellName, _, _, count = DBM:UnitDebuff(uId, 26476)
+				if spellName and count then
+					addLine(name, count)
 				end
-			
-				
+				--Also, process their target information for tentacles
+				local targetuId = uId.."target"
+				local guid = UnitGUID(targetuId)
+				if guid and (mod:GetCIDFromGUID(guid) == 15802) and not diedTentacles[guid] then--Targetting Flesh Tentacle
+					fleshTentacles[guid] = math.floor(UnitHealth(targetuId) / UnitHealthMax(targetuId) * 100)
+				end
 			end
+		end
+		--Now, show tentacle data after it's been updated from player processing
+		local nLines = 0
+		for _, health in pairs(fleshTentacles) do
+			nLines = nLines + 1
+			addLine(L.FleshTent .. " " .. nLines, health .. '%')
 		end
 		return lines, sortedLines
 	end
-
 end
 
 function mod:OnCombatStart(delay)
-	table.wipe(playerStacks)
+	table.wipe(playersInStomach)
 	table.wipe(fleshTentacles)
-	
-	-- darkGalreCounter = 0
-	
+	table.wipe(diedTentacles)
 	self:SetStage(1)
-	
-	timerClawTentacle:Start(9-delay) -- Combatlog told me, the first Claw Tentacle spawn in 00:00:09, but need more test.
+	self.vb.phase = 1
+	timerClawTentacle:Start(9-1-delay)
 	timerEyeTentacle:Start(45-delay)
-	timerDarkGlareCD:Start(-delay)
-	
-	self:ScheduleMethod(51-delay, "DarkGlare")
-	
+	timerDarkGlareCD:Start(46-delay)
+	self:ScheduleMethod(46-delay, "DarkGlare")
 	if self.Options.RangeFrame then
-		DBM.RangeCheck:Show(15)
+		DBM.RangeCheck:Show(10+2) -- Blizz 10, AzerothCore +2 for regular chars, or 4 for male tauren/draenei
 	end
 end
 
 function mod:OnCombatEnd(wipe, isSecondRun)
-	timerClawTentacle:Stop()
-	timerDarkGlareCD:Stop()
+	table.wipe(diedTentacles)
 	timerEyeTentacle:Stop()
 	timerGiantClawTentacle:Stop()
 	timerGiantEyeTentacle:Stop()
-	
-	self:UnscheduleMethod("GiantClawTentacle")
-	self:UnscheduleMethod("GiantEyeTentacle")
-
+	timerWeakened:Stop()
 	if self.Options.RangeFrame then
 		DBM.RangeCheck:Hide()
 	end
@@ -129,158 +125,79 @@ function mod:OnCombatEnd(wipe, isSecondRun)
 end
 
 function mod:DarkGlare()
+	--ghost check, because if someone releases during encounter, this loop continues until they zone back in
+	--We don't want to spam dark glare warnings while they are a ghost outside running back on a wipe
 	if not UnitIsDeadOrGhost("player") then
 		specWarnDarkGlare:Show()
-		specWarnDarkGlare:Play("watchstep")
+		specWarnDarkGlare:Play("laserrun")--Or "watchstep" ?
 	end
-	
-	timerDarkGlare:Schedule(3)
-	timerDarkGlareCD:Schedule(39)
-
-	timerClawTentacle:Cancel()
-	timerClawTentacle:Unschedule()
-	timerEyeTentacle:Cancel()
-	timerEyeTentacle:Unschedule()
-
-	timerClawTentacle:Schedule(39)
-	timerEyeTentacle:Schedule(39, 45)
-	
-	self:ScheduleMethod(89, "DarkGlare")
+	timerDarkGlare:Start()
+	timerDarkGlareCD:Start()
+	self:ScheduleMethod(85-1, "DarkGlare")
+	timerEyeTentacle:Start(39+45)
 end
 
-function mod:EyeBeamTarget(targetname)
-	if not targetname then 
-		return 
+do
+	local EyeBeam = DBM:GetSpellInfo(26134)
+	function mod:EyeBeamTarget(targetname, uId)
+		if not targetname then return end
+		if self.Options.SetIconOnEyeBeam then
+			self:SetIcon(targetname, 1, 3)
+		end
+		if targetname == UnitName("player") then
+			specWarnEyeBeam:Show()
+			specWarnEyeBeam:Play("targetyou")
+			yellEyeBeam:Yell()
+		end
 	end
-	
-	if self.Options.SetIconOnEyeBeam then
-		self:SetIcon(targetname, 1, 3)
-	end
-	if targetname == UnitName("player") then
-		specWarnEyeBeam:Show()
-		specWarnEyeBeam:Play("targetyou")
-		yellEyeBeam:Yell()
-	end
-end
 
-function mod:GiantEyeTentacle()
-	warnGiantEyeTentacle:Show()
-	
-	timerGiantEyeTentacle:Stop()
-	
-	timerGiantEyeTentacle:Start(60)
-	
-	self:ScheduleMethod(60, "GiantEyeTentacle")
-end
-
-function mod:GiantClawTentacle()
-	warnGiantClawTentacle:Show()
-	
-	timerGiantClawTentacle:Stop()
-	
-	timerGiantClawTentacle:Start(60)
-	
-	self:ScheduleMethod(60, "GiantClawTentacle")
-end
-
-function mod:SPELL_CAST_START(args)
-	if args.spellId == 26134 and args:IsSrcTypeHostile() then
-		-- the eye target can change to the correct target a tiny bit after the cast starts
-		self:ScheduleMethod(0.1, "BossTargetScanner", args.sourceGUID, "EyeBeamTarget", 0.1, 3)
-	end
-end
-
-function mod:SPELL_CAST_SUCCESS(args)
-	if args.spellId == 26139 or args.spellId == 26478 or args.spellId == 26029 then
-		 local cid = self:GetCIDFromGUID(args.sourceGUID)
-		 
-		 if self:AntiSpam(5, cid) then
-			if cid == 15726 then--Eye Tentacle
-				warnEyeTentacle:Show()
-				
-				timerEyeTentacle:Stop()
-				
-				timerEyeTentacle:Start(self.vb.phase == 2 and 30 or 45)
-			elseif cid == 15725 then -- Claw Tentacle
-				warnClawTentacle:Show()
-				
-				timerClawTentacle:Stop()
-				
-				timerClawTentacle:Start()
-			elseif cid == 15728 then
-				timerGiantClawTentacle:Stop()
-				self:UnscheduleMethod("GiantClawTentacle")
-	
-				timerGiantClawTentacle:Start(59)
-	
-				self:ScheduleMethod(59, "GiantClawTentacle")
-				
-			elseif cid == 15334 then
-				timerGiantEyeTentacle:Stop()
-				self:UnscheduleMethod("GiantEyeTentacle")
-				
-				timerGiantEyeTentacle:Start(59)
-				self:ScheduleMethod(59, "GiantEyeTentacle")
-				
-			-- elseif cid == 15589 then
-			
-				-- if darkGalreCounter % 8 == 0 then
-					
-					-- timerDarkGlare:Unschedule()
-					-- timerDarkGlare:Start()
-					-- self:UnscheduleMethod("DarkGlare")
-					
-					-- self:ScheduleMethod(0, "DarkGlare")
-				-- end
-				
-				-- darkGalreCounter = darkGalreCounter + 1;
-			end
+	function mod:SPELL_CAST_START(args)
+		local spellName = args.spellName
+		if spellName == EyeBeam and args:IsSrcTypeHostile() then
+			-- the eye target can change to the correct target a tiny bit after the cast starts
+			self:ScheduleMethod(0.1, "BossTargetScanner", args.sourceGUID, "EyeBeamTarget", 0.1, 3)
 		end
 	end
 end
 
-function mod:SPELL_AURA_APPLIED(args)
-	if args.spellId == 26476 then
-		self:SendSync("PlayerStomachIn", args.destName)
-	end
-end
-
-function mod:SPELL_AURA_REMOVED(args)
-	if args.spellId == 26476 then
-		self:SendSync("PlayerStomachOut", args.destName)
-	end
-end
-
-function mod:UNIT_HEALTH(uId)
-	if self:GetUnitCreatureId(uId) == 15802 then
-
-		self:ScheduleMethod(0, "syncInfoFrameData")
-	end
-end
-
-function mod:SPELL_AURA_APPLIED_DOSE(args) 
-	self:ScheduleMethod(0, "syncInfoFrameData")
-end
-
-function mod:syncInfoFrameData() 
-
-	for name, _ in pairs(playerStacks) do
-		
-		local uId = DBM:GetRaidUnitId(name)
-		
-		if uId then
-			
-			local spellName, _, _, count = DBM:UnitDebuff(uId, 26476)
-			if spellName and count then
-				self:SendSync("PlayerStomachStacksUpdate", name, tonumber(count))
+do
+	function mod:SPELL_CAST_SUCCESS(args)
+		local cid = self:GetCIDFromGUID(args.sourceGUID)
+		if self:AntiSpam(5, cid) and self.vb.phase == 2 then
+			if args:IsSpellID(26478) and cid == 15728 then --Giant Claw Tentacle
+				warnGiantClawTentacle:Show()
+				timerGiantClawTentacle:Restart(59.5)
+			elseif args:IsSpellID(26478) and cid == 15334 then -- Giant Eye Tentacle
+				warnGiantEyeTentacle:Show()
+				timerGiantEyeTentacle:Restart(59.5)
+			elseif args:IsSpellID(26139) and cid == 15726 then--Eye Tentacle
+				warnEyeTentacle:Show()
+				timerEyeTentacle:Restart(29.5)
 			end
+		end
+	end
+end
+	
+do
+	local DigestiveAcid = DBM:GetSpellInfo(26476)
+	function mod:SPELL_AURA_APPLIED(args)
+		if args.spellName == DigestiveAcid then
+			--I'm aware debuff stacks, but it's a context that doesn't matter to this mod
+			if not tContains(playersInStomach, args.destName) then
+				table.insert(playersInStomach, args.destName)
+			end
+			if self.Options.InfoFrame and not DBM.InfoFrame:IsShown() then
+				DBM.InfoFrame:SetHeader(L.Stomach)
+				DBM.InfoFrame:Show(42, "function", updateInfoFrame, false, false)
+				DBM.InfoFrame:SetColumns(1)
+			end
+		end
+	end
+	mod.SPELL_AURA_APPLIED_DOSE = mod.SPELL_AURA_APPLIED
 
-			local targetuId = uId.."target"
-			local guid = UnitGUID(targetuId)
-			
-			if guid and (mod:GetCIDFromGUID(guid) == 15802) then --Targetting Flesh Tentacle
-				self:SendSync("PlayerStomachTentacleUpdate", guid, math.floor(UnitHealth(targetuId) / UnitHealthMax(targetuId) * 100))
-			end	
+	function mod:SPELL_AURA_REMOVED(args)
+		if args.spellName == DigestiveAcid then
+			tDeleteItem(playersInStomach, args.destName)
 		end
 	end
 end
@@ -295,97 +212,39 @@ function mod:UNIT_DIED(args)
 	local cid = self:GetCIDFromGUID(args.destGUID)
 	if cid == 15589 then -- Eye of C'Thun
 		self:SetStage(2)
+		self.vb.phase = 2
 		warnPhase2:Show()
-		
-		timerDarkGlareCD:Stop()
 		timerDarkGlare:Stop()
-		self:UnscheduleMethod("DarkGlare")
-		
+		timerDarkGlareCD:Stop()
 		timerEyeTentacle:Stop()
 		timerClawTentacle:Stop() -- Claw Tentacle never respawns in phase2
-		
-		timerEyeTentacle:Start(33)
-		
-		timerGiantClawTentacle:Start(11)
-		timerGiantEyeTentacle:Start(41)
-		self:ScheduleMethod(11, "GiantClawTentacle")
-		self:ScheduleMethod(41, "GiantEyeTentacle")
-		
-	elseif args.destName == "Flesh Tentacle" then
-		fleshTentacles[args.destGUID] = 0
-	end
-end
-
-function mod:OnSync(msg, id, value)
-	if not self:IsInCombat() then return end
-	
-	if msg == "Weakened" then
-		self:UnscheduleMethod("doWeakened")
-		self:ScheduleMethod(0.3, "doWeakened")
-		
-		table.wipe(fleshTentacles)
-	
-	elseif msg == "PlayerStomachOut" then
-		
-		playerStacks[id] = nil
-	
-	elseif msg == "PlayerStomachIn" then
-	
-		playerStacks[id] = 1.0
-		
+		timerEyeTentacle:Start(40.5-7.5)
+		timerGiantClawTentacle:Start(10.5+0.5)
+		timerGiantEyeTentacle:Start(41.3-0.3)
+		self:UnscheduleMethod("DarkGlare")
 		if self.Options.InfoFrame and not DBM.InfoFrame:IsShown() then
 			DBM.InfoFrame:SetHeader(L.Stomach)
 			DBM.InfoFrame:Show(42, "function", updateInfoFrame, false, false)
 			DBM.InfoFrame:SetColumns(1)
-		end	
-		
-	
-		
-	elseif msg == "PlayerStomachTentacleUpdate" then
-		
-		if fleshTentacles["first"] == nil then --yes it's stupid, but it's late and honestly fuck effort
-			fleshTentacles["first"] = id
 		end
-		
-		if fleshTentacles[id] == nil 
-			or (value ~= nil and tonumber(fleshTentacles[id]) > tonumber(value)) then
-			
-			fleshTentacles[id] = value	
-		end
-		
-	elseif msg == "PlayerStomachStacksUpdate" then
-		
-		value = tonumber(value)
-		
-		if playerStacks[id] < value then
-			playerStacks[id] = value
-		end
+	elseif cid == 15802 then -- Flesh Tentacle
+		fleshTentacles[args.destGUID] = nil
+		diedTentacles[args.destGUID] = true
 	end
-	
 end
 
-function mod:doWeakened() 
-
-	table.wipe(fleshTentacles)
-
-	specWarnWeakened:Show()
-	specWarnWeakened:Play("targetchange")
-
-	timerWeakened:Start()
-	
-	timerEyeTentacle:Stop()
-	timerGiantClawTentacle:Stop()
-	timerGiantEyeTentacle:Stop()
-	self:UnscheduleMethod("GiantClawTentacle")
-	self:UnscheduleMethod("GiantEyeTentacle")
-	
-	timerEyeTentacle:Schedule(45, 30)
-	timerGiantClawTentacle:Schedule(45, 8)
-	self:ScheduleMethod(53, "GiantClawTentacle")
-	timerGiantEyeTentacle:Schedule(45, 38)
-	self:ScheduleMethod(83, "GiantEyeTentacle")
-	
-	if self.Options.InfoFrame then
-		DBM.InfoFrame:Hide()
+function mod:OnSync(msg)
+	if not self:IsInCombat() then return end
+	if msg == "Weakened" then
+		table.wipe(fleshTentacles)
+		specWarnWeakened:Show()
+		specWarnWeakened:Play("targetchange")
+		timerWeakened:Start()
+		timerEyeTentacle:Restart(83-8)
+		timerGiantClawTentacle:Restart(53)
+		timerGiantEyeTentacle:Restart(83.7-0.7)
+		if self.Options.InfoFrame then
+			DBM.InfoFrame:Hide()
+		end
 	end
 end

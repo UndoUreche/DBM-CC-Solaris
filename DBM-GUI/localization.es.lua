@@ -3,7 +3,7 @@ if not DBM_GUI_L then DBM_GUI_L = {} end
 
 local L = DBM_GUI_L
 
-L.MainFrame = "Deadly Boss Mods"
+--L.MainFrame = "Deadly Boss Mods"
 
 L.TranslationByPrefix		= "Retail backport por "
 L.TranslationBy			= "Barsoom, Bunny67, Zidras"
@@ -96,6 +96,8 @@ L.AutologBosses				= "Registrar encuentros automáticamente con el registro de c
 L.AdvancedAutologBosses		= "Registrar encuentros automáticamente con Transcriptor"
 L.RecordOnlyBosses			= "Registrar solo encuentros de jefe (excluye todos los combates contra enemigos que no son jefes; usa '/dbm pull' antes de un jefe para registrar el uso previo de pociones)"
 L.LogOnlyNonTrivial			= "Registrar solo el contenido importante (excluye el buscador de bandas, las mazmorras, las gestas y todo el contenido antiguo)"
+L.LogCurrentNormal			= "Mazmorras normales de nivel actual (Nota: si estás haciendo algo heroico a través del buscador de bandas y quieres que se registre, desactiva el filtro LFG)"
+L.LogTrivialDungeons		= "Mazmorras triviales (inferior al nivel del personaje)"
 --
 L.Area_3rdParty				= "Opciones de addons de terceros"
 --L.oRA3AnnounceConsumables	= "Announce oRA3 consumables check on combat start"
@@ -374,7 +376,6 @@ L.FilterInterruptsHeader	= "Patrón para ocultar avisos de facultades interrumpi
 L.FilterInterrupts			= "Si no es tu objetivo o foco (siempre)"
 L.FilterInterrupts2			= "Si no es tu objetivo o foco (siempre) o no puedes interrumpir (solo jefes)"
 L.FilterInterrupts3			= "Si no es tu objetivo o foco (siempre) o no puedes interrumpir (todos los enemigos)"
-L.FilterInterrupts4			= "Ocultar todos los avisos de interrupción"
 L.FilterInterruptNoteName	= "Ocultar avisos de facultades interrumpibles con orden de interrupciones si el aviso no contiene tu nombre en la nota"
 L.FilterDispels				= "Ocular avisos de facultades disipables si tu disipación no está disponible"
 L.FilterTrashWarnings		= "Ocultar todos los avisos de enemigos menores en mazmorras normales y heroicas"
@@ -454,4 +455,3 @@ L.LARGE = "Grande"
 L.SMALL = "Pequeño"
 L.PLAYER_DIFFICULTY6 = "Mítica" -- ID: 24525
 L.PLAYER_DIFFICULTY_TIMEWALKER = "Paseo en el tiempo" -- ID: 25846
-L.SPECIALIZATION = "Especialización" -- ID: 22433
