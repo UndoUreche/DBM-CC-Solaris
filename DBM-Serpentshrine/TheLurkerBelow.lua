@@ -25,7 +25,7 @@ local timerSubmerge		= mod:NewTimer(90.75, "TimerSubmerge", "Interface\\AddOns\\
 local timerEmerge		= mod:NewTimer(60, "TimerEmerge", "Interface\\AddOns\\DBM-Core\\textures\\CryptFiendUnBurrow.blp", nil, nil, 6)
 local timerSpoutCD		= mod:NewCDTimer(60, 37433, nil, nil, nil, 3, nil, DBM_COMMON_L.DEADLY_ICON)
 local timerSpoutCast	= mod:NewCastTimer(3, 37433, nil, nil, nil, 3, nil, DBM_COMMON_L.DEADLY_ICON)
-local timerSpout		= mod:NewBuffActiveTimer(13, 37433, nil, nil, nil, 3, nil, DBM_COMMON_L.DEADLY_ICON)
+local timerSpout		= mod:NewBuffActiveTimer(15, 37433, nil, nil, nil, 3, nil, DBM_COMMON_L.DEADLY_ICON)
 local timerWhirlCD		= mod:NewCDTimer(34.15, 37363, nil, nil, nil, 2)
 
 
