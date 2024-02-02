@@ -12,11 +12,12 @@ mod:RegisterCombat("combat")
 mod:RegisterEventsInCombat(
 	"SPELL_AURA_APPLIED 38280 38575",
 	"SPELL_AURA_REMOVED 38280 38132 38112",
-	"SPELL_CAST_START 38253",
+	"SPELL_CAST_START 38253 38145",
 	"SPELL_CAST_SUCCESS 38316 38509",
 	"UNIT_DIED",
 	"CHAT_MSG_MONSTER_YELL",
-	"CHAT_MSG_LOOT"
+	"CHAT_MSG_LOOT",
+	"UNIT_AURA"
 )
 
 local warnCharge		= mod:NewTargetNoFilterAnnounce(38280, 4)
@@ -55,10 +56,10 @@ mod.vb.nagaCount = 1
 mod.vb.striderCount = 1
 mod.vb.elementalCount = 1
 --local lootmethod, masterlooterRaidID
-local elementals = {}
+--local elementals = {}
 
 function mod:OnCombatStart(delay)
-	table.wipe(elementals)
+--	table.wipe(elementals)
 	self:SetStage(1)
 
 	timerEntangleCD:Start(25.45-delay)
@@ -129,13 +130,67 @@ function mod:SPELL_AURA_REMOVED(args)
 	end
 end
 
+local function NagaSpawn(self)
+	self.vb.nagaCount = self.vb.nagaCount + 1
+	warnNaga:Schedule(40, tostring(self.vb.nagaCount))
+	timerNaga:Start(45, tostring(self.vb.nagaCount))
+	self:Schedule(45, NagaSpawn, self)
+end
+
+local function StriderSpawn(self)
+	self.vb.striderCount = self.vb.striderCount + 1
+	warnStrider:Schedule(55, tostring(self.vb.striderCount))
+	timerStrider:Start(60, tostring(self.vb.striderCount))
+	self:Schedule(60, StriderSpawn, self)
+end
+
+local function TaintedSpawn(self)
+	self.vb.elementalCount = self.vb.elementalCount + 1
+	specWarnElemental:Show()
+	timerElemental:Start()
+	warnElemental:Schedule(45, tostring(self.vb.elementalCount))
+	timerElementalCD:Start(50, tostring(self.vb.elementalCount))
+	self:Schedule(50, TaintedSpawn, self)
+end
+
+local function transitionToPhaseTwo(self, delta) 
+	delta = delta == nil and 0 or delta
+	
+	self:SetStage(2)
+	
+	self.vb.nagaCount = 1
+	self.vb.striderCount = 1
+	self.vb.elementalCount = 1
+	self.vb.shieldLeft = 4
+	
+	timerNaga:Start(45-delta, tostring(self.vb.nagaCount))
+	warnNaga:Schedule(40-delta, tostring(self.vb.elementalCount))
+	self:Schedule(45-delta, NagaSpawn, self)
+	
+	timerElementalCD:Start(50-delta, tostring(self.vb.elementalCount))
+	warnElemental:Schedule(45-delta, tostring(self.vb.elementalCount))
+	self:Schedule(50-delta, TaintedSpawn, self)
+	
+	timerStrider:Start(60-delta, tostring(self.vb.striderCount))
+	warnStrider:Schedule(55-delta, tostring(self.vb.striderCount))
+	self:Schedule(60-delta, StriderSpawn, self)
+	
+	self:RegisterShortTermEvents(
+		"UNIT_SPELLCAST_FAILED_QUIET_UNFILTERED"
+	)
+end
+
 function mod:SPELL_CAST_START(args)
-	if args.spellId == 38253 and not elementals[args.sourceGUID] then
-		specWarnElemental:Show()
-		timerElemental:Start()
-		timerElementalCD:Start(nil, tostring(self.vb.elementalCount))
-		warnElemental:Schedule(45, tostring(self.vb.elementalCount))
-		elementals[args.sourceGUID] = true
+
+--	if args.spellId == 38253 then and not elementals[args.sourceGUID] then
+--		specWarnElemental:Show()
+--		timerElemental:Start()
+--		timerElementalCD:Start(50, tostring(self.vb.elementalCount))
+--		warnElemental:Schedule(45, tostring(self.vb.elementalCount))
+--		elementals[args.sourceGUID] = true
+--	else
+	if args.spellId == 38145 and mod:GetStage() == 1 then
+		transitionToPhaseTwo(self, 2.4)
 	end
 end
 
@@ -157,6 +212,7 @@ function mod:UNIT_DIED(args)
 end
 
 function mod:UNIT_SPELLCAST_FAILED_QUIET_UNFILTERED(uId, spellName)
+
 	if spellName == GetSpellInfo(24390) and self:AntiSpam(2, 2) then -- Opening. This is an experimental feature to try and detect when an Invis KV Shield Generator dies
 		DBM:Debug("UNIT_SPELLCAST_FAILED_QUIET_UNFILTERED fired for player:" .. (uId and UnitName(uId) or "Unknown") .. " with the spell: " .. spellName)
 		self.vb.shieldLeft = self.vb.shieldLeft - 1
@@ -164,51 +220,15 @@ function mod:UNIT_SPELLCAST_FAILED_QUIET_UNFILTERED(uId, spellName)
 	end
 end
 
-local function NagaSpawn(self)
-	warnNaga:Schedule(42.5, tostring(self.vb.nagaCount))
-	self.vb.nagaCount = self.vb.nagaCount + 1
-	timerNaga:Start(nil, tostring(self.vb.nagaCount))
-	self:Schedule(47.5, NagaSpawn, self)
-end
-
-local function StriderSpawn(self)
-	self.vb.striderCount = self.vb.striderCount + 1
-	warnStrider:Schedule(57, tostring(self.vb.striderCount))
-	timerStrider:Start(nil, tostring(self.vb.striderCount))
-	self:Schedule(63, StriderSpawn, self)
-end
-
 function mod:CHAT_MSG_MONSTER_YELL(msg)
 
 	if msg == L.DBM_VASHJ_YELL_PHASE2 or msg:find(L.DBM_VASHJ_YELL_PHASE2) then
-		self:SetStage(2)
 		warnPhase2:Show()
 		
 		timerEntangleCD:Cancel()
 		timerChargeCD:Cancel()
 		timerShockBlastCD:Cancel()
-		
-		self.vb.nagaCount = 1
-		self.vb.striderCount = 1
-		self.vb.elementalCount = 1
-		self.vb.shieldLeft = 4
-		
-		timerNaga:Start(nil, tostring(self.vb.nagaCount))
-		warnNaga:Schedule(45, tostring(self.vb.elementalCount))
-		self:Schedule(45, NagaSpawn, self)
-		
-		timerElementalCD:Start(nil, tostring(self.vb.elementalCount))
-		warnElemental:Schedule(45, tostring(self.vb.elementalCount))
-		
-		timerStrider:Start(nil, tostring(self.vb.striderCount))
-		warnStrider:Schedule(60, tostring(self.vb.striderCount))
-		self:Schedule(60, StriderSpawn, self)
---		if DBM:IsInGroup() and self.Options.AutoChangeLootToFFA and DBM:GetRaidRank() == 2 then
---			SetLootMethod("freeforall")
---		end
-		self:RegisterShortTermEvents(
-			"UNIT_SPELLCAST_FAILED_QUIET_UNFILTERED"
-		)
+	
 	elseif msg == L.DBM_VASHJ_YELL_PHASE3 or msg:find(L.DBM_VASHJ_YELL_PHASE3) then
 		self:SetStage(3)
 		warnPhase3:Show()
@@ -227,14 +247,6 @@ function mod:CHAT_MSG_MONSTER_YELL(msg)
 		self:Unschedule(NagaSpawn)
 		self:Unschedule(StriderSpawn)
 		self:UnregisterShortTermEvents()
-		
---		if DBM:IsInGroup() and self.Options.AutoChangeLootToFFA and DBM:GetRaidRank() == 2 then
---			if masterlooterRaidID then
---				SetLootMethod(lootmethod, "raid"..masterlooterRaidID)
---			else
---				SetLootMethod(lootmethod)
---			end
---		end
 	end
 end
 
@@ -254,8 +266,20 @@ function mod:CHAT_MSG_LOOT(msg)
 	end
 end
 
+function mod:UNIT_AURA(unit)
+
+	if UnitName(unit) == "Lady Vashj" and UnitBuff(unit, "Magic Barrier") ~= nil and mod:GetStage() == 1 then 
+	
+		mod:SendSync("Phase2")
+	end
+end
+
 function mod:OnSync(event, playerName)
-	if not self:IsInCombat() then return end
+
+	if not self:IsInCombat() then 
+		return 
+	end
+	
 	if event == "LootMsg" and playerName then
 		playerName = DBM:GetUnitFullName(playerName)
 		if self:AntiSpam(2, playerName) then
@@ -266,5 +290,7 @@ function mod:OnSync(event, playerName)
 				warnLoot:Show(playerName)
 --			end
 		end
+	elseif event == "Phase2" and mod:GetStage() == 1 then
+		transitionToPhaseTwo(self)
 	end
 end
