@@ -228,24 +228,27 @@ function mod:CHAT_MSG_MONSTER_YELL(msg)
 		timerEntangleCD:Cancel()
 		timerChargeCD:Cancel()
 		timerShockBlastCD:Cancel()
-	
+		
 	elseif msg == L.DBM_VASHJ_YELL_PHASE3 or msg:find(L.DBM_VASHJ_YELL_PHASE3) then
 		self:SetStage(3)
 		warnPhase3:Show()
-		
+	
 		timerEntangleCD:Start(25.45)
 		timerChargeCD:Start(18.15)
 		timerShockBlastCD:Start(14.55)
 		
 		timerNaga:Cancel()
 		warnNaga:Cancel()
+		self:Unschedule(NagaSpawn)
+		
 		timerElementalCD:Cancel()
 		warnElemental:Cancel()
+		self:Unschedule(TaintedSpawn)
+		
 		timerStrider:Cancel()
 		warnStrider:Cancel()
-		
-		self:Unschedule(NagaSpawn)
 		self:Unschedule(StriderSpawn)
+		
 		self:UnregisterShortTermEvents()
 	end
 end
