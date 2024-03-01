@@ -18,12 +18,13 @@ local specWarnOrb		= mod:NewSpecialWarningDodge(34172, nil, nil, nil, 1, 2)
 local yellOrb			= mod:NewYell(34172)
 
 local timerKnockBack	= mod:NewCDTimer(20, 25778, nil, "Tank", 2, 5)
-local timerPounding		= mod:NewCDTimer(13, 34162, nil, nil, nil, 2)
+local timerPounding		= mod:NewCDTimer(12, 34162, nil, nil, nil, 2)
 
 local berserkTimer		= mod:NewBerserkTimer(600)
 
 function mod:OnCombatStart(delay)
-	timerPounding:Start()
+	timerPounding:Start(8.3-delay)
+	timerKnockBack:Start(14.3-delay)
 	berserkTimer:Start(-delay)
 end
 
