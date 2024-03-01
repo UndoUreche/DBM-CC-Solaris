@@ -10,11 +10,11 @@ L:SetGeneralLocalization({
 })
 
 L:SetTimerLocalization({
-	NextPlatform	= "Max Platform length"
+	NextPlatform	= "Next platform"
 })
 
 L:SetOptionLocalization({
-	NextPlatform	= "Show timer for when how long Al'ar may stay at platform (May leave sooner but almost never any later)"
+	NextPlatform	= "Show timer for when how long Al'ar stays at platform"
 })
 
 ------------------
