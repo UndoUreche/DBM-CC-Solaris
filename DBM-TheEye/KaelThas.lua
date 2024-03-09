@@ -38,9 +38,8 @@ local warnGravity		= mod:NewSpellAnnounce(35941, 3)
 local specWarnGaze		= mod:NewSpecialWarning("SpecWarnGaze", nil, nil, nil, 4, 2)
 local specWarnToy		= mod:NewSpecialWarningYou(37027, nil, nil, nil, 1, 2)
 local specWarnEgg		= mod:NewSpecialWarning("SpecWarnEgg", nil, nil, nil, 1, 2)
-local specWarnShield	= mod:NewSpecialWarningSpell(36815)--No decent voice for this
+local specWarnShield	= mod:NewSpecialWarningSpell(36815)
 local specWarnPyro		= mod:NewSpecialWarningInterrupt(36819, "HasInterrupt", nil, nil, 1, 2)
---local specWarnVapor		= mod:NewSpecialWarningStack(35859, nil, 2, nil, nil, 1, 6)
 
 local timerPhase		= mod:NewTimer(105, "TimerPhase", 28131, nil, nil, 6, nil, nil, 1, 4)
 local timerPhase1mob	= mod:NewTimer(30, "TimerPhase1mob", 28131, nil, nil, 1, nil, nil, 1, 4)
@@ -56,7 +55,6 @@ local timerNextMC			= mod:NewNextTimer(60, 36797)
 
 mod:AddSetIconOption("MCIcon", 36797, true, false, {8, 7, 6})
 mod:AddBoolOption("GazeIcon", false)
---mod:AddSetIconOption("GazeIcon", 38280, false, false, {1})--Problem with no auto localized spellID to use
 mod:AddRangeFrameOption(10, 37018)
 
 mod.vb.mcIcon = 8
@@ -68,11 +66,6 @@ local function showConflag()
 	table.wipe(warnConflagTargets)
 end
 
-local function MCFailsafe(self)
-	timerNextMC:Start(70)
-	self:Schedule(70, MCFailsafe, self)
-end
-
 local function showMC(self)
 	warnMC:Show(table.concat(warnMCTargets, "<, >"))
 	table.wipe(warnMCTargets)
@@ -82,7 +75,7 @@ end
 
 local showShieldHealthBar, hideShieldHealthBar
 do
-	local frame = CreateFrame("Frame") -- using a separate frame avoids the overhead of the DBM event handlers which are not meant to be used with frequently occuring events like all damage events...
+	local frame = CreateFrame("Frame")
 	local shieldedMob
 	local absorbRemaining = 0
 	local maxAbsorb = 0
@@ -166,9 +159,6 @@ function mod:SPELL_AURA_APPLIED(args)
 		showShieldHealthBar(self, args.destGUID, args.spellName, 80000)
 		specWarnShield:Show()
 		timerShieldCD:Start()
-	--elseif args.spellId == 35859 and args:IsPlayer() and self:IsInCombat() and (args.amount or 1) >= 2 then
-	--	specWarnVapor:Show(args.amount)
-	--	specWarnVapor:Play("stackhigh")
 	end
 end
 mod.SPELL_AURA_APPLIED_DOSE = mod.SPELL_AURA_APPLIED
@@ -199,7 +189,6 @@ function mod:SPELL_CAST_START(args)
 		warnGravity:Show()
 		timerGravity:Start()
 		timerGravityCD:Start()
-		--timerPhoenixCD:Start(45)
 	end
 end
 
@@ -300,7 +289,7 @@ function mod:CHAT_MSG_MONSTER_YELL(msg)
 		self:SetStage(2)
 		timerPhase:Start(120)
 		warnPhase2:Show()
-		warnPhase3:Schedule(105)--210
+		warnPhase3:Schedule(105)
 		DBM.BossHealth:AddBoss(21268, L.Bow)
 		DBM.BossHealth:AddBoss(21269, L.Axe)
 		DBM.BossHealth:AddBoss(21270, L.Mace)
@@ -330,15 +319,12 @@ function mod:CHAT_MSG_MONSTER_YELL(msg)
 		timerPhoenixCD:Start(30)
 		timerShieldCD:Start(60)
 		timerNextMC:Start(20)
-		--self:Schedule(40, MCFailsafe, self)
 	elseif msg == L.YellPhase5 or msg:find(L.YellPhase5) then
 		self:SetStage(5)
 		timerPhoenixCD:Cancel()
 		timerShieldCD:Cancel()
-		--timerPhase:Start(45)
 		warnPhase5:Schedule(45)
 		timerGravityCD:Start(42)
-		--timerPhoenixCD:Start(86)
 		timerPhoenixCD:Schedule(45,41)
 	end
 end
