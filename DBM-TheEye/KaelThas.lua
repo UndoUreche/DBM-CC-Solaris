@@ -4,8 +4,7 @@ local L		= mod:GetLocalizedStrings()
 mod:SetRevision("20220518110528")
 mod:SetCreatureID(19622)
 
---mod:RegisterCombat("yell", L.YellPull1, L.YellPull2)
-mod:RegisterCombat("combat")
+mod:RegisterCombat("yell", L.YellPull1, L.YellPull2)
 mod:SetUsedIcons(1, 6, 7, 8)
 
 mod:RegisterEvents(
@@ -32,29 +31,28 @@ local warnDisruption	= mod:NewSpellAnnounce(36834, 3)
 local warnMC			= mod:NewTargetNoFilterAnnounce(36797, 4)
 local warnPhoenix		= mod:NewSpellAnnounce(36723, 2)
 local warnFlamestrike	= mod:NewSpellAnnounce(36735, 4)
-local warnEgg			= mod:NewAnnounce("WarnEgg", 4, 36723)
 local warnPyro			= mod:NewCastAnnounce(36819, 4)
 local warnPhase5		= mod:NewPhaseAnnounce(5)
-local warnGravity		= mod:NewSpellAnnounce(35966, 3)
+local warnGravity		= mod:NewSpellAnnounce(35941, 3)
 
 local specWarnGaze		= mod:NewSpecialWarning("SpecWarnGaze", nil, nil, nil, 4, 2)
 local specWarnToy		= mod:NewSpecialWarningYou(37027, nil, nil, nil, 1, 2)
 local specWarnEgg		= mod:NewSpecialWarning("SpecWarnEgg", nil, nil, nil, 1, 2)
 local specWarnShield	= mod:NewSpecialWarningSpell(36815)--No decent voice for this
 local specWarnPyro		= mod:NewSpecialWarningInterrupt(36819, "HasInterrupt", nil, nil, 1, 2)
-local specWarnVapor		= mod:NewSpecialWarningStack(35859, nil, 2, nil, nil, 1, 6)
+--local specWarnVapor		= mod:NewSpecialWarningStack(35859, nil, 2, nil, nil, 1, 6)
 
 local timerPhase		= mod:NewTimer(105, "TimerPhase", 28131, nil, nil, 6, nil, nil, 1, 4)
 local timerPhase1mob	= mod:NewTimer(30, "TimerPhase1mob", 28131, nil, nil, 1, nil, nil, 1, 4)
-local timerNextGaze		= mod:NewTimer(8.5, "TimerNextGaze", 39414, nil, nil, 3)
-local timerFearCD		= mod:NewCDTimer(31, 39427, nil, nil, nil, 2)
+local timerNextGaze		= mod:NewTimer(10, "TimerNextGaze", 39414, nil, nil, 3)
+local timerNextFear		= mod:NewNextTimer(15, 44863, nil, nil, nil, 2)
 local timerToy			= mod:NewTargetTimer(60, 37027, nil, false, nil, 3)
-local timerPhoenixCD	= mod:NewCDTimer(45, 36723, nil, nil, nil, 1)
+local timerPhoenixCD	= mod:NewCDTimer(31.45, 36723, nil, nil, nil, 1)
 local timerRebirth		= mod:NewTimer(15, "TimerRebirth", 36723, nil, nil, 1)
-local timerShieldCD		= mod:NewCDTimer(60, 36815, nil, nil, nil, 4)
-local timerGravityCD	= mod:NewNextTimer(92, 35941, nil, nil, nil, 6)
+local timerShieldCD		= mod:NewCDTimer(50, 36815, nil, nil, nil, 4)
+local timerGravityCD	= mod:NewNextTimer(90, 35941, nil, nil, nil, 6)
 local timerGravity		= mod:NewBuffActiveTimer(32, 35941, nil, nil, nil, 6)
-local timerMCCD			= mod:NewCDTimer(60, 36797)
+local timerNextMC			= mod:NewNextTimer(60, 36797)
 
 mod:AddSetIconOption("MCIcon", 36797, true, false, {8, 7, 6})
 mod:AddBoolOption("GazeIcon", false)
@@ -71,7 +69,7 @@ local function showConflag()
 end
 
 local function MCFailsafe(self)
-	timerMCCD:Start(70)
+	timerNextMC:Start(70)
 	self:Schedule(70, MCFailsafe, self)
 end
 
@@ -79,7 +77,7 @@ local function showMC(self)
 	warnMC:Show(table.concat(warnMCTargets, "<, >"))
 	table.wipe(warnMCTargets)
 	self.vb.mcIcon = 8
-	timerMCCD:Start()
+	timerNextMC:Start()
 end
 
 local showShieldHealthBar, hideShieldHealthBar
@@ -125,7 +123,7 @@ function mod:OnCombatStart()
 	table.wipe(warnMCTargets)
 	self.vb.mcIcon = 8
 	self:SetStage(1)
-	timerPhase1mob:Start(32, L.Thaladred)
+	timerPhase1mob:Start(30, L.Thaladred)
 	if self.Options.HealthFrame then
 		DBM.BossHealth:Clear()
 		DBM.BossHealth:Show(L.name)
@@ -168,9 +166,9 @@ function mod:SPELL_AURA_APPLIED(args)
 		showShieldHealthBar(self, args.destGUID, args.spellName, 80000)
 		specWarnShield:Show()
 		timerShieldCD:Start()
-	elseif args.spellId == 35859 and args:IsPlayer() and self:IsInCombat() and (args.amount or 1) >= 2 then
-		specWarnVapor:Show(args.amount)
-		specWarnVapor:Play("stackhigh")
+	--elseif args.spellId == 35859 and args:IsPlayer() and self:IsInCombat() and (args.amount or 1) >= 2 then
+	--	specWarnVapor:Show(args.amount)
+	--	specWarnVapor:Play("stackhigh")
 	end
 end
 mod.SPELL_AURA_APPLIED_DOSE = mod.SPELL_AURA_APPLIED
@@ -194,13 +192,14 @@ function mod:SPELL_CAST_START(args)
 	local spellId = args.spellId
 	if spellId == 44863 then
 		warnFear:Show()
-		timerFearCD:Start()
+		timerNextFear:Start()
 	elseif spellId == 36819 then
 		warnPyro:Show()
 	elseif spellId == 35941 then
 		warnGravity:Show()
 		timerGravity:Start()
 		timerGravityCD:Start()
+		--timerPhoenixCD:Start(45)
 	end
 end
 
@@ -208,14 +207,13 @@ function mod:SPELL_CAST_SUCCESS(args)
 	if args.spellId == 36723 then
 		warnPhoenix:Show()
 		if self.vb.phase == 5 then
-			timerPhoenixCD:Start(90)
+			timerPhoenixCD:Start()
 		else
 			timerPhoenixCD:Start()
 		end
 	elseif args.spellId == 36834 then
 		warnDisruption:Show()
 	elseif args.spellId == 34341 and self:IsInCombat() then
-		warnEgg:Show()
 		specWarnEgg:Show()
 		specWarnEgg:Play("killmob")
 		timerRebirth:Show()
@@ -232,7 +230,7 @@ function mod:UNIT_DIED(args)
 		timerNextGaze:Cancel()
 		DBM.BossHealth:RemoveBoss(20064)
 	elseif cid == 20060 then
-		timerFearCD:Cancel()
+		timerNextFear:Cancel()
 		DBM.BossHealth:RemoveBoss(20060)
 	elseif cid == 20062 then
 		if self.Options.RangeFrame then
@@ -291,6 +289,7 @@ function mod:CHAT_MSG_MONSTER_YELL(msg)
 	elseif msg == L.YellCaper or msg:find(L.YellCaper) then
 		timerPhase1mob:Start(7, L.Capernian)
 		DBM.BossHealth:AddBoss(20062, L.Capernian)
+		
 		if self.Options.RangeFrame then
 			DBM.RangeCheck:Show(10)
 		end
@@ -299,7 +298,7 @@ function mod:CHAT_MSG_MONSTER_YELL(msg)
 		DBM.BossHealth:AddBoss(20063, L.Telonicus)
 	elseif msg == L.YellPhase2 or msg:find(L.YellPhase2) then
 		self:SetStage(2)
-		timerPhase:Start(105)--105
+		timerPhase:Start(120)
 		warnPhase2:Show()
 		warnPhase3:Schedule(105)--210
 		DBM.BossHealth:AddBoss(21268, L.Bow)
@@ -311,6 +310,7 @@ function mod:CHAT_MSG_MONSTER_YELL(msg)
 		DBM.BossHealth:AddBoss(21274, L.Staff)
 	elseif msg == L.YellPhase3 or msg:find(L.YellPhase3) then
 		self:SetStage(3)
+		timerPhase:Cancel()
 		warnPhase3:Show()
 		if self.Options.RangeFrame then
 			DBM.RangeCheck:Show(10)
@@ -320,25 +320,26 @@ function mod:CHAT_MSG_MONSTER_YELL(msg)
 			DBM.BossHealth:AddBoss(20060, L.Sanguinar)
 			DBM.BossHealth:AddBoss(20062, L.Capernian)
 			DBM.BossHealth:AddBoss(20063, L.Telonicus)
-			timerPhase:Start(73)--83 pre nerf, 183 post nerf
+			timerPhase:Start(110)
 		end)
 	elseif msg == L.YellPhase4 or msg:find(L.YellPhase4) then
 		self:SetStage(4)
+		timerPhase:Cancel()
 		DBM.BossHealth:AddBoss(19622, L.name)
 		warnPhase4:Show()
-		timerPhase:Cancel()
-		timerPhoenixCD:Start(50)
+		timerPhoenixCD:Start(30)
 		timerShieldCD:Start(60)
-		timerMCCD:Start(40)
-		self:Schedule(40, MCFailsafe, self)
+		timerNextMC:Start(20)
+		--self:Schedule(40, MCFailsafe, self)
 	elseif msg == L.YellPhase5 or msg:find(L.YellPhase5) then
 		self:SetStage(5)
 		timerPhoenixCD:Cancel()
 		timerShieldCD:Cancel()
-		timerPhase:Start(45)
+		--timerPhase:Start(45)
 		warnPhase5:Schedule(45)
-		timerGravityCD:Start(60)
-		timerPhoenixCD:Start(137)
+		timerGravityCD:Start(42)
+		--timerPhoenixCD:Start(86)
+		timerPhoenixCD:Schedule(45,41)
 	end
 end
 
