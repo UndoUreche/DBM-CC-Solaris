@@ -13,6 +13,7 @@ mod:RegisterEvents(
 	"SPELL_AURA_APPLIED_DOSE 35859",
 	"SPELL_AURA_REMOVED 36815 36797 37027",
 	"SPELL_CAST_SUCCESS 36723 36834 34341",
+	"SPELL_AURA_REFRESH 37027",
 	"CHAT_MSG_MONSTER_EMOTE",
 	"CHAT_MSG_MONSTER_YELL",
 	"UNIT_DIED",
@@ -129,6 +130,22 @@ function mod:OnCombatEnd()
 		DBM.RangeCheck:Hide()
 	end
 end
+
+function mod:SPELL_AURA_REFRESH(args)
+	
+	local spellId = args.spellId
+	
+	if spellId == 37027 then
+		timerToy:Cancel(args.destName)
+		timerToy:Start(args.destName)
+		if args:IsPlayer() then
+			specWarnToy:Show()
+		else
+			warnToy:Show(args.destName)
+		end
+	end
+end
+
 
 function mod:SPELL_AURA_APPLIED(args)
 	local spellId = args.spellId
