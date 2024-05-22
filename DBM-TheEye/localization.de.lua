@@ -11,11 +11,11 @@ L:SetGeneralLocalization({
 })
 
 L:SetTimerLocalization({
-	NextPlatform	= "Max. Plattformdauer"
+	NextPlatform	= "Nächste Plattform"
 })
 
 L:SetOptionLocalization({
-	NextPlatform	= "Zeige Zeit bis Al'ar spätestens die Plattform wechselt<br/>(wechselt möglicherweise früher, aber fast nie später)"
+	NextPlatform	= "Zeigt den Timer an, der angibt, wie lange Al'ar am Bahnsteig bleiben darf (kann früher gehen, aber fast nie später)"
 })
 
 ------------------
@@ -104,6 +104,8 @@ L:SetOptionLocalization({
 })
 
 L:SetMiscLocalization({
+	YellPull1	= "Energie. Kraft. Mein Volk ist süchtig danach... Eine Abhängigkeit, die entstand, nachdem der Sonnenbrunnen zerstört wurde. Willkommen... in der Zukunft. Ein Jammer, dass Ihr zu spät seid, um sie zu verhindern. Niemand kann mich jetzt noch aufhalten! Selama ashal'anore!",
+	YellPull2	= "Energie. Kraft. Mein Volk ist süchtig danach... Eine Abhängigkeit, die entstand, nachdem der Sonnenbrunnen zerstört wurde. Willkommen in der Zukunft. Ein Jammer, dass Ihr zu spät seid, um sie zu verhindern. Niemand kann mich jetzt noch aufhalten! Selama ashal'anore!",
 	YellPhase2	= "Wie Ihr seht, habe ich viele Waffen in meinem Arsenal...",
 	YellPhase3	= "Vielleicht habe ich Euch unterschätzt. Es wäre ungerecht, Euch gegen meine vier Berater gleichzeitig kämpfen zu lassen, aber... mein Volk wurde auch nie gerecht behandelt. Ich vergelte nur Gleiches mit Gleichem.",
 	YellPhase4	= "Ach, manchmal muss man die Dinge selbst in die Hand nehmen. Balamore shanal!",
