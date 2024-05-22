@@ -30,18 +30,18 @@ mod:AddSetIconOption("DoomIcon", 31347, true, false, {8})
 
 function mod:OnCombatStart(delay)
 	berserkTimer:Start(-delay)
+	timerSilenceCD:Start(30-delay)
 end
 
 function mod:SPELL_AURA_APPLIED(args)
 	if args.spellId == 31340 and args:IsPlayer() and self:AntiSpam() then
 		specWarnFire:Show()
-		specWarnFire:Play("runaway")
 	elseif args.spellId == 31347 then
 		timerDoom:Start(args.destName)
 		if args:IsPlayer() then
 			specWarnDoom:Show()
 			specWarnDoom:Play("targetyou")
-			yellDoom:Countdown(args.spellId)
+			yellDoom:Countdown(31347)
 		else
 			warnDoom:Show(args.destName)
 		end

@@ -8,7 +8,8 @@ mod:RegisterEvents(
 	"QUEST_PROGRESS",
 	"UPDATE_WORLD_STATES",
 	"UNIT_DIED",
-	"SPELL_AURA_APPLIED"
+	"SPELL_AURA_APPLIED",
+	"CHAT_MSG_MONSTER_YELL"
 )
 mod.noStatistics = true
 
@@ -54,12 +55,24 @@ mod.QUEST_PROGRESS = mod.GOSSIP_SHOW
 
 function mod:UPDATE_WORLD_STATES()
 	local _, _, text = GetWorldStateUIInfo(3)
+	
 	if not text then return end
 	local currentWave = text:match(L.WaveCheck)
 	if not currentWave then
 		currentWave = 0
 	end
 	self:WaveFunction(currentWave)
+end
+
+function mod:CHAT_MSG_MONSTER_YELL(msg)
+	
+	if msg == L.RageWinterchillYell
+		or msg == L.AnetheronYell
+		or msg == L.KazrogalYell
+		or msg == L.AzgalorYell
+	then
+		self:WaveFunction(-1)
+	end
 end
 
 function mod:OnSync(msg, arg)
@@ -92,14 +105,20 @@ function mod:WaveFunction(currentWave)
 	local timer = 0
 	currentWave = tonumber(currentWave)
 	lastWave = tonumber(lastWave)
+	
+	if currentWave == 0 then return end
+	
 	if currentWave > lastWave then
 		if boss == 0 then--unconfirmed
-			timer = 125
+			timer = 130
+			if currentWave == 8 then
+				timer = 190
+			end
 			warnWave:Show(L.WarnWave_0:format(currentWave))
 		elseif boss == 1 or boss == 2 then
-			timer = 125
+			timer = 130
 			if currentWave == 8 then
-				timer = 140
+				timer = 190
 			end
 			if self.Options.DetailedWave and boss == 1 then
 				if currentWave == 1 then
@@ -142,15 +161,21 @@ function mod:WaveFunction(currentWave)
 			end
 			self:SendSync("boss", boss)
 		elseif boss == 3 or boss == 4 then
-			timer = 135
-			if currentWave == 2 or currentWave == 4 then
-				timer = 165
-			elseif currentWave == 3 then
-				timer = 160
-			elseif currentWave == 7 then
-				timer = 195
-			elseif currentWave == 8 then
-				timer = 225
+			timer = 130
+			if boss == 3 then 
+				if currentWave == 2 or currentWave == 4 or currentWave == 7 then
+					timer = 155
+				elseif currentWave == 8 then
+					timer = 225
+				end
+			end
+			if boss == 4 then
+				timer = 130
+				if currentWave == 2 or currentWave == 3 or currentWave == 4 or currentWave == 7 then
+					timer = 190
+				elseif currentWave == 8 then
+					timer = 225
+				end
 			end
 			if self.Options.DetailedWave and boss == 3 then
 				if currentWave == 1 then
