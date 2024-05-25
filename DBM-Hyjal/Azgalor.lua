@@ -16,8 +16,8 @@ mod:RegisterEventsInCombat(
 local warnSilence		= mod:NewSpellAnnounce(31344, 3)
 local warnDoom			= mod:NewTargetNoFilterAnnounce(31347, 4)
 
-local specWarnFire		= mod:NewSpecialWarningMove(31340)
-local specWarnDoom		= mod:NewSpecialWarningYou(31347)
+local specWarnFire		= mod:NewSpecialWarningMove(31340, nil, nil, nil, 1, 2)
+local specWarnDoom		= mod:NewSpecialWarningYou(31347, nil, nil, nil, 1, 2)
 local yellDoom			= mod:NewShortFadesYell(31347)
 
 local timerDoom			= mod:NewTargetTimer(20, 31347, nil, nil, nil, 3)
@@ -36,12 +36,13 @@ end
 function mod:SPELL_AURA_APPLIED(args)
 	if args.spellId == 31340 and args:IsPlayer() and self:AntiSpam() then
 		specWarnFire:Show()
+		specWarnFire:Play("runaway")
 	elseif args.spellId == 31347 then
 		timerDoom:Start(args.destName)
 		if args:IsPlayer() then
 			specWarnDoom:Show()
-			specWarnDoom:Play("targetyou")
 			yellDoom:Countdown(31347)
+			specWarnDoom:Play("targetyou")
 		else
 			warnDoom:Show(args.destName)
 		end
