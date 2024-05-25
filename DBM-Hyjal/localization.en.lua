@@ -45,6 +45,11 @@ L:SetGeneralLocalization({
 	name = "Archimonde"
 })
 
+L:SetMiscLocalization({
+	ArchimondeDoomfire1 = "This world will burn!",
+	ArchimondeDoomfire2 = "Manach sheek-thrish!",
+})
+
 ----------------
 -- WaveTimers --
 ----------------
