@@ -72,7 +72,7 @@ end
 function mod:SPELL_CAST_START(args)
 	if args.spellId == 31970 then
 		warnFear:Show()
-		timerFearCD:Start()
+		timerNextFear:Start()
 	elseif args.spellId == 32014 then
 		self:BossTargetScanner(17968, "BurstTarget", 0.05, 10)
 	end

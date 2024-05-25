@@ -87,6 +87,7 @@ L:SetMiscLocalization({
 	Azgalor			= "Azgalor incoming",
 	AzgalorYell = "Abandon all hope! The Legion has returned to finish what was begun so many years ago. This time, there will be no escape!",
 	WaveCheck		= "Current Wave = (%d+) of 8",
+	EnemyCheck	= "Invading Enemies = (%d+)",
 	WarnWave_0		= "Wave %s/8",
 	WarnWave_1		= "Wave %s/8 - %s %s",
 	WarnWave_2		= "Wave %s/8 - %s %s and %s %s",

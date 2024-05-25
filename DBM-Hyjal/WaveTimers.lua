@@ -8,8 +8,7 @@ mod:RegisterEvents(
 	"QUEST_PROGRESS",
 	"UPDATE_WORLD_STATES",
 	"UNIT_DIED",
-	"SPELL_AURA_APPLIED",
-	"CHAT_MSG_MONSTER_YELL"
+	"SPELL_AURA_APPLIED"
 )
 mod.noStatistics = true
 
@@ -22,6 +21,7 @@ mod:AddBoolOption("DetailedWave")
 mod:RemoveOption("HealthFrame")
 
 local lastWave = 0
+local lastEnemyCount = 0
 local boss = 0
 local bossNames = {
 	[0] = L.GeneralBoss,
@@ -54,25 +54,18 @@ end
 mod.QUEST_PROGRESS = mod.GOSSIP_SHOW
 
 function mod:UPDATE_WORLD_STATES()
-	local _, _, text = GetWorldStateUIInfo(3)
-	
-	if not text then return end
-	local currentWave = text:match(L.WaveCheck)
-	if not currentWave then
-		currentWave = 0
-	end
-	self:WaveFunction(currentWave)
-end
 
-function mod:CHAT_MSG_MONSTER_YELL(msg)
+	local _, _, text = GetWorldStateUIInfo(3)
+	local _, _, textTop = GetWorldStateUIInfo(2)
 	
-	if msg == L.RageWinterchillYell
-		or msg == L.AnetheronYell
-		or msg == L.KazrogalYell
-		or msg == L.AzgalorYell
-	then
-		self:WaveFunction(-1)
+	if not text then 
+		timerWave:Cancel()
+		return 
 	end
+	
+	local currentWave = text:match(L.WaveCheck)
+	local enemyCount = textTop:match(L.EnemyCheck)
+	self:WaveFunction(currentWave, enemyCount)
 end
 
 function mod:OnSync(msg, arg)
@@ -82,7 +75,9 @@ function mod:OnSync(msg, arg)
 end
 
 function mod:UNIT_DIED(args)
+
 	local cid = self:GetCIDFromGUID(args.destGUID)
+	
 	if cid == 17852 or cid == 17772 then
 		lastWave = 0
 		timerWave:Cancel()
@@ -101,12 +96,18 @@ function mod:SPELL_AURA_APPLIED(args)
 	end
 end
 
-function mod:WaveFunction(currentWave)
+function mod:WaveFunction(currentWave, enemyCount)
 	local timer = 0
+	
 	currentWave = tonumber(currentWave)
 	lastWave = tonumber(lastWave)
 	
-	if currentWave == 0 then return end
+	enemyCount = tonumber(enemyCount)
+	lastEnemyCount = tonumber(lastEnemyCount)
+	
+	if currentWave == 0 then 
+		return 
+	end
 	
 	if currentWave > lastWave then
 		if boss == 0 then--unconfirmed
@@ -220,11 +221,17 @@ function mod:WaveFunction(currentWave)
 		end
 		timerWave:Start(timer)
 		lastWave = currentWave
-	elseif lastWave > currentWave then
-		if lastWave == 8 then
+	elseif lastWave == currentWave then
+		
+		local _, _, textTop = GetWorldStateUIInfo(2)
+		
+		if lastWave == 8 and enemyCount > lastEnemyCount then
 			warnWave:Show(bossNames[boss])
+				
+			lastWave = 0
+			timerWave:Cancel()
 		end
-		timerWave:Cancel()
-		lastWave = currentWave
 	end
+	
+	lastEnemyCount = enemyCount
 end

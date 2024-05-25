@@ -22,15 +22,17 @@ local specWarnInferno	= mod:NewSpecialWarningYou(31299, nil, nil, nil, 1, 2)
 local yellInferno		= mod:NewYell(31299)
 
 local timerSwarm		= mod:NewBuffFadesTimer(20, 31306, nil, nil, nil, 3)
+local timerSwarmCD		= mod:NewCDTimer(10, 31306, nil, nil, nil, 3)
 local timerSleep		= mod:NewBuffFadesTimer(10, 31298, nil, nil, nil, 3)
 local timerSleepCD		= mod:NewCDTimer(35, 31298, nil, nil, nil, 3)
-local timerInferno		= mod:NewCDTimer(50, 31299, nil, nil, nil, 3)
+local timerInfernoCD		= mod:NewCDTimer(50, 31299, nil, nil, nil, 3)
 
 local warnSleepTargets = {}
 
 function mod:OnCombatStart(delay)
 	timerSleepCD:Start(25-delay)
-	timerInferno:Start(30-delay)
+	timerInfernoCD:Start(30-delay)
+	timerSwarmCD:Start(20-delay)
 	
 	table.wipe(warnSleepTargets)
 end
@@ -56,6 +58,7 @@ end
 function mod:SPELL_AURA_APPLIED(args)
 	if args.spellId == 31306 and args:IsPlayer() then
 		timerSwarm:Start()
+		timerSwarmCD:Start(10)
 	elseif args.spellId == 31298 and args:IsPlayer() then
 		warnSleepTargets[#warnSleepTargets + 1] = args.destName
 	
@@ -76,7 +79,7 @@ end
 
 function mod:SPELL_CAST_START(args)
 	if args.spellId == 31299 then
-		timerInferno:Start()
+		timerInfernoCD:Start()
 		self:BossTargetScanner(17808, "InfernoTarget", 0.05, 10)
 	end
 end

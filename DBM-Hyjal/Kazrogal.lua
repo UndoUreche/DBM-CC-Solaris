@@ -23,11 +23,14 @@ mod.vb.time = 45
 function mod:OnCombatStart(delay)
 	self.vb.time = 45
 	self.vb.count = 1
-	timerMarkCD:Start(-delay)
+	timerMarkCD:Start(-delay, mod.vb.count)
 end
 
 function mod:SPELL_CAST_START(args)
 	if args.spellId == 31447 then
+	
+		warnMark:Show(self.vb.count)
+		timerMark:Start()
 	
 		self.vb.count = self.vb.count + 1
 		
@@ -35,8 +38,6 @@ function mod:SPELL_CAST_START(args)
 			self.vb.time = self.vb.time - 5
 		end
 		
-		warnMark:Show(self.vb.count)
-		timerMark:Start()
 		timerMarkCD:Start(self.vb.time, self.vb.count)
 	end
 end
