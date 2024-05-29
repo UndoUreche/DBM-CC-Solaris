@@ -21,6 +21,7 @@ local specWarnDoom		= mod:NewSpecialWarningYou(31347, nil, nil, nil, 1, 2)
 local yellDoom			= mod:NewShortFadesYell(31347)
 
 local timerDoom			= mod:NewTargetTimer(20, 31347, nil, nil, nil, 3)
+local timerDoomCD		= mod:NewCDTimer(45, 31347, nil, nil, nil, 3)
 local timerSilence		= mod:NewBuffFadesTimer(5, 31344, nil, nil, nil, 2, nil, DBM_COMMON_L.TANK_ICON..DBM_COMMON_L.HEALER_ICON)
 local timerSilenceCD	= mod:NewCDTimer(18, 31344, nil, nil, nil, 2, nil, DBM_COMMON_L.TANK_ICON..DBM_COMMON_L.HEALER_ICON)
 
@@ -31,6 +32,7 @@ mod:AddSetIconOption("DoomIcon", 31347, true, false, {8})
 function mod:OnCombatStart(delay)
 	berserkTimer:Start(-delay)
 	timerSilenceCD:Start(30-delay)
+	timerDoomCD:Start(-delay)
 end
 
 function mod:SPELL_AURA_APPLIED(args)
@@ -39,6 +41,7 @@ function mod:SPELL_AURA_APPLIED(args)
 		specWarnFire:Play("runaway")
 	elseif args.spellId == 31347 then
 		timerDoom:Start(args.destName)
+		timerDoomCD:Start()
 		if args:IsPlayer() then
 			specWarnDoom:Show()
 			yellDoom:Countdown(31347)

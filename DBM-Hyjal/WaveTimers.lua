@@ -23,6 +23,7 @@ mod:RemoveOption("HealthFrame")
 local lastWave = 0
 local lastEnemyCount = 0
 local boss = 0
+
 local bossNames = {
 	[0] = L.GeneralBoss,
 	[1] = L.RageWinterchill,
