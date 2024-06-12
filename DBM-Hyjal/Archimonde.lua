@@ -29,6 +29,8 @@ local timerDoomfireCD	= mod:NewTimer(25, "Doomfire CD", 31943, nil, nil, 1)
 
 local berserkTimer		= mod:NewBerserkTimer(600)
 
+local prevFearTime 		= nil
+
 mod:AddSetIconOption("BurstIcon", 32014, true, false, {8})
 
 function mod:BurstTarget(targetname)
@@ -46,6 +48,11 @@ function mod:BurstTarget(targetname)
 	end
 	if self.Options.BurstIcon then
 		self:SetIcon(targetname, 8, 5)
+	end
+	
+	if prevFearTime ~= nil then
+		timerNextFear:Cancel()
+		timerNextFear:Start(42 - (GetTime() - prevFearTime) + 5)
 	end
 end
 	
@@ -73,6 +80,7 @@ function mod:SPELL_CAST_START(args)
 	if args.spellId == 31970 then
 		warnFear:Show()
 		timerNextFear:Start()
+		prevFearTime = GetTime()
 	elseif args.spellId == 32014 then
 		self:BossTargetScanner(17968, "BurstTarget", 0.05, 10)
 	end
