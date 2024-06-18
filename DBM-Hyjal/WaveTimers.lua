@@ -21,9 +21,7 @@ mod:AddBoolOption("DetailedWave")
 mod:RemoveOption("HealthFrame")
 
 local lastWave = 0
-local lastEnemyCount = 0
 local boss = 0
-
 local bossNames = {
 	[0] = L.GeneralBoss,
 	[1] = L.RageWinterchill,
@@ -55,18 +53,13 @@ end
 mod.QUEST_PROGRESS = mod.GOSSIP_SHOW
 
 function mod:UPDATE_WORLD_STATES()
-
 	local _, _, text = GetWorldStateUIInfo(3)
-	local _, _, textTop = GetWorldStateUIInfo(2)
-	
-	if not text then 
-		timerWave:Cancel()
-		return 
-	end
-	
+	if not text then return end
 	local currentWave = text:match(L.WaveCheck)
-	local enemyCount = textTop:match(L.EnemyCheck)
-	self:WaveFunction(currentWave, enemyCount)
+	if not currentWave then
+		currentWave = 0
+	end
+	self:WaveFunction(currentWave)
 end
 
 function mod:OnSync(msg, arg)
@@ -76,9 +69,7 @@ function mod:OnSync(msg, arg)
 end
 
 function mod:UNIT_DIED(args)
-
 	local cid = self:GetCIDFromGUID(args.destGUID)
-	
 	if cid == 17852 or cid == 17772 then
 		lastWave = 0
 		timerWave:Cancel()
@@ -97,30 +88,18 @@ function mod:SPELL_AURA_APPLIED(args)
 	end
 end
 
-function mod:WaveFunction(currentWave, enemyCount)
+function mod:WaveFunction(currentWave)
 	local timer = 0
-	
 	currentWave = tonumber(currentWave)
 	lastWave = tonumber(lastWave)
-	
-	enemyCount = tonumber(enemyCount)
-	lastEnemyCount = tonumber(lastEnemyCount)
-	
-	if currentWave == 0 then 
-		return 
-	end
-	
 	if currentWave > lastWave then
 		if boss == 0 then--unconfirmed
-			timer = 130
-			if currentWave == 8 then
-				timer = 190
-			end
+			timer = 125
 			warnWave:Show(L.WarnWave_0:format(currentWave))
 		elseif boss == 1 or boss == 2 then
-			timer = 130
+			timer = 125
 			if currentWave == 8 then
-				timer = 190
+				timer = 140
 			end
 			if self.Options.DetailedWave and boss == 1 then
 				if currentWave == 1 then
@@ -163,21 +142,15 @@ function mod:WaveFunction(currentWave, enemyCount)
 			end
 			self:SendSync("boss", boss)
 		elseif boss == 3 or boss == 4 then
-			timer = 130
-			if boss == 3 then 
-				if currentWave == 2 or currentWave == 4 or currentWave == 7 then
-					timer = 155
-				elseif currentWave == 8 then
-					timer = 225
-				end
-			end
-			if boss == 4 then
-				timer = 130
-				if currentWave == 2 or currentWave == 3 or currentWave == 4 or currentWave == 7 then
-					timer = 190
-				elseif currentWave == 8 then
-					timer = 225
-				end
+			timer = 135
+			if currentWave == 2 or currentWave == 4 then
+				timer = 165
+			elseif currentWave == 3 then
+				timer = 160
+			elseif currentWave == 7 then
+				timer = 195
+			elseif currentWave == 8 then
+				timer = 225
 			end
 			if self.Options.DetailedWave and boss == 3 then
 				if currentWave == 1 then
@@ -222,17 +195,12 @@ function mod:WaveFunction(currentWave, enemyCount)
 		end
 		timerWave:Start(timer)
 		lastWave = currentWave
-	elseif lastWave == currentWave then
-		
-		local _, _, textTop = GetWorldStateUIInfo(2)
-		
-		if lastWave == 8 and enemyCount > lastEnemyCount then
+	elseif lastWave > currentWave then
+		if lastWave == 8 then
 			warnWave:Show(bossNames[boss])
-				
-			lastWave = 0
-			timerWave:Cancel()
 		end
+		timerWave:Cancel()
+		lastWave = currentWave
 	end
-	
-	lastEnemyCount = enemyCount
 end
+

@@ -29,7 +29,8 @@ local timerDoomfireCD	= mod:NewTimer(25, "Doomfire CD", 31943, nil, nil, 1)
 
 local berserkTimer		= mod:NewBerserkTimer(600)
 
-local prevFearTime 		= nil
+local featTimestamp 		= nil
+local airburstsCounter 		= 0
 
 mod:AddSetIconOption("BurstIcon", 32014, true, false, {8})
 
@@ -49,11 +50,6 @@ function mod:BurstTarget(targetname)
 	if self.Options.BurstIcon then
 		self:SetIcon(targetname, 8, 5)
 	end
-	
-	if prevFearTime ~= nil then
-		timerNextFear:Cancel()
-		timerNextFear:Start(42 - (GetTime() - prevFearTime) + 5)
-	end
 end
 	
 function mod:OnCombatStart(delay)
@@ -69,7 +65,6 @@ function mod:OnCombatStart(delay)
 	end
 end
 
-
 function mod:SPELL_AURA_APPLIED(args)
 	if args.spellId == 31972 then
 		warnGrip:Show(args.destName)
@@ -80,9 +75,16 @@ function mod:SPELL_CAST_START(args)
 	if args.spellId == 31970 then
 		warnFear:Show()
 		timerNextFear:Start()
-		prevFearTime = GetTime()
+		featTimestamp = GetTime()
+		airburstsCounter = 0
 	elseif args.spellId == 32014 then
 		self:BossTargetScanner(17968, "BurstTarget", 0.05, 10)
+		
+		if featTimestamp ~= nil then
+			timerNextFear:Cancel()
+			airburstsCounter = airburstsCounter + 1
+			timerNextFear:Start((42+ 5*airburstsCounter) - (GetTime() - featTimestamp))
+		end
 	end
 end
 
