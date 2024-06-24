@@ -23,14 +23,9 @@ local specWarnBurst		= mod:NewSpecialWarningYou(32014, nil, nil, nil, 3, 2)
 local yellBurst			= mod:NewYell(32014)
 
 local timerNextFear		= mod:NewNextTimer(42, 31970, nil, nil, nil, 2)
-local timerFearCD		= mod:NewTimer(25, "Fear CD", 31970, nil, nil, 2)
-local timerNextDoomfire	= mod:NewNextTimer(20, 31943, nil, nil, nil, 2)
-local timerDoomfireCD	= mod:NewTimer(25, "Doomfire CD", 31943, nil, nil, 1)
+local timerNextDoomfire		= mod:NewNextTimer(20, 31943, nil, nil, nil, 2)
 
 local berserkTimer		= mod:NewBerserkTimer(600)
-
-local featTimestamp 		= nil
-local airburstsCounter 		= 0
 
 mod:AddSetIconOption("BurstIcon", 32014, true, false, {8})
 
@@ -56,13 +51,11 @@ function mod:OnCombatStart(delay)
 
 	berserkTimer:Start(-delay)
 	
-	if self.Options.Timer31943next then
-		timerDoomfireCD:Start(-delay)
-	end
-	
-	if self.Options.Timer31970next then
-		timerFearCD:Start(-delay)
-	end
+	timerNextFear:Start(25-delay)
+	timerNextDoomfire:Start(25-delay)
+
+	timerNextFear:UpdateName("Fear CD")
+	timerNextDoomfire:UpdateName("Doomfire CD")
 end
 
 function mod:SPELL_AURA_APPLIED(args)
@@ -75,16 +68,9 @@ function mod:SPELL_CAST_START(args)
 	if args.spellId == 31970 then
 		warnFear:Show()
 		timerNextFear:Start()
-		featTimestamp = GetTime()
-		airburstsCounter = 0
 	elseif args.spellId == 32014 then
 		self:BossTargetScanner(17968, "BurstTarget", 0.05, 10)
-		
-		if featTimestamp ~= nil then
-			timerNextFear:Cancel()
-			airburstsCounter = airburstsCounter + 1
-			timerNextFear:Start((42+ 5*airburstsCounter) - (GetTime() - featTimestamp))
-		end
+		timerNextFear:AddTime(5)
 	end
 end
 
@@ -93,7 +79,6 @@ function mod:CHAT_MSG_MONSTER_YELL(msg)
 	if msg == L.ArchimondeDoomfire1
 		or msg == L.ArchimondeDoomfire2
 	then
-	
 		warnDoomfire:Show()
 		timerNextDoomfire:Start()
 	end
