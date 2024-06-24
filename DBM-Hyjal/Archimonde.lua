@@ -25,6 +25,8 @@ local yellBurst			= mod:NewYell(32014)
 local timerNextFear		= mod:NewNextTimer(42, 31970, nil, nil, nil, 2)
 local timerNextDoomfire		= mod:NewNextTimer(20, 31943, nil, nil, nil, 2)
 
+local firstFear 		= false --TODO find better way to check if a timer is active/was activated
+
 local berserkTimer		= mod:NewBerserkTimer(600)
 
 mod:AddSetIconOption("BurstIcon", 32014, true, false, {8})
@@ -56,6 +58,8 @@ function mod:OnCombatStart(delay)
 
 	timerNextFear:UpdateName("Fear CD")
 	timerNextDoomfire:UpdateName("Doomfire CD")
+	
+	firstFear = false
 end
 
 function mod:SPELL_AURA_APPLIED(args)
@@ -68,9 +72,13 @@ function mod:SPELL_CAST_START(args)
 	if args.spellId == 31970 then
 		warnFear:Show()
 		timerNextFear:Start()
+		firstFear = true;
 	elseif args.spellId == 32014 then
 		self:BossTargetScanner(17968, "BurstTarget", 0.05, 10)
-		timerNextFear:AddTime(5)
+		
+		if firstFear == true then
+			timerNextFear:AddTime(5)
+		end
 	end
 end
 
