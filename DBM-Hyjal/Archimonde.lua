@@ -10,6 +10,7 @@ mod:RegisterCombat("combat")
 
 mod:RegisterEventsInCombat(
 	"SPELL_AURA_APPLIED 31972",
+	"SPELL_AURA_REMOVED 31972",
 	"SPELL_CAST_START 31970 32014",
 	"CHAT_MSG_MONSTER_YELL"
 )
@@ -28,6 +29,8 @@ local timerNextDoomfire		= mod:NewNextTimer(20, 31943, nil, nil, nil, 2)
 local berserkTimer		= mod:NewBerserkTimer(600)
 
 mod:AddSetIconOption("BurstIcon", 32014, true, false, {8})
+
+mod:AddSetIconOption("GripIcon", 31972, false, false, {7})
 
 function mod:BurstTarget(targetname)
 
@@ -60,7 +63,20 @@ end
 function mod:SPELL_AURA_APPLIED(args)
 	if args.spellId == 31972 then
 		warnGrip:Show(args.destName)
+
+		if self.Options.GripIcon then 
+			self:SetIcon(args.destName, 7)	
+		end
 	end
+end
+
+function mod:SPELL_AURA_REMOVED(args)
+
+	if args.spellId == 31972 then 
+		if self.Options.GripIcon then	
+			self:SetIcon(args.destName,0) 
+		end
+	end	
 end
 
 function mod:SPELL_CAST_START(args)
