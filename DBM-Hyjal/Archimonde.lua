@@ -24,7 +24,7 @@ local specWarnBurst		= mod:NewSpecialWarningYou(32014, nil, nil, nil, 3, 2)
 local yellBurst			= mod:NewYell(32014)
 
 local timerNextFear		= mod:NewNextTimer(42, 31970, nil, nil, nil, 2)
-local timerNextDoomfire		= mod:NewNextTimer(20, 31943, nil, nil, nil, 2)
+local timerNextDoomfire		= mod:NewNextTimer(8, 31943, nil, nil, nil, 2)
 
 local berserkTimer		= mod:NewBerserkTimer(600)
 
@@ -55,7 +55,7 @@ function mod:OnCombatStart(delay)
 	berserkTimer:Start(-delay)
 	
 	timerNextFear:Start(40-delay)
-	timerNextDoomfire:Start(25-delay)
+	timerNextDoomfire:Start(-delay)
 
 	timerNextDoomfire:UpdateName("Doomfire CD")
 end
