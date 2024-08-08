@@ -83,8 +83,8 @@ end
 
 DBM = {
 	Revision = releaseDate(2024, 7, 14),
-	DisplayVersion = "Hyjal-793f87fd61e1", -- the string that is shown as version
-	ReleaseRevision = releaseDate(2024, 7, 14) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
+	DisplayVersion = "Hyjal-056fc2d5634d", -- the string that is shown as version
+	ReleaseRevision = releaseDate(2024, 8, 8) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
 }
 
 local fakeBWVersion = 7558
