@@ -28,6 +28,8 @@ local timerNextDoomfire		= mod:NewNextTimer(8, 31943, nil, nil, nil, 2)
 
 local berserkTimer		= mod:NewBerserkTimer(600)
 
+local timerRespawn		= mod:NewTimer(300, "TimerRespawn")
+
 mod:AddSetIconOption("BurstIcon", 32014, true, false, {8})
 
 mod:AddSetIconOption("GripIcon", 31972, false, false, {7})
@@ -56,8 +58,13 @@ function mod:OnCombatStart(delay)
 	
 	timerNextFear:Start(40-delay)
 	timerNextDoomfire:Start(-delay)
+	timerRespawn:Cancel()
 
 	timerNextDoomfire:UpdateName("Doomfire CD")
+end
+
+function mod:OnCombatEnd(wipe)
+	timerRespawn:Start()
 end
 
 function mod:SPELL_AURA_APPLIED(args)
