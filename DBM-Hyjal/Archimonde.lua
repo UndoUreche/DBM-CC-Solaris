@@ -28,7 +28,7 @@ local timerNextDoomfire		= mod:NewNextTimer(8, 31943, nil, nil, nil, 2)
 
 local berserkTimer		= mod:NewBerserkTimer(600)
 
-local timerRespawn		= mod:NewTimer(300, "TimerRespawn")
+mod:AddBoolOption("ShowRespawn", true)
 
 mod:AddSetIconOption("BurstIcon", 32014, true, false, {8})
 
@@ -58,13 +58,15 @@ function mod:OnCombatStart(delay)
 	
 	timerNextFear:Start(40-delay)
 	timerNextDoomfire:Start(-delay)
-	timerRespawn:Cancel()
 
 	timerNextDoomfire:UpdateName("Doomfire CD")
 end
 
-function mod:OnCombatEnd(wipe)
-	timerRespawn:Start()
+function mod:OnCombatEnd(wipe, isSecondRun)
+
+	if wipe and not isSecondRun and self.Options.ShowRespawn then
+		DBT:CreateBar(293, DBM_CORE_L.TIMER_RESPAWN:format(L.name), "Interface\\Icons\\Spell_Holy_BorrowedTime")
+	end
 end
 
 function mod:SPELL_AURA_APPLIED(args)

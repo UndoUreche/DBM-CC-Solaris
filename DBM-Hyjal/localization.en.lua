@@ -50,10 +50,6 @@ L:SetMiscLocalization({
 	ArchimondeDoomfire2 = "Manach sheek-thrish!",
 })
 
-L:SetTimerLocalization({
-	TimerRespawn = "Archimonde Respawns"
-})
-
 L:SetOptionLocalization({
 	TimerRespawn = "Show respawn timer"
 })
