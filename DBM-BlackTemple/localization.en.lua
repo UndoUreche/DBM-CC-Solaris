@@ -27,7 +27,7 @@ L:SetWarningLocalization({
 })
 
 L:SetTimerLocalization({
-	TimerPhase		= "Next %s phase"
+	TimerPhase		= "Phase swap"
 })
 
 L:SetOptionLocalization({
