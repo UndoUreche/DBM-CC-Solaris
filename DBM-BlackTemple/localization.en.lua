@@ -54,20 +54,28 @@ L:SetGeneralLocalization({
 })
 
 L:SetWarningLocalization({
-	warnAshtongueDefender	= "Ashtongue Defender",
-	warnAshtongueSorcerer	= "Ashtongue Sorcerer"
+	warnAdds 		= "Adds Soon (%s)",
+	warnAshtongueDefender	= "Ashtongue Defender Soon",
+	warnAshtongueSorcerer	= "Ashtongue Sorcerer Soon"
 })
 
 L:SetTimerLocalization({
-	timerAshtongueDefender	= "Ashtongue Defender: %s",
-	timerAshtongueSorcerer	= "Ashtongue Sorcerer: %s"
+	timerAddsSoon 		= "Adds Soon (%s)",
+	timerAshtongueDefender	= "Ashtongue Defender Soon",
+	timerAshtongueSorcerer	= "Ashtongue Sorcerer Soon"
 })
 
 L:SetOptionLocalization({
+	warnAdds		= "Show warning for Adds",
 	warnAshtongueDefender	= "Show warning for Ashtongue Defender",
 	warnAshtongueSorcerer	= "Show warning for Ashtongue Sorcerer",
+	timerAddsSoon 		= "Show timer for adds",
 	timerAshtongueDefender	= "Show timer for Ashtongue Defender",
 	timerAshtongueSorcerer	= "Show timer for Ashtongue Sorcerer"
+})
+
+L:SetMiscLocalization({
+	Death		= "No! Not yet!"
 })
 
 -------------------------
