@@ -66,6 +66,7 @@ L:SetTimerLocalization({
 })
 
 L:SetOptionLocalization({
+ 	ShowRespawn 		= "Show respawn timer",
 	warnAdds		= "Show warning for Adds",
 	warnAshtongueDefender	= "Show warning for Ashtongue Defender",
 	warnAshtongueSorcerer	= "Show warning for Ashtongue Sorcerer",

@@ -28,7 +28,7 @@ local timerAddsCD 		= mod:NewTimer(50, "timerAddsSoon", 42035, nil, nil, 1)
 local timerDefenderCD		= mod:NewTimer(30, "timerAshtongueDefender", 41180, nil, nil, 1)
 local timerSorcCD		= mod:NewTimer(30, "timerAshtongueSorcerer", 40520, nil, nil, 1)
 
-mod.vb.AddsWestCount = 0
+mod:AddBoolOption("ShowRespawn", true)
 
 local function addsWestLoop(self)
 	warnAdds:Show(DBM_COMMON_L.WEST)
@@ -87,6 +87,10 @@ function mod:CHAT_MSG_MONSTER_YELL(msg)
 
         if msg == L.Death then
                 DBM:EndCombat(self, true) --wipe
+		
+		if self.Options.ShowRespawn then
+			DBT:CreateBar(293, DBM_CORE_L.TIMER_RESPAWN:format(L.name), "Interface\\Icons\\Spell_Holy_BorrowedTime")
+		end
 
                 self:UnregisterShortTermEvents()
 
