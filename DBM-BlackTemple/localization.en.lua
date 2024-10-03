@@ -131,6 +131,10 @@ L:SetMiscLocalization({
 	Suffering		= "Essence of Suffering",
 	Desire			= "Essence of Desire",
 	Anger			= "Essence of Anger",
+	Phase1Start		= "Pain and suffering are all that await you!",
+	Phase2Start		= "You can have anything you desire... for a price.",
+	Phase3Start		= "Beware: I live!",
+	Phase3StartV2		= "So... foolish.",
 	Phase1End		= "I don't want to go back!",
 	Phase2End		= "I won't be far!"
 })
