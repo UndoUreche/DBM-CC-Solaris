@@ -48,6 +48,11 @@ local timerNextSoul		= mod:NewNextTimer(10, 41545, nil, "Tank", 2, 5, nil, DBM_C
 mod:AddSetIconOption("SpiteIcon", 41376, false)
 
 mod.vb.lastFixate = "None"
+mod.vb.spiteIcon = 1
+
+local function resetSpiteIcon(self) 
+	self.vb.spiteIcon = 1
+end
 
 function mod:SPELL_AURA_APPLIED(args)
 	if args.spellId == 41305 then
@@ -65,7 +70,11 @@ function mod:SPELL_AURA_APPLIED(args)
 			specWarnSpite:Play("defensive")
 		end
 		if self.Options.SpiteIcon then
-			self:SetSortedIcon("roster",0.5, args.destName, 1, 3, false)
+			self:Unschedule(resetSpiteIcon)
+			self:Schedule(0.3, resetSpiteIcon, self)
+			
+			self:SetIcon(args.destName, self.vb.spiteIcon, 8)
+			self.vb.spiteIcon = self.vb.spiteIcon + 1
 		end
 	elseif args.spellId == 41294 then
 		if self.vb.lastFixate ~= args.destName then
