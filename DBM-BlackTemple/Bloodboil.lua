@@ -43,6 +43,8 @@ local yellRage			= mod:NewYell(40604)
 local timerNextRage		= mod:NewNextTimer(90, 40604, nil, nil, nil, 3, nil, DBM_COMMON_L.IMPORTANT_ICON) 
 local timerRageEnd		= mod:NewBuffActiveTimer(30, 40604, nil, nil, nil, 5, nil, DBM_COMMON_L.HEALER_ICON) 
 
+mod:AddInfoFrameOption(42005)
+
 function mod:OnCombatStart(delay)
 	self:SetStage(1)
 
