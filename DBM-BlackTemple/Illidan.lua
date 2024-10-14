@@ -280,9 +280,6 @@ function mod:UNIT_DIED(args)
 		
 		if self.vb.flamesDown >= 2 then 
 			mod.vb.threatResets = 0
-			for i = 1, GetNumRaidMembers() do 
-				mod.vb.threatResets = mod.vb.threatResets + ((not UnitIsDead("raid"..i)) and 1 or 0)
-			end
 		end
 	end
 end
@@ -293,7 +290,7 @@ local function tryPhaseThreeTransition(self)
 		mod.vb.threatResets = mod.vb.threatResets - ((not UnitIsDead("raid"..i) and UnitIsConnected("raid"..i)) and 1 or 0)
 	end
 	
-	if mod.vb.threatResets == 0 then 
+	if mod.vb.threatResets >= 0 then --we have had at least as many threat wipes as people online, in quick succession
 		self.vb.flamesDown = 0 --ensuring this does not repeat
 		
 		self:SetStage(3)
@@ -304,26 +301,21 @@ local function tryPhaseThreeTransition(self)
 		
 		timerEyebeam:Cancel()
 		
-		timerNextDemon:Start()
-		timerFlameCrash:Start(25)
-		timerDrawSoul:Start(32)
-		
-		--[[
-		self:RegisterShortTermEvents(
-			"UNIT_AURA focus target mouseover"
-		)
-		--]]
+		timerNextDemon:Start(63) --everything got delayed by 3s. Why? empirical reasons
+		timerFlameCrash:Start(28)
+		timerDrawSoul:Start(35)
 	end
 	
-	mod.vb.threatResets = 0
+	mod.vb.threatResets = 0 --in case this was a group of threat updates but not a full wipe, reset
 end
 
 function mod:UNIT_THREAT_SITUATION_UPDATE(args) --this is a hackjob, meant to scan for threat resets after killing the 2 flames
+
 	if self.vb.flamesDown >= 2 then
-		if string.sub(args,1,4)=="raid" then
+		if args ~= nil and string.sub(args,1,4)=="raid" then
 			self:Unschedule(tryPhaseThreeTransition)
 			mod.vb.threatResets = mod.vb.threatResets + 1
-			self:Schedule(0.1, tryPhaseThreeTransition, self)
+			self:Schedule(0.3, tryPhaseThreeTransition, self)
 		end
 	end
 end
@@ -337,11 +329,8 @@ function mod:CHAT_MSG_MONSTER_YELL(msg)
 	elseif msg == L.Demon or msg:find(L.Demon) then
 		self.vb.flameBursts = 0
 		self.vb.demonForm = true
-		
 		timerNextDemon:Cancel()
-		
 		warnDemon:Schedule(10)
-		
 		timerNextHuman:Schedule(10)
 		timerNextFlameBurst:Schedule(10)
 	elseif (msg == L.Phase4 or msg:find(L.Phase4)) and self.vb.phase < 4 then
