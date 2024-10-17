@@ -332,7 +332,7 @@ function mod:CHAT_MSG_MONSTER_YELL(msg)
 		timerNextDemon:Cancel()
 		warnDemon:Schedule(10)
 		timerNextHuman:Schedule(10)
-		timerNextFlameBurst:Schedule(10)
+		timerNextFlameBurst:Schedule(7)
 	elseif (msg == L.Phase4 or msg:find(L.Phase4)) and self.vb.phase < 4 then
 		self:SetStage(4)
 		self.vb.warned_preP4 = true
