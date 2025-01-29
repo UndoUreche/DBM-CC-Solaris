@@ -16,22 +16,22 @@ mod:RegisterEventsInCombat(
 	"SPELL_MISSED 46394"
 )
 
-local warnMeteor		= mod:NewSpellAnnounce(45150, 3)
-local warnBurn			= mod:NewTargetAnnounce(46394, 3, nil, false, 2)
-local warnStomp			= mod:NewTargetAnnounce(45185, 3, nil, "Tank", 2)
+local warnMeteor	= mod:NewSpellAnnounce(45150, 3)
+local warnBurn		= mod:NewTargetAnnounce(46394, 3, nil, false, 2)
+local warnStomp		= mod:NewTargetAnnounce(45185, 3, nil, "Tank", 2)
 
 local specwarnStompYou	= mod:NewSpecialWarningYou(45185, "Tank")
-local specwarnStomp		= mod:NewSpecialWarningTaunt(45185, "Tank")
+local specwarnStomp	= mod:NewSpecialWarningTaunt(45185, "Tank")
 local specWarnMeteor	= mod:NewSpecialWarningStack(45150, nil, 4, nil, nil, 1, 6)
-local specWarnBurn		= mod:NewSpecialWarningYou(46394, nil, nil, nil, 1, 2)
-local yellBurn			= mod:NewYell(46394)
+local specWarnBurn	= mod:NewSpecialWarningYou(46394, nil, nil, nil, 1, 2)
+local yellBurn		= mod:NewYell(46394)
 
-local timerMeteorCD		= mod:NewCDTimer(12, 45150, nil, nil, nil, 3)
-local timerStompCD		= mod:NewCDTimer(31, 45185, nil, nil, nil, 2)
-local timerBurn			= mod:NewTargetTimer(60, 46394, nil, "false", 2, 3)
-local timerBurnCD		= mod:NewCDTimer(20, 46394, nil, nil, nil, 3)
+local timerMeteorNext	= mod:NewNextTimer(10, 45150, nil, nil, nil, 3)
+local timerStompNext	= mod:NewNextTimer(30, 45185, nil, nil, nil, 2)
+local timerBurn		= mod:NewTargetTimer(60, 46394, nil, "false", 2, 3)
+local timerBurnNext	= mod:NewNextTimer(60, 46394, nil, nil, nil, 3)
 
-local berserkTimer		= mod:NewBerserkTimer(mod:IsTimewalking() and 300 or 360)
+local berserkTimer	= mod:NewBerserkTimer(360)
 
 mod:AddSetIconOption("BurnIcon", 46394, true, false, {1, 2, 3, 4, 5, 6, 7, 8})
 mod:AddRangeFrameOption(4, 46394)
@@ -50,8 +50,9 @@ end
 
 function mod:OnCombatStart(delay)
 	self.vb.burnIcon = 8
-	timerBurnCD:Start(-delay)
-	timerStompCD:Start(-delay)
+	timerBurnNext:Start(45-delay)
+	timerStompNext:Start(-delay)
+	timerMeteorNext:Start(11-delay)
 	berserkTimer:Start(-delay)
 	if self.Options.RangeFrame and self.Options.RangeFrameActivation == "AlwaysOn" then
 		DBM.RangeCheck:Show(4)
@@ -65,11 +66,11 @@ function mod:OnCombatEnd()
 end
 
 function mod:SPELL_AURA_APPLIED(args)
-	if args.spellId == 46394 then
+	if args.spellId == 46394 then --Burn
 		warnBurn:Show(args.destName)
 		timerBurn:Start(args.destName)
-		if self:AntiSpam(19, 1) then
-			timerBurnCD:Start()
+		if self:AntiSpam(59, 1) then --I won't delete this, but I don't see the reason for antiSpam on a debuff that pops once every minute
+			timerBurnNext:Start()
 		end
 		if self.Options.BurnIcon then
 			self:SetIcon(args.destName, self.vb.burnIcon)
@@ -91,17 +92,18 @@ function mod:SPELL_AURA_APPLIED(args)
 				DBM.RangeCheck:Show(4, DebuffFilter)
 			end
 		end
-	elseif args.spellId == 45185 then
+	elseif args.spellId == 45185 then --Stomp
 		if args:IsPlayer() then
 			specwarnStompYou:Show()
 		else
 			specwarnStomp:Show(args.destName)
 			warnStomp:Show(args.destName)
 		end
-		timerStompCD:Start()
-	elseif args.spellId == 45150 and args:IsPlayer() then
+		timerStompNext:Start()
+		
+	elseif args.spellId == 45150 and args:IsPlayer() then --Meteor Slash
 		local amount = args.amount or 1
-		if (amount >= 4) or (amount >= 2 and self:IsTimewalking()) then
+		if amount >= 4 then
 			specWarnMeteor:Show(amount)
 			specWarnMeteor:Play("stackhigh")
 		end
@@ -121,7 +123,7 @@ end
 function mod:SPELL_CAST_START(args)
 	if args.spellId == 45150 then
 		warnMeteor:Show()
-		timerMeteorCD:Start()
+		timerMeteorNext:Start()
 	end
 end
 

@@ -7,10 +7,6 @@ mod:SetCreatureID(24850)
 
 mod:RegisterCombat("combat")
 
-mod:RegisterEvents(
-	"INSTANCE_ENCOUNTER_ENGAGE_UNIT"
-)
-
 mod:RegisterEventsInCombat(
 	"SPELL_CAST_START 44799",
 	"SPELL_CAST_SUCCESS 45018",
@@ -19,55 +15,49 @@ mod:RegisterEventsInCombat(
 	"UNIT_DIED"
 )
 
-local warnPortal		= mod:NewAnnounce("WarnPortal", 4, 46021)
-local warnBuffet		= mod:NewSpellAnnounce(45018, 3, nil, false, 2)
-local warnBreath		= mod:NewSpellAnnounce(44799, 3, nil, false)
-local warnCorrupt		= mod:NewTargetAnnounce(45029, 3)
+local warnPortal	= mod:NewAnnounce("WarnPortal", 4, 46021)
+local warnBuffet	= mod:NewSpellAnnounce(45018, 3, nil, false, 2)
+local warnBreath	= mod:NewSpellAnnounce(44799, 3, nil, false)
+local warnCorrupt	= mod:NewTargetAnnounce(45029, 3)
 
 local specWarnBuffet	= mod:NewSpecialWarningStack(45018, nil, 10, nil, nil, 1, 6)
 local specWarnWildMagic	= mod:NewSpecialWarning("SpecWarnWildMagic")
 
-local timerNextPortal	= mod:NewNextCountTimer(25, 46021, nil, nil, nil, 5)
-local timerBreathCD		= mod:NewCDTimer(15, 44799, nil, false, nil, 5, nil, DBM_COMMON_L.TANK_ICON)--Tanks?
-local timerBuffetCD		= mod:NewCDTimer(8, 45018, nil, nil, nil, 2)
-local timerPorted		= mod:NewBuffActiveTimer(60, 46021, nil, nil, nil, 6)
+local timerNextPortal	= mod:NewCDCountTimer(15, 46021, nil, nil, nil, 5)
+local timerBreathCD	= mod:NewCDTimer(15, 44799, nil, false, nil, 5, nil, DBM_COMMON_L.TANK_ICON)--Tanks?
+local timerBuffetCD	= mod:NewCDTimer(8, 45018, nil, nil, nil, 2)
+local timerPorted	= mod:NewBuffActiveTimer(60, 46021, nil, nil, nil, 6)
 local timerExhausted	= mod:NewBuffActiveTimer(60, 44867, nil, nil, nil, 6)
-
-local berserkTimer
-if mod:IsTimewalking() then
-	berserkTimer		= mod:NewBerserkTimer(300) -- Doesn't exist on retail
-end
 
 mod:AddRangeFrameOption("12")
 mod:AddBoolOption("ShowRespawn", true)
 mod:AddBoolOption("ShowFrame", true)
 mod:AddBoolOption("FrameLocked", false)
-mod:AddBoolOption("FrameClassColor", true, nil, function()
-	Kal:UpdateColors()
-end)
-mod:AddBoolOption("FrameUpwards", false, nil, function()
-	Kal:ChangeFrameOrientation()
-end)
+mod:AddBoolOption("FrameClassColor", true, nil, function() Kal:UpdateColors() end)
+mod:AddBoolOption("FrameUpwards", false, nil, function() Kal:ChangeFrameOrientation() end)
 mod:AddButton(L.FrameGUIMoveMe, function() Kal:CreateFrame() end, nil, 130, 20)
 
 mod.vb.portCount = 1
 
 function mod:OnCombatStart(delay)
 	self.vb.portCount = 1
-	if self:IsTimewalking() then
-		berserkTimer:Start(-delay)
-	end
+	
 	if self.Options.ShowFrame then
 		Kal:CreateFrame()
 	end
 	if self.Options.RangeFrame then
-		DBM.RangeCheck:Show()
+		DBM.RangeCheck:Show(12)
 	end
+	
 	if self.Options.HealthFrame then
 		DBM.BossHealth:Clear()
 		DBM.BossHealth:AddBoss(24850, L.name)
 		DBM.BossHealth:AddBoss(24892, L.Demon)
 	end
+	
+	timerBuffetCD:Start(6-delay)
+	timerBreathCD:Start(-delay)
+	timerNextPortal:Start(20-delay, 1)
 end
 
 function mod:OnCombatEnd()
@@ -113,7 +103,9 @@ function mod:SPELL_AURA_APPLIED(args)
 			end
 			Kal:AddEntry(("%s (%d)"):format(args.destName, grp or 0), class)
 			warnPortal:Show(self.vb.portCount, args.destName, grp or 0)
+			
 			self.vb.portCount = self.vb.portCount + 1
+			
 			timerNextPortal:Start(nil, self.vb.portCount)
 		end
 	elseif args.spellId == 45018 and args:IsPlayer() then
@@ -161,8 +153,8 @@ function mod:UNIT_DIED(args)
 	end
 end
 
-function mod:INSTANCE_ENCOUNTER_ENGAGE_UNIT()
-	if self:IsInCombat() and not UnitExists("boss1") and self.Options.ShowRespawn then
+function mod:OnCombatEnd(wipe, isSecondRun)
+	if wipe and not isSecondRun and self.Options.ShowRespawn then
 		DBT:CreateBar(30, DBM_CORE_L.TIMER_RESPAWN:format(L.name), "Interface\\Icons\\Spell_Holy_BorrowedTime")
 	end
 end
