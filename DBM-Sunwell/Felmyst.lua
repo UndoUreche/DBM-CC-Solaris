@@ -11,49 +11,46 @@ mod:RegisterEventsInCombat(
 	"SPELL_AURA_APPLIED 45866",
 	"SPELL_CAST_START 45855",
 	"SPELL_SUMMON 45392",
-	"CHAT_MSG_RAID_BOSS_EMOTE",
 	"CHAT_MSG_MONSTER_YELL",
+	"CHAT_MSG_RAID_BOSS_EMOTE",
 	"UNIT_SPELLCAST_SUCCEEDED"
-)
+	)
 
-local warnEncaps			= mod:NewTargetAnnounce(45665, 4)
-local warnVapor				= mod:NewTargetAnnounce(45402, 3)
-local warnPhase				= mod:NewAnnounce("WarnPhase", 1, 31550)
+local warnEncaps		= mod:NewTargetAnnounce(45665, 4)
+local warnVapor			= mod:NewTargetAnnounce(45402, 3)
+local warnPhase			= mod:NewAnnounce("WarnPhase", 1, 31550)
 
-local specWarnGas			= mod:NewSpecialWarningSpell(45855, "Healer", nil, nil, 1, 2)
+local specWarnGas		= mod:NewSpecialWarningSpell(45855, "Healer", nil, nil, 1, 2)
 local specWarnCorrosion		= mod:NewSpecialWarningTaunt(45866, nil, nil, nil, 1, 2)
 local specWarnEncaps		= mod:NewSpecialWarningYou(45665, nil, nil, nil, 1, 2)
-local yellEncaps			= mod:NewYell(45665)
+local yellEncaps		= mod:NewYell(45665)
 local specWarnEncapsNear	= mod:NewSpecialWarningClose(45665, nil, nil, nil, 1, 2)
-local specWarnVapor			= mod:NewSpecialWarningYou(45402, nil, nil, nil, 1, 2)
+local specWarnVapor		= mod:NewSpecialWarningYou(45402, nil, nil, nil, 1, 2)
 local specWarnBreath		= mod:NewSpecialWarningCount(45717, nil, nil, nil, 3, 2)
 
-local timerGasCast			= mod:NewCastTimer(1, 45855)
-local timerGasCD			= mod:NewCDTimer(19, 45855, nil, nil, nil, 3)
+local timerGasCast		= mod:NewCastTimer(1, 45855)
+local timerGasCD		= mod:NewNextTimer(19, 45855, nil, nil, nil, 3)
 local timerCorrosion		= mod:NewTargetTimer(10, 45866, nil, "Tank", 2, 5, nil, DBM_COMMON_L.TANK_ICON)
-local timerEncaps			= mod:NewTargetTimer(7, 45665, nil, nil, nil, 3)
-local timerEncapsCD			= mod:NewCDTimer(50, 45665, nil, nil, nil, 3)
-local timerBreath			= mod:NewCDCountTimer(17, 45717, nil, nil, nil, 3, nil, DBM_COMMON_L.DEADLY_ICON)
-local timerPhase			= mod:NewTimer(60, "TimerPhase", 31550, nil, nil, 6)
+local timerEncaps		= mod:NewTargetTimer(7, 45665, nil, nil, nil, 3)
+local timerEncapsCD		= mod:NewNextTimer(18, 45665, nil, nil, nil, 3)
+local timerBreath		= mod:NewCDCountTimer(17, 45717, nil, nil, nil, 3, nil, DBM_COMMON_L.DEADLY_ICON)
+local timerPhase		= mod:NewTimer(60, "TimerPhase", 31550, nil, nil, 6)
 
-local berserkTimer			= mod:NewBerserkTimer(mod:IsTimewalking() and 500 or 600)
+local berserkTimer		= mod:NewBerserkTimer(mod:IsTimewalking() and 500 or 600)
 
 mod:AddSetIconOption("EncapsIcon", 45665, true, false, {7})
 mod:AddSetIconOption("VaporIcon", 45402, true, true, {8})
 
 mod.vb.breathCounter = 0
-
-function mod:Groundphase()
-	self.vb.breathCounter = 0
-	warnPhase:Show(L.Ground)
-	timerGasCD:Start(17)
-	timerPhase:Start(60, L.Air)
-	timerEncapsCD:Start()
-end
+mod.vb.groundingTime = 0
+mod.vb.isFirstCleave = true
 
 function mod:EncapsulateTarget(targetname)
-	if not targetname then return end
-	timerEncapsCD:Cancel()
+	if not targetname then 
+		return 
+	end
+	
+	timerEncapsCD:Schedule(7)
 	timerEncaps:Start(targetname)
 	if self.Options.EncapsIcon then
 		self:SetIcon(targetname, 7, 6)
@@ -72,10 +69,13 @@ end
 
 function mod:OnCombatStart(delay)
 	self.vb.breathCounter = 0
-	timerGasCD:Start(17-delay)
+	self.vb.isFirstCleave = true
+	self.vb.groundingTime = GetTime()
+	
+	timerGasCD:Start(18-delay)
 	timerPhase:Start(-delay, L.Air)
 	berserkTimer:Start(-delay)
-	timerEncapsCD:Start()
+	timerEncapsCD:Start(25-delay)
 end
 
 
@@ -107,10 +107,21 @@ end
 function mod:SPELL_CAST_START(args)
 	if args.spellId == 45855 then
 		timerGasCast:Start()
-		timerGasCD:Start()
+		timerGasCD:Schedule(1)
 		specWarnGas:Show()
 		specWarnGas:Play("helpdispel")
 	end
+end
+
+function mod:Groundphase()
+	self.vb.breathCounter = 0
+	self.vb.isFirstCleave = true
+	self.vb.groundingTime = GetTime()
+	
+	warnPhase:Show(L.Ground)
+	timerGasCD:Start(18)
+	timerPhase:Start(60, L.Air)
+	timerEncapsCD:Start(25)
 end
 
 function mod:CHAT_MSG_MONSTER_YELL(msg)
@@ -118,9 +129,12 @@ function mod:CHAT_MSG_MONSTER_YELL(msg)
 		self.vb.breathCounter = 0
 		warnPhase:Show(L.Air)
 		timerGasCD:Cancel()
+		timerEncapsCD:Cancel()
+		timerEncapsCD:Unschedule()
+		
 		timerBreath:Start(42, 1)
-		timerPhase:Start(99, L.Ground)
-		self:ScheduleMethod(99, "Groundphase")
+		timerPhase:Start(86, L.Ground)
+		self:ScheduleMethod(86, "Groundphase")
 	end
 end
 
@@ -136,7 +150,15 @@ function mod:CHAT_MSG_RAID_BOSS_EMOTE(msg)
 end
 
 function mod:UNIT_SPELLCAST_SUCCEEDED(_, spellName)
-	if spellName == GetSpellInfo(45661) and self:AntiSpam(2, 1) then
+	if spellName == GetSpellInfo(19983) and self.vb.isFirstCleave == true then
+		self.vb.isFirstCleave = false
+		
+		local timerDelta = (GetTime() - self.vb.groundingTime) - 8
+		timerGasCD:AddTime(timerDelta)
+		timerEncapsCD:AddTime(timerDelta)
+		timerPhase:AddTime(timerDelta, L.Air)
+		
+	elseif spellName == GetSpellInfo(45661) and self:AntiSpam(2, 1) then
 		self:BossTargetScanner(25038, "EncapsulateTarget", 0.05, 10)
 	end
 end

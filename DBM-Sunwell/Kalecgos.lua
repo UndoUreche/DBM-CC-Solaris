@@ -106,7 +106,7 @@ function mod:SPELL_AURA_APPLIED(args)
 			
 			self.vb.portCount = self.vb.portCount + 1
 			
-			timerNextPortal:Start(nil, self.vb.portCount)
+			timerNextPortal:Start(15, self.vb.portCount)
 		end
 	elseif args.spellId == 45018 and args:IsPlayer() then
 		local amount = args.amount or 1
