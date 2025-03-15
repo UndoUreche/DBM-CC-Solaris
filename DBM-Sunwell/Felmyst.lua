@@ -91,7 +91,6 @@ end
 
 function mod:SPELL_SUMMON(args)
 	if args.spellId == 45392 then
-		warnVapor:Show(args.sourceName)
 		if args.sourceName == UnitName("player") then
 			specWarnVapor:Show()
 			specWarnVapor:Play("targetyou")

@@ -26,10 +26,10 @@ local specWarnMeteor	= mod:NewSpecialWarningStack(45150, nil, 4, nil, nil, 1, 6)
 local specWarnBurn	= mod:NewSpecialWarningYou(46394, nil, nil, nil, 1, 2)
 local yellBurn		= mod:NewYell(46394)
 
-local timerMeteorNext	= mod:NewNextTimer(10, 45150, nil, nil, nil, 3)
+local timerMeteorNext	= mod:NewNextTimer(12, 45150, nil, nil, nil, 3)
 local timerStompNext	= mod:NewNextTimer(30, 45185, nil, nil, nil, 2)
 local timerBurn		= mod:NewTargetTimer(60, 46394, nil, "false", 2, 3)
-local timerBurnNext	= mod:NewNextTimer(60, 46394, nil, nil, nil, 3)
+local timerBurnNext	= mod:NewNextTimer(20, 46394, nil, nil, nil, 3)
 
 local berserkTimer	= mod:NewBerserkTimer(360)
 
@@ -50,7 +50,7 @@ end
 
 function mod:OnCombatStart(delay)
 	self.vb.burnIcon = 8
-	timerBurnNext:Start(45-delay)
+	timerBurnNext:Start(20-delay)
 	timerStompNext:Start(-delay)
 	timerMeteorNext:Start(11-delay)
 	berserkTimer:Start(-delay)
