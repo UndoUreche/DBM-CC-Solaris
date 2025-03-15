@@ -23,9 +23,9 @@ local warnCorrupt	= mod:NewTargetAnnounce(45029, 3)
 local specWarnBuffet	= mod:NewSpecialWarningStack(45018, nil, 10, nil, nil, 1, 6)
 local specWarnWildMagic	= mod:NewSpecialWarning("SpecWarnWildMagic")
 
-local timerNextPortal	= mod:NewCDCountTimer(15, 46021, nil, nil, nil, 5)
-local timerBreathCD	= mod:NewCDTimer(15, 44799, nil, false, nil, 5, nil, DBM_COMMON_L.TANK_ICON)--Tanks?
-local timerBuffetCD	= mod:NewCDTimer(8, 45018, nil, nil, nil, 2)
+local timerNextPortal	= mod:NewCDCountTimer(20, 46021, nil, nil, nil, 5)
+local timerBreathCD	= mod:NewNextTimer(15, 44799, nil, false, nil, 5, nil, DBM_COMMON_L.TANK_ICON)--Tanks?
+local timerBuffetCD	= mod:NewNextTimer(8, 45018, nil, nil, nil, 2)
 local timerPorted	= mod:NewBuffActiveTimer(60, 46021, nil, nil, nil, 6)
 local timerExhausted	= mod:NewBuffActiveTimer(60, 44867, nil, nil, nil, 6)
 
@@ -55,9 +55,9 @@ function mod:OnCombatStart(delay)
 		DBM.BossHealth:AddBoss(24892, L.Demon)
 	end
 	
-	timerBuffetCD:Start(6-delay)
+	timerBuffetCD:Start(8-delay)
 	timerBreathCD:Start(-delay)
-	timerNextPortal:Start(20-delay, 1)
+	timerNextPortal:Start(13-delay, 1)
 end
 
 function mod:OnCombatEnd()

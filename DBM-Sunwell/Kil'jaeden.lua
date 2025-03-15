@@ -20,7 +20,7 @@ local warnDarkOrb		= mod:NewAnnounce("WarnDarkOrb", 4, 45109)
 local warnDart			= mod:NewSpellAnnounce(45740, 3)
 local warnShield		= mod:NewSpellAnnounce(45848, 1)
 local warnBlueOrb		= mod:NewAnnounce("WarnBlueOrb", 1, 45109)
-local warnSpikeTarget	= mod:NewTargetAnnounce(46589, 3)
+local warnSpikeTarget		= mod:NewTargetAnnounce(46589, 3)
 local warnPhase2		= mod:NewPhaseAnnounce(2)
 local warnPhase3		= mod:NewPhaseAnnounce(3)
 local warnPhase4		= mod:NewPhaseAnnounce(4)
@@ -30,11 +30,11 @@ local yellSpike			= mod:NewYellMe(46589)
 local specWarnBloom		= mod:NewSpecialWarningYou(45641, nil, nil, nil, 1, 2)
 local yellBloom			= mod:NewYellMe(45641)
 local specWarnBomb		= mod:NewSpecialWarningMoveTo(46605, nil, nil, nil, 3, 2)--findshield
-local specWarnShield	= mod:NewSpecialWarningSpell(45848)
-local specWarnDarkOrb	= mod:NewSpecialWarning("SpecWarnDarkOrb", false)
-local specWarnBlueOrb	= mod:NewSpecialWarning("SpecWarnBlueOrb", false)
+local specWarnShield		= mod:NewSpecialWarningSpell(45848)
+local specWarnDarkOrb		= mod:NewSpecialWarning("SpecWarnDarkOrb", false)
+local specWarnBlueOrb		= mod:NewSpecialWarning("SpecWarnBlueOrb", false)
 
-local timerBloomCD		= mod:NewCDTimer(20, 45641, nil, nil, nil, 2)
+local timerBloomCD		= mod:NewCDTimer(40, 45641, nil, nil, nil, 2)
 local timerDartCD		= mod:NewCDTimer(20, 45740, nil, nil, nil, 2)--Targeted or aoe?
 local timerBomb			= mod:NewCastTimer(9, 46605, nil, nil, nil, 2, nil, DBM_COMMON_L.DEADLY_ICON)
 local timerBombCD		= mod:NewCDTimer(45, 46605, nil, nil, nil, 2, nil, DBM_COMMON_L.DEADLY_ICON)
@@ -46,6 +46,7 @@ local berserkTimer		= mod:NewBerserkTimer(mod:IsTimewalking() and 600 or 900)
 mod:AddRangeFrameOption("12")
 mod:AddSetIconOption("BloomIcon", 45641, true, false, {4, 5, 6, 7, 8})
 
+local bloomTimer = 40
 local warnBloomTargets = {}
 local orbGUIDs = {}
 mod.vb.bloomIcon = 8
@@ -54,7 +55,7 @@ local function showBloomTargets(self)
 	warnBloom:Show(table.concat(warnBloomTargets, "<, >"))
 	table.wipe(warnBloomTargets)
 	self.vb.bloomIcon = 8
-	timerBloomCD:Start()
+	timerBloomCD:Start(bloomTimer)
 end
 
 function mod:OnCombatStart(delay)
@@ -63,6 +64,9 @@ function mod:OnCombatStart(delay)
 	self.vb.bloomIcon = 8
 	self:SetStage(1)
 	berserkTimer:Start(-delay)
+	timerBloomCD:Start(9-delay)
+	bloomTimer = 40
+	
 	if self.Options.RangeFrame then
 		DBM.RangeCheck:Show()
 	end
