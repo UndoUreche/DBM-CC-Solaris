@@ -50,10 +50,15 @@ L:SetGeneralLocalization({
 	name 			= "Brutallus"
 })
 
+L:SetWarningLocalization({
+	SpecWarnMeteorTaunt	= "Taunt the stacks away!"
+})
+
 L:SetOptionLocalization({
 	RangeFrameActivation	= "Range frame activation",
 	AlwaysOn		= "On encounter start. Ignores filter",
-	OnDebuff		= "On debuff. Applies debuff filter"
+	OnDebuff		= "On debuff. Applies debuff filter",
+	SpecWarnMeteorTaunt	= "Show warning to taunt when the other tank has >= 3 stacks"
 })
 
 L:SetMiscLocalization({

@@ -16,22 +16,23 @@ mod:RegisterEventsInCombat(
 	"SPELL_MISSED 46394"
 )
 
-local warnMeteor	= mod:NewSpellAnnounce(45150, 3)
-local warnBurn		= mod:NewTargetAnnounce(46394, 3, nil, false, 2)
-local warnStomp		= mod:NewTargetAnnounce(45185, 3, nil, "Tank", 2)
+local warnMeteor		= mod:NewSpellAnnounce(45150, 3)
+local warnBurn			= mod:NewTargetAnnounce(46394, 3, nil, false, 2)
+local warnStomp			= mod:NewTargetAnnounce(45185, 3, nil, "Tank", 2)
 
-local specwarnStompYou	= mod:NewSpecialWarningYou(45185, "Tank")
-local specwarnStomp	= mod:NewSpecialWarningTaunt(45185, "Tank")
-local specWarnMeteor	= mod:NewSpecialWarningStack(45150, nil, 4, nil, nil, 1, 6)
-local specWarnBurn	= mod:NewSpecialWarningYou(46394, nil, nil, nil, 1, 2)
-local yellBurn		= mod:NewYell(46394)
+local specwarnStompYou		= mod:NewSpecialWarningYou(45185, "Tank")
+local specwarnStomp		= mod:NewSpecialWarningTaunt(45185, "Tank")
+local specWarnMeteor		= mod:NewSpecialWarningStack(45150, nil, 4, nil, nil, 1, 6)
+local specWarnMeteorTaunt	= mod:NewSpecialWarning("Taunt stacks away!", false, "SpecWarnMeteorTaunt", nil, nil, nil, nil, nil, 45150)
+local specWarnBurn		= mod:NewSpecialWarningYou(46394, nil, nil, nil, 1, 2)
+local yellBurn			= mod:NewYell(46394)
 
-local timerMeteorNext	= mod:NewNextTimer(12, 45150, nil, nil, nil, 3)
-local timerStompNext	= mod:NewNextTimer(30, 45185, nil, nil, nil, 2)
-local timerBurn		= mod:NewTargetTimer(60, 46394, nil, "false", 2, 3)
-local timerBurnNext	= mod:NewNextTimer(20, 46394, nil, nil, nil, 3)
+local timerMeteorNext		= mod:NewNextTimer(12, 45150, nil, nil, nil, 3)
+local timerStompNext		= mod:NewNextTimer(30, 45185, nil, nil, nil, 2)
+local timerBurn			= mod:NewTargetTimer(60, 46394, nil, "false", 2, 3)
+local timerBurnNext		= mod:NewNextTimer(20, 46394, nil, nil, nil, 3)
 
-local berserkTimer	= mod:NewBerserkTimer(360)
+local berserkTimer		= mod:NewBerserkTimer(360)
 
 mod:AddSetIconOption("BurnIcon", 46394, true, false, {1, 2, 3, 4, 5, 6, 7, 8})
 mod:AddRangeFrameOption(4, 46394)
@@ -101,11 +102,16 @@ function mod:SPELL_AURA_APPLIED(args)
 		end
 		timerStompNext:Start()
 		
-	elseif args.spellId == 45150 and args:IsPlayer() then --Meteor Slash
-		local amount = args.amount or 1
-		if amount >= 4 then
-			specWarnMeteor:Show(amount)
-			specWarnMeteor:Play("stackhigh")
+	elseif args.spellId == 45150 then
+		if args:IsPlayer() then
+			if (args.amount or 1) > 3 then --Meteor Slash
+				specWarnMeteor:Show(amount)
+				specWarnMeteor:Play("stackhigh")
+			end
+		elseif DBM:IsTanking(DBM:GetRaidUnitId(args.destName), DBM:GetUnitIdFromCID(24882, false)) then
+			if (args.amount or 1) > 2 then
+				specWarnMeteorTaunt:Show()
+			end
 		end
 	end
 end

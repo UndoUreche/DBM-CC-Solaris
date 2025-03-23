@@ -20,7 +20,6 @@ local warnEncaps		= mod:NewTargetAnnounce(45665, 4)
 local warnPhase			= mod:NewAnnounce("WarnPhase", 1, 31550)
 
 local specWarnGas		= mod:NewSpecialWarningSpell(45855, "Healer", nil, nil, 1, 2)
-local specWarnCorrosion		= mod:NewSpecialWarningTaunt(45866, nil, nil, nil, 1, 2)
 local specWarnEncaps		= mod:NewSpecialWarningYou(45665, nil, nil, nil, 1, 2)
 local yellEncaps		= mod:NewYell(45665)
 local specWarnEncapsNear	= mod:NewSpecialWarningClose(45665, nil, nil, nil, 1, 2)
@@ -94,10 +93,6 @@ function mod:SPELL_AURA_APPLIED(args)
 		self:adjustGroundTimersIfFirstCast(12)
 	
 		timerCorrosion:Start(args.destName)
-		if not args:IsPlayer() then -- validate
-			specWarnCorrosion:Show(args.destName)
-			specWarnCorrosion:Play("tauntboss")
-		end
 	end
 end
 
