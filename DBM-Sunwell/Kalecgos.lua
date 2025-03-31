@@ -60,12 +60,6 @@ function mod:OnCombatStart(delay)
 	timerNextPortal:Start(13-delay, 1)
 end
 
-function mod:OnCombatEnd()
-	Kal:Hide()
-	Kal:DestroyFrame()
-	DBM.RangeCheck:Hide()
-end
-
 function mod:SPELL_AURA_APPLIED(args)
 	if args.spellId == 44978 and args:IsPlayer() and self:IsHealer() then
 		specWarnWildMagic:Show(L.Heal)
@@ -155,6 +149,9 @@ function mod:UNIT_DIED(args)
 end
 
 function mod:OnCombatEnd(wipe, isSecondRun)
+	Kal:DestroyFrame()
+	DBM.RangeCheck:Hide()
+
 	if wipe and not isSecondRun and self.Options.ShowRespawn then
 		DBT:CreateBar(30, DBM_CORE_L.TIMER_RESPAWN:format(L.name), "Interface\\Icons\\Spell_Holy_BorrowedTime")
 	end
