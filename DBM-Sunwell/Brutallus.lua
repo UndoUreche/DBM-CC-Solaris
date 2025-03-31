@@ -3,7 +3,7 @@ local L		= mod:GetLocalizedStrings()
 
 mod:SetRevision("20220518110528")
 mod:SetCreatureID(24882)
-mod:SetUsedIcons(1, 2, 3, 4, 5, 6, 7, 8)
+mod:SetUsedIcons(1, 2, 3, 4, 5, 6)
 
 mod:RegisterCombat("yell", L.Pull)
 mod.disableHealthCombat = true
@@ -34,12 +34,12 @@ local timerBurnNext		= mod:NewNextTimer(20, 46394, nil, nil, nil, 3)
 
 local berserkTimer		= mod:NewBerserkTimer(360)
 
-mod:AddSetIconOption("BurnIcon", 46394, true, false, {1, 2, 3, 4, 5, 6, 7, 8})
+mod:AddSetIconOption("BurnIcon", 46394, true, false, {1, 2, 3, 4, 5, 6})
 mod:AddRangeFrameOption(4, 46394)
 mod:AddMiscLine(DBM_CORE_L.OPTION_CATEGORY_DROPDOWNS)
 mod:AddDropdownOption("RangeFrameActivation", {"AlwaysOn", "OnDebuff"}, "OnDebuff", "misc")
 
-mod.vb.burnIcon = 8
+mod.vb.burnIcon = 6
 local debuffName = DBM:GetSpellInfo(46394)
 
 local DebuffFilter
@@ -50,7 +50,7 @@ do
 end
 
 function mod:OnCombatStart(delay)
-	self.vb.burnIcon = 8
+	self.vb.burnIcon = 6
 	timerBurnNext:Start(20-delay)
 	timerStompNext:Start(-delay)
 	timerMeteorNext:Start(11-delay)
@@ -77,7 +77,7 @@ function mod:SPELL_AURA_APPLIED(args)
 			self:SetIcon(args.destName, self.vb.burnIcon)
 		end
 		if self.vb.burnIcon == 1 then
-			self.vb.burnIcon = 8
+			self.vb.burnIcon = 6
 		else
 			self.vb.burnIcon = self.vb.burnIcon - 1
 		end

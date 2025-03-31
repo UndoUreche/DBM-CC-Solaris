@@ -94,6 +94,8 @@ local function phase2(self)
 	warnPhase2:Show()
 	self:Unschedule(HumanSpawn)
 	self:Unschedule(VoidSpawn)
+	timerHuman:Cacnel()
+	timerVoid:Cancel()
 	timerBlackHoleCD:Start(15)
 	
 	if self.Options.HealthFrame then

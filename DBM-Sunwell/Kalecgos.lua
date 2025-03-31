@@ -61,6 +61,7 @@ function mod:OnCombatStart(delay)
 end
 
 function mod:OnCombatEnd()
+	Kal:Hide()
 	Kal:DestroyFrame()
 	DBM.RangeCheck:Hide()
 end

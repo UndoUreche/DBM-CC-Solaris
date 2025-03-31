@@ -114,7 +114,12 @@ end
 function mod:CHAT_MSG_RAID_BOSS_EMOTE(msg, _, _, _, target)
 	if (msg == L.Nova or msg:find(L.Nova)) and target then
 		timerNova:Start()
-		timerNovaCD:Start()
+		
+		if mod:GetStage() == 1 then
+			timerNovaCD:Start()
+		else
+			timerNovaCD:Start(20)
+		end
 		
 		target = DBM:GetUnitFullName(target)
 		if target == UnitName("player") then
