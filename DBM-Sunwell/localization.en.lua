@@ -132,7 +132,8 @@ L:SetWarningLocalization({
 L:SetTimerLocalization({
 	TimerHuman		= "Next Humanoids (%s)",
 	TimerVoid		= "Next Void (%s)",
-	TimerPhase		= "Entropius"
+	TimerPhase		= "Entropius",
+	TimerFiend		= "Next Dark Fiend"
 })
 
 L:SetOptionLocalization({
@@ -143,6 +144,7 @@ L:SetOptionLocalization({
 	specWarnBH		= "Show special warning for black hole (scatter)",
 	specWarnVW		= "Show special Pre-warning for Void Sentinel",
 	specWarnDarknessSoon 	= "Show special warning before Darkness",
+	TimerFiend		= "Show timer for Fiends in phase 2",
 	TimerHuman		= "Show timer for Humanoids",
 	TimerVoid		= "Show timer for Void Sentinels",
 	TimerPhase		= "Show timer for Phase 2 transition"

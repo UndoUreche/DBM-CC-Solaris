@@ -30,6 +30,7 @@ local timerNextDarkness			= mod:NewNextTimer(45, 45996, nil, nil, nil, 2)
 local timerDarknessDura			= mod:NewBuffActiveTimer(20, 45996)
 local timerBlackHoleCD			= mod:NewNextTimer(15, 46282)
 local timerPhase			= mod:NewTimer(10, "TimerPhase", 46087, nil, nil, 6)
+local timerFiend			= mod:NewTimer(15, "TimerFiend", 45996, nil, nil, 6)
 
 local berserkTimer			= mod:NewBerserkTimer(600)
 
@@ -77,6 +78,9 @@ end
 function mod:SPELL_SUMMON(args)
 	if args.spellId == 46268 then
 		warnFiend:Show()
+		if self:GetStage() == 2 then
+			timerFiend:Start()
+		end
 	elseif args.spellId == 46282 then
 		specWarnBH:Show()
 		timerBlackHoleCD:Start()
@@ -97,6 +101,7 @@ local function phase2(self)
 	timerHuman:Cancel()
 	timerVoid:Cancel()
 	timerBlackHoleCD:Start(15)
+	timerFiend:Start(10)
 	
 	if self.Options.HealthFrame then
 		DBM.BossHealth:Clear()
