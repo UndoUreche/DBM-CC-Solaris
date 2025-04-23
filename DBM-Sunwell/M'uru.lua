@@ -10,6 +10,8 @@ mod:RegisterEventsInCombat(
 	"SPELL_AURA_APPLIED 45996",
 	"SPELL_CAST_SUCCESS 46177",
 	"SPELL_SUMMON 46268 46282",
+	"SPELL_PERIODIC_DAMAGE 45996",
+	"SPELL_DAMAGE 46264",
 	"UNIT_DIED",
 	"UNIT_HEALTH"
 )
@@ -17,7 +19,7 @@ mod:RegisterEventsInCombat(
 local warnHuman				= mod:NewAnnounce("WarnHuman", 4, 27778)
 local warnVoid				= mod:NewAnnounce("WarnVoid", 4, 46087)
 local warnPhase2			= mod:NewPhaseAnnounce(2)
-local warnFiend				= mod:NewAnnounce("WarnFiend", 2, 46268)
+local warnFiend				= mod:NewSpecialWarning("WarnFiend")
 local preWarnDarknessSoon		= mod:NewPreWarnAnnounce(45996, "5")
 
 local specWarnDarkness			= mod:NewSpecialWarningSpell(45996, "specWarnVoid")
@@ -31,6 +33,8 @@ local timerDarknessDura			= mod:NewBuffActiveTimer(20, 45996)
 local timerBlackHoleCD			= mod:NewNextTimer(15, 46282)
 local timerPhase			= mod:NewTimer(10, "TimerPhase", 46087, nil, nil, 6)
 local timerFiend			= mod:NewTimer(15, "TimerFiend", 45996, nil, nil, 6)
+
+local yellDarkness			= mod:NewYell(45996, nil, true)
 
 local berserkTimer			= mod:NewBerserkTimer(600)
 
@@ -59,8 +63,8 @@ function mod:OnCombatStart(delay)
 	timerHuman:Start(10-delay, 1)
 	timerVoid:Start(30-delay, 1)
 	specWarnVW:Schedule(25)
-	timerNextDarkness:Start(-delay)
-	preWarnDarknessSoon:Schedule(40)
+	timerNextDarkness:Start(48-delay)
+	preWarnDarknessSoon:Schedule(43)
 	self:Schedule(10, HumanSpawn, self)
 	self:Schedule(30, VoidSpawn, self)
 	berserkTimer:Start(-delay)
@@ -96,10 +100,6 @@ end
 local function phase2(self)
 	self:SetStage(2)
 	warnPhase2:Show()
-	self:Unschedule(HumanSpawn)
-	self:Unschedule(VoidSpawn)
-	timerHuman:Cancel()
-	timerVoid:Cancel()
 	timerBlackHoleCD:Start(15)
 	timerFiend:Start(10)
 	
@@ -123,9 +123,19 @@ function mod:OnSync(msg)
 		specWarnVW:Cancel()
 		timerPhase:Start()
 		preWarnDarknessSoon:Cancel()
+		self:Unschedule(HumanSpawn)
+		self:Unschedule(VoidSpawn)
 		self:Schedule(10, phase2, self)
 	end
 end
+
+function mod:SPELL_DAMAGE(_, _, _, destGUID, _, _, spellId)
+	if (spellId == 46264 or spellId == 45996) and destGUID == UnitGUID("player") and self:AntiSpam() then
+		yellDarkness:Yell()
+	end
+end
+
+mod.SPELL_PERIODIC_DAMAGE = mod.SPELL_DAMAGE
 
 function mod:SPELL_CAST_SUCCESS(args)
 	if args.spellId == 46177 then

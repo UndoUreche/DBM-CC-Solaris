@@ -122,7 +122,7 @@ L:SetGeneralLocalization({
 L:SetWarningLocalization({
 	WarnHuman		= "Humanoids (%d)",
 	WarnVoid		= "Void Sentinel (%d)",
-	WarnFiend		= "Dark Fiend spawned",
+	WarnFiend		= "Dark Fiend is spawning!",
 	specWarnVoid		= "Darkness - Scatter skulls!",
 	specWarnBH		= "Black Hole - Scatter skulls!",
 	specWarnVW		= "Void Sentinels in 5",
@@ -139,7 +139,7 @@ L:SetTimerLocalization({
 L:SetOptionLocalization({
 	WarnHuman		= "Show warning for Humanoids",
 	WarnVoid		= "Show warning for Void Sentinels",
-	WarnFiend		= "Show warning for Fiends in phase 2",
+	WarnFiend		= "Show special warning for Fiends in phase 2",
 	specWarnVoid		= "Show special warning for Gloom (scatter)",
 	specWarnBH		= "Show special warning for black hole (scatter)",
 	specWarnVW		= "Show special Pre-warning for Void Sentinel",
