@@ -12,21 +12,19 @@ mod:RegisterEventsInCombat(
 	"SPELL_AURA_REMOVED 45641",
 	"SPELL_CAST_START 46605 45737 46680",
 	"SPELL_CAST_SUCCESS 45680 45848 45892 46589",
+	"SPELL_DAMAGE 45680",
 	"CHAT_MSG_MONSTER_YELL"
 )
 
 local warnBloom			= mod:NewTargetAnnounce(45641, 2)
 local warnDarkOrb		= mod:NewAnnounce("WarnDarkOrb", 4, 45109)
 local warnDart			= mod:NewSpellAnnounce(45740, 3)
-local warnShield		= mod:NewSpellAnnounce(45848, 1)
 local warnBlueOrb		= mod:NewAnnounce("WarnBlueOrb", 1, 45109)
-local warnSpikeTarget		= mod:NewTargetAnnounce(46589, 3)
 local warnPhase2		= mod:NewPhaseAnnounce(2)
 local warnPhase3		= mod:NewPhaseAnnounce(3)
 local warnPhase4		= mod:NewPhaseAnnounce(4)
 
-local specWarnSpike		= mod:NewSpecialWarningMove(46589)
-local yellSpike			= mod:NewYellMe(46589)
+local specWarnSpike		= mod:NewSpecialWarningSpell(46589)
 local specWarnBloom		= mod:NewSpecialWarningYou(45641, nil, nil, nil, 1, 2)
 local yellBloom			= mod:NewYellMe(45641)
 local specWarnBomb		= mod:NewSpecialWarningMoveTo(46605, nil, nil, nil, 3, 2)--findshield
@@ -35,18 +33,16 @@ local specWarnDarkOrb		= mod:NewSpecialWarning("SpecWarnDarkOrb", false)
 local specWarnBlueOrb		= mod:NewSpecialWarning("SpecWarnBlueOrb", false)
 
 local timerBloomCD		= mod:NewCDTimer(40, 45641, nil, nil, nil, 2)
-local timerDartCD		= mod:NewCDTimer(20, 45740, nil, nil, nil, 2)--Targeted or aoe?
+local timerDartCD		= mod:NewCDTimer(7, 45740, nil, nil, nil, 2)--Targeted or aoe?
 local timerBomb			= mod:NewCastTimer(9, 46605, nil, nil, nil, 2, nil, DBM_COMMON_L.DEADLY_ICON)
 local timerBombCD		= mod:NewCDTimer(45, 46605, nil, nil, nil, 2, nil, DBM_COMMON_L.DEADLY_ICON)
-local timerSpike		= mod:NewCastTimer(28, 46680, nil, nil, nil, 3)
-local timerBlueOrb		= mod:NewTimer(37, "TimerBlueOrb", 45109, nil, nil, 5)
-
-local berserkTimer		= mod:NewBerserkTimer(mod:IsTimewalking() and 600 or 900)
+local timerSpike		= mod:NewCastTimer(28, 46589, nil, nil, nil, 3)
+local timerBlueOrb		= mod:NewTimer(35, "TimerBlueOrb", 45109, nil, nil, 5)
 
 mod:AddRangeFrameOption("12")
 mod:AddSetIconOption("BloomIcon", 45641, true, false, {4, 5, 6, 7, 8})
 
-local bloomTimer = 40
+local bloomTimer = 38
 local warnBloomTargets = {}
 local orbGUIDs = {}
 mod.vb.bloomIcon = 8
@@ -63,9 +59,8 @@ function mod:OnCombatStart(delay)
 	table.wipe(orbGUIDs)
 	self.vb.bloomIcon = 8
 	self:SetStage(1)
-	berserkTimer:Start(-delay)
 	timerBloomCD:Start(9-delay)
-	bloomTimer = 40
+	bloomTimer = 38
 	
 	if self.Options.RangeFrame then
 		DBM.RangeCheck:Show()
@@ -122,49 +117,59 @@ function mod:SPELL_CAST_START(args)
 		timerDartCD:Start()
 	elseif args.spellId == 46680 then
 		timerSpike:Start()
+		specWarnSpike:Show()
 	end
 end
 
-function mod:SPELL_CAST_SUCCESS(args)
-	if args.spellId == 45680 and not orbGUIDs[args.sourceGUID] then
-		orbGUIDs[args.sourceGUID] = true
+function mod:SPELL_DAMAGE(sourceGUID, _, _, _, _, _, spellId) --this should be done on SPELL_CAST_SUCCESS
+
+	if spellId == 45680 and not orbGUIDs[sourceGUID] then
+		orbGUIDs[sourceGUID] = true
 		if self:AntiSpam(5, 1) then
 			warnDarkOrb:Show()
 			specWarnDarkOrb:Show()
 		end
-	elseif args.spellId == 45848 then
-		warnShield:Show()
+	end
+end
+
+function mod:SPELL_CAST_SUCCESS(args)
+	if args.spellId == 45848 then
 		specWarnShield:Show()
-	elseif args.spellId == 45892 then
+		
+	elseif args.spellId == 45892 and self:AntiSpam(5) then --phase change
 		self:SetStage(0)
+		
 		if self.vb.phase == 2 then
 			warnPhase2:Show()
+			
+			timerBloomCD:Cancel()
+			
+			timerBloomCD:Start(37)
 			timerBlueOrb:Start()
-			timerDartCD:Start(59)
-			timerBombCD:Start(77)
+			timerDartCD:Start(32)
+			timerBombCD:Start(45)
 		elseif self.vb.phase == 3 then
 			warnPhase3:Show()
+			
+			timerBloomCD:Cancel()
 			timerBlueOrb:Cancel()
 			timerDartCD:Cancel()
 			timerBombCD:Cancel()
+			
+			timerBloomCD:Start(37)
 			timerBlueOrb:Start()
-			timerDartCD:Start(48.7)
-			timerBombCD:Start(77)
+			timerBombCD:Start(42)
 		elseif self.vb.phase == 4 then
 			warnPhase4:Show()
+			bloomTimer = 18
+		
+			timerBloomCD:Cancel()
 			timerBlueOrb:Cancel()
-			timerDartCD:Cancel()
 			timerBombCD:Cancel()
-			timerBlueOrb:Start(45)
-			timerDartCD:Start(49)
+			
+			timerBloomCD:Start(47)
+			timerBlueOrb:Start(60)
 			timerBombCD:Start(58)
-		end
-	elseif args.spellId == 46589 and args.destName ~= nil then
-		if args.destName == UnitName("player") then
-			specWarnSpike:Show()
-			yellSpike:Yell()
-		else
-			warnSpikeTarget:Show(args.destName)
 		end
 	end
 end
