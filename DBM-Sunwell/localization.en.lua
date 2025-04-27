@@ -133,7 +133,7 @@ L:SetTimerLocalization({
 	TimerHuman		= "Next Humanoids (%s)",
 	TimerVoid		= "Next Void (%s)",
 	TimerPhase		= "Entropius",
-	TimerFiend		= "Next Dark Fiend"
+	TimerFiend		= "Dark Fiend CD"
 })
 
 L:SetOptionLocalization({

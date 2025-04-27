@@ -30,9 +30,9 @@ local timerHuman			= mod:NewTimer(60, "TimerHuman", 27778, nil, nil, 6)
 local timerVoid				= mod:NewTimer(30, "TimerVoid", 46087, nil, nil, 6)
 local timerNextDarkness			= mod:NewNextTimer(45, 45996, nil, nil, nil, 2)
 local timerDarknessDura			= mod:NewBuffActiveTimer(20, 45996)
-local timerBlackHoleCD			= mod:NewNextTimer(15, 46282)
+local timerBlackHoleCD			= mod:NewCDTimer(14, 46282)
 local timerPhase			= mod:NewTimer(10, "TimerPhase", 46087, nil, nil, 6)
-local timerFiend			= mod:NewTimer(15, "TimerFiend", 45996, nil, nil, 6)
+local timerFiend			= mod:NewTimer(8, "TimerFiend", 45996, nil, nil, 6)
 
 local yellDarkness			= mod:NewYell(45996, nil, true)
 
@@ -100,8 +100,8 @@ end
 local function phase2(self)
 	self:SetStage(2)
 	warnPhase2:Show()
-	timerBlackHoleCD:Start(15)
-	timerFiend:Start(10)
+	timerBlackHoleCD:Start()
+	timerFiend:Start()
 	
 	if self.Options.HealthFrame then
 		DBM.BossHealth:Clear()
