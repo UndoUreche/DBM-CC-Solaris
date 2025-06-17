@@ -63,7 +63,7 @@ function mod:OnCombatStart(delay)
 	bloomTimer = 38
 	
 	if self.Options.RangeFrame then
-		DBM.RangeCheck:Show()
+		DBM.RangeCheck:Show(12)
 	end
 end
 
