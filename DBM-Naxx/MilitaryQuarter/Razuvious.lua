@@ -14,27 +14,29 @@ mod:RegisterEventsInCombat(
 
 local warnShoutNow		= mod:NewSpellAnnounce(29107, 1)
 local warnShoutSoon		= mod:NewSoonAnnounce(29107, 3)
-local warnShieldWall	= mod:NewAnnounce("WarningShieldWallSoon", 3, 29061, nil, nil, nil, 29061)
+local warnShieldWall		= mod:NewAnnounce("WarningShieldWallSoon", 3, 29061, nil, nil, nil, 29061)
 
 local timerShout		= mod:NewNextTimer(15, 29107, nil, nil, nil, 2)
 local timerTaunt		= mod:NewCDTimer(20, 29060, nil, nil, nil, 5, nil, DBM_COMMON_L.TANK_ICON)
-local timerShieldWall	= mod:NewCDTimer(20, 29061, nil, nil, nil, 5, nil, DBM_COMMON_L.TANK_ICON)
-local timerMindControl	= mod:NewBuffActiveTimer(60, 605, nil, nil, nil, 6)
+local timerShieldWall		= mod:NewCDTimer(20, 29061, nil, nil, nil, 5, nil, DBM_COMMON_L.TANK_ICON)
+local timerMindControl		= mod:NewBuffActiveTimer(60, 605, nil, nil, nil, 6)
 
 function mod:OnCombatStart(delay)
-	timerShout:Start(16 - delay)
-	warnShoutSoon:Schedule(11 - delay)
+	timerShout:Start(15 - delay)
+	warnShoutSoon:Schedule(10 - delay)
 end
 
 function mod:SPELL_CAST_SUCCESS(args)
 	local spellId = args.spellId
-	if args:IsSpellID(55543, 29107) then  -- Disrupting Shout
+	
+	if args:IsSpellID(55543, 29107) then  	-- Disrupting Shout
 		timerShout:Start()
 		warnShoutNow:Show()
-		warnShoutSoon:Schedule(11)
-	elseif spellId == 29060 then -- Taunt
+		warnShoutSoon:Schedule(10)
+	elseif spellId == 29060 then 		-- Taunt
 		timerTaunt:Start(20, args.sourceGUID)
-	elseif spellId == 29061 then -- ShieldWall
+	elseif spellId == 29061 then 		-- ShieldWall
+		print(args.sourceGUID)
 		timerShieldWall:Start(20, args.sourceGUID)
 		warnShieldWall:Schedule(15)
 	end
@@ -49,6 +51,7 @@ end
 function mod:UNIT_DIED(args)
 	local guid = args.destGUID
 	local cid = self:GetCIDFromGUID(guid)
+
 	if cid == 16803 then--Deathknight Understudy
 		timerTaunt:Stop(args.destGUID)
 		timerShieldWall:Stop(args.destGUID)
