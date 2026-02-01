@@ -87,7 +87,7 @@ local function NextWave(self)
 	end
 end
 
-function mod:OnCombatStart()
+function mod:OnCombatStart(delay)
 	self:SetStage(1)
 	if self:IsDifficulty("normal25") then
 		waves = wavesHeroic
@@ -95,12 +95,12 @@ function mod:OnCombatStart()
 		waves = wavesNormal
 	end
 	self.vb.wave = 0
-	timerGate:Start()
-	timerPhase2:Start()
-	warnPhase2:Schedule(277)
-	timerWave:Start(30, self.vb.wave + 1)
-	self:Schedule(30, NextWave, self)
-	self:Schedule(274, StartPhase2, self)
+	timerGate:Start(-delay)
+	timerPhase2:Start(-delay)
+	warnPhase2:Schedule(277-delay)
+	timerWave:Start(30-delay, self.vb.wave + 1)
+	self:Schedule(30-delay, NextWave, self)
+	self:Schedule(274-delay, StartPhase2, self)
 end
 
 function mod:OnTimerRecovery()

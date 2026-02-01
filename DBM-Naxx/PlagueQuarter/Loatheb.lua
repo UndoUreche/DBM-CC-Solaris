@@ -63,6 +63,8 @@ function mod:SPELL_AURA_APPLIED(args)
 	local spellId = args.spellId
 	if spellId == 55593 then
 		timerAura:Start()
+		warnHealSoon:Cancel()
+		warnHealNow:Cancel()
 		warnHealSoon:Schedule(14)
 		warnHealNow:Schedule(17)
 	end
