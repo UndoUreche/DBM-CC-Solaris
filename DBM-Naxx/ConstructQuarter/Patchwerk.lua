@@ -14,11 +14,9 @@ mod:RegisterEventsInCombat(
 local enrageTimer	= mod:NewBerserkTimer(360)
 local timerAchieve	= mod:NewAchievementTimer(180, 1857)
 
-mod:AddBoolOption("WarningHateful", false, "announce", nil, nil, nil, 28308)
+local warnHateful	= mod:NewTargetNoFilterAnnounce(28308, 4)
 
-local function announceStrike(target, damage)
-	SendChatMessage(L.HatefulStrike:format(target, damage), "RAID")
-end
+local prevHateful
 
 function mod:OnCombatStart(delay)
 	enrageTimer:Start(-delay)
@@ -26,13 +24,15 @@ function mod:OnCombatStart(delay)
 end
 
 function mod:SPELL_DAMAGE(_, _, _, _, destName, _, spellId, _, _, amount)
-	if (spellId == 28308 or spellId == 59192) and self.Options.WarningHateful and DBM:GetRaidRank() >= 1 then
-		announceStrike(destName, amount or 0)
+	if (spellId == 28308 or spellId == 59192) and (not prevHateful or prevHateful ~= destName)then
+		prevHateful = destName
+		warnHateful:Show(destName)
 	end
 end
 
 function mod:SPELL_MISSED(_, _, _, _, destName, _, spellId, _, _, missType)
-	if (spellId == 28308 or spellId == 59192) and self.Options.WarningHateful and DBM:GetRaidRank() >= 1 then
-		announceStrike(destName, getglobal("ACTION_SPELL_MISSED_"..(missType)) or "")
+	if (spellId == 28308 or spellId == 59192) and (not prevHateful or prevHateful ~= destName)then
+		prevHateful = destName
+		warnHateful:Show(destName)
 	end
 end
