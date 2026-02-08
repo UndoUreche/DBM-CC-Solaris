@@ -9,7 +9,7 @@ mod:SetRevision("20221030130154")
 mod:SetCreatureID(15990)
 mod:SetModelID("creature/lich/lich.m2")
 mod:SetMinCombatTime(60)
-mod:SetUsedIcons(1, 2, 3, 4, 5, 6, 7, 8)
+mod:SetUsedIcons(1, 2, 3, 8)
 
 mod:RegisterCombat("combat_yell", L.Yell)
 
@@ -17,40 +17,40 @@ mod:RegisterEventsInCombat(
 	"SPELL_AURA_APPLIED 27808 27819 28410",
 	"SPELL_AURA_REMOVED 28410",
 	"SPELL_CAST_SUCCESS 27810 27819 27808 28410",
-	"UNIT_HEALTH boss1"
+	"UNIT_HEALTH",
+	"CHAT_MSG_RAID_BOSS_EMOTE"
 )
 
 local warnAddsSoon			= mod:NewAnnounce("warnAddsSoon", 1, "Interface\\Icons\\INV_Misc_MonsterSpiderCarapace_01")
 local warnPhase2			= mod:NewPhaseAnnounce(2, 3)
-local warnBlastTargets		= mod:NewTargetAnnounce(27808, 2)
+local warnBlastTargets			= mod:NewTargetAnnounce(27808, 2)
 local warnFissure			= mod:NewTargetNoFilterAnnounce(27810, 4)
 local warnMana				= mod:NewTargetAnnounce(27819, 2)
-local warnChainsTargets		= mod:NewTargetNoFilterAnnounce(28410, 4)
-local warnMindControlSoon	= mod:NewSoonAnnounce(28410, 4)
+local warnChainsTargets			= mod:NewTargetNoFilterAnnounce(28410, 4)
+local warnMindControlSoon		= mod:NewSoonAnnounce(28410, 4)
 
-local specwarnP2Soon		= mod:NewSpecialWarning("specwarnP2Soon")
-local specWarnManaBomb		= mod:NewSpecialWarningMoveAway(27819, nil, nil, nil, 1, 2)
-local specWarnManaBombNear	= mod:NewSpecialWarningClose(27819, nil, nil, nil, 1, 2)
+local specwarnP2Soon			= mod:NewSpecialWarning("specwarnP2Soon")
+local specWarnManaBomb			= mod:NewSpecialWarningMoveAway(27819, nil, nil, nil, 1, 2)
+local specWarnManaBombNear		= mod:NewSpecialWarningClose(27819, nil, nil, nil, 1, 2)
 local yellManaBomb			= mod:NewShortYell(27819)
 local specWarnBlast			= mod:NewSpecialWarningTarget(27808, "Healer", nil, nil, 1, 2)
-local specWarnFissureYou	= mod:NewSpecialWarningYou(27810, nil, nil, nil, 3, 2)
-local specWarnFissureClose	= mod:NewSpecialWarningClose(27810, nil, nil, nil, 2, 8)
+local specWarnFissureYou		= mod:NewSpecialWarningYou(27810, nil, nil, nil, 3, 2)
+local specWarnFissureClose		= mod:NewSpecialWarningClose(27810, nil, nil, nil, 2, 8)
 local yellFissure			= mod:NewYellMe(27810)
 
 local blastTimer			= mod:NewBuffActiveTimer(4, 27808, nil, nil, nil, 5, nil, DBM_COMMON_L.HEALER_ICON)
-local timerManaBomb			= mod:NewCDTimer(20, 27819, nil, nil, nil, 3)--20-50
-local timerFrostBlast		= mod:NewCDTimer(30, 27808, nil, nil, nil, 3, nil, DBM_COMMON_L.DEADLY_ICON)--40-46 (retail 40.1)
+local timerManaBomb			= mod:NewNextTimer(30, 27819, nil, nil, nil, 3)--20-50
+local timerFrostBlast			= mod:NewNextTimer(45, 27808, nil, nil, nil, 3, nil, DBM_COMMON_L.DEADLY_ICON)--40-46 (retail 40.1)
 local timerFissure			= mod:NewTargetTimer(5, 27810, nil, nil, 2, 3)
-local timerFissureCD 		= mod:NewCDTimer(11.5, 27810, nil, nil, nil, 3, nil, nil, true) -- Huge variance! Added "keep" arg (25m Lordaeron 2022/10/16) - Stage 2/*, 22.8, 41.2, 77.5, 11.5
+local timerFissureCD 			= mod:NewNextTimer(25, 27810, nil, nil, nil, 3, nil, nil, true) -- Huge variance! Added "keep" arg (25m Lordaeron 2022/10/16) - Stage 2/*, 22.8, 41.2, 77.5, 11.5
 local timerMC				= mod:NewBuffActiveTimer(20, 28410, nil, nil, nil, 3)
-local timerMCCD				= mod:NewCDTimer(90, 28410, nil, nil, nil, 3)--actually 60 second cdish but its easier to do it this way for the first one.
+local timerMCCD				= mod:NewNextTimer(90, 28410, nil, nil, nil, 3)--actually 60 second cdish but its easier to do it this way for the first one.
 local timerPhase2			= mod:NewTimer(228, "TimerPhase2", nil, nil, nil, 6) -- (25m Lordaeron 2022/10/16) - 228.0
 
-mod:AddRangeFrameOption(12, 27819)
+mod:AddRangeFrameOption("11", 27808)
 mod:AddSetIconOption("SetIconOnMC", 28410, true, false, {1, 2, 3})
 mod:AddSetIconOption("SetIconOnManaBomb", 27819, false, false, {8})
-mod:AddSetIconOption("SetIconOnFrostTomb", 27808, true, false, {1, 2, 3, 4, 5, 6, 7, 8})
-mod:AddDropdownOption("RemoveBuffsOnMC", {"Never", "Gift", "CCFree", "ShortOffensiveProcs", "MostOffensiveBuffs"}, "Never", "misc", nil, 28410)
+--mod:AddDropdownOption("RemoveBuffsOnMC", {"Never", "Gift", "CCFree", "ShortOffensiveProcs", "MostOffensiveBuffs"}, "Never", "misc", nil, 28410)
 
 local RaidWarningFrame = RaidWarningFrame
 local GetFramesRegisteredForEvent, RaidNotice_AddMessage = GetFramesRegisteredForEvent, RaidNotice_AddMessage
@@ -66,22 +66,11 @@ local function selfWarnMissingSet()
 	end
 end
 
+--[[
 mod:AddMiscLine(L.EqUneqLineDescription)
 mod:AddBoolOption("EqUneqWeaponsKT", mod:IsDps(), nil, selfWarnMissingSet)
 mod:AddBoolOption("EqUneqWeaponsKT2")
-
-local function selfSchedWarnMissingSet(self)
-	if self.Options.EqUneqWeaponsKT and not self:IsEquipmentSetAvailable("pve") then
-		for i = 1, select("#", GetFramesRegisteredForEvent("CHAT_MSG_RAID_WARNING")) do
-			local frame = select(i, GetFramesRegisteredForEvent("CHAT_MSG_RAID_WARNING"))
-			if frame.AddMessage then
-				self:Schedule(10, frame.AddMessage, frame, L.setMissing)
-			end
-		end
-		self:Schedule(10, RaidNotice_AddMessage, RaidWarningFrame, L.setMissing, ChatTypeInfo["RAID_WARNING"])
-	end
-end
-mod:Schedule(0.5, selfSchedWarnMissingSet, mod) -- mod options default values were being read before SV ones, so delay this
+--]]
 
 mod.vb.warnedAdds = false
 mod.vb.MCIcon = 1
@@ -89,7 +78,7 @@ local frostBlastTargets = {}
 local chainsTargets = {}
 local isHunter = select(2, UnitClass("player")) == "HUNTER"
 local playerClass = select(2, UnitClass("player"))
-
+--[[
 local function UnWKT(self)
 	if (self.Options.EqUneqWeaponsKT or self.Options.EqUneqWeaponsKT2) and self:IsEquipmentSetAvailable("pve") then
 		PickupInventoryItem(16)
@@ -106,13 +95,15 @@ local function UnWKT(self)
 end
 
 local function EqWKT(self)
-	if (self.Options.EqUneqWeaponsKT or self.Options.EqUneqWeaponsKT2) and self:IsEquipmentSetAvailable("pve") then
+	if (
+--self.Options.EqUneqWeaponsKT or 
+self.Options.EqUneqWeaponsKT2) and self:IsEquipmentSetAvailable("pve") then
 		DBM:Debug("trying to equip pve",1)
 		UseEquipmentSet("pve")
 		CancelUnitBuff("player", (GetSpellInfo(25780))) -- Righteous Fury
 	end
 end
-
+--]]
 local aurastoRemove = { -- ordered by aggressiveness {degree, classFilter}
 	-- 1 (Gift)
 	[48469] = {1, nil}, -- Mark of the Wild
@@ -212,32 +203,8 @@ local function AnnounceBlastTargets(self)
 	else
 		warnBlastTargets:Show(table.concat(frostBlastTargets, "< >"))
 	end
-	blastTimer:Start(3.5)
-	if self.Options.SetIconOnFrostTomb then
-		for i = #frostBlastTargets, 1, -1 do
-			self:SetIcon(frostBlastTargets[i], 8 - i, 4.5)
-			frostBlastTargets[i] = nil
-		end
-	end
-end
-
-local function StartPhase2(self)
-	if self.vb.phase == 1 then
-		self:SetStage(2)
-		warnPhase2:Show()
-		warnPhase2:Play("ptwo")
-		if self:IsDifficulty("normal25") then
-			timerMCCD:Start(31)
-			warnMindControlSoon:Schedule(26)
-			if self.Options.EqUneqWeaponsKT and self:IsDps() then
-				self:Schedule(60, UnWKT, self)
-				self:Schedule(60.5, UnWKT, self)
-			end
-		end
-		if self.Options.RangeFrame then
-			DBM.RangeCheck:Show(12)
-		end
-	end
+	blastTimer:Start(4)
+	table.wipe(frostBlastTargets)
 end
 
 function mod:OnCombatStart(delay)
@@ -248,10 +215,6 @@ function mod:OnCombatStart(delay)
 	self.vb.MCIcon = 1
 	specwarnP2Soon:Schedule(218-delay)
 	timerPhase2:Start()
---	self:Schedule(226, StartPhase2, self)
-	self:RegisterShortTermEvents(
-		"INSTANCE_ENCOUNTER_ENGAGE_UNIT"
-	)
 end
 
 function mod:OnCombatEnd()
@@ -277,6 +240,7 @@ function mod:SPELL_CAST_SUCCESS(args)
 			warnFissure:Play("watchstep")
 		end
 	elseif args.spellId == 28410 then
+		--[[
 		DBM:Debug("MC on "..args.destName,2)
 		if args.destName == UnitName("player") then
 			if self.Options.RemoveBuffsOnMC ~= "Never" then
@@ -288,6 +252,7 @@ function mod:SPELL_CAST_SUCCESS(args)
 				DBM:Debug("Unequipping",2)
 			end
 		end
+		--]]
 		if self:AntiSpam(2, 2) then
 			timerMCCD:Start()
 		end
@@ -323,7 +288,7 @@ function mod:SPELL_AURA_APPLIED(args)
 		if self:AntiSpam() then
 			timerMC:Start()
 			timerMCCD:Start()
-			warnMindControlSoon:Schedule(60)
+			warnMindControlSoon:Schedule(85)
 		end
 		if self.Options.SetIconOnMC then
 			self:SetIcon(args.destName, self.vb.MCIcon)
@@ -335,10 +300,10 @@ function mod:SPELL_AURA_APPLIED(args)
 		else
 			self:Schedule(1.0, AnnounceChainsTargets, self)
 		end
-		if self.Options.EqUneqWeaponsKT and self:IsDps() then
-			self:Schedule(58.0, UnWKT, self)
-			self:Schedule(58.5, UnWKT, self)
-		end
+		--if self.Options.EqUneqWeaponsKT and self:IsDps() then
+		--	self:Schedule(58.0, UnWKT, self)
+		--	self:Schedule(58.5, UnWKT, self)
+		--end
 	end
 end
 
@@ -347,6 +312,7 @@ function mod:SPELL_AURA_REMOVED(args)
 		if self.Options.SetIconOnMC then
 			self:SetIcon(args.destName, 0)
 		end
+		--[[
 		if (args.destName == UnitName("player") or args:IsPlayer()) and (self.Options.EqUneqWeaponsKT or self.Options.EqUneqWeaponsKT2) and self:IsDps() then
 			DBM:Debug("Equipping scheduled",2)
 			self:Schedule(0.1, EqWKT, self)
@@ -356,13 +322,7 @@ function mod:SPELL_AURA_REMOVED(args)
 			self:Schedule(9.0, EqWKT, self)
 			self:Schedule(11.0, EqWKT, self)
 		end
-	end
-end
-
-function mod:INSTANCE_ENCOUNTER_ENGAGE_UNIT()
-	if UnitExists("boss1") and self:GetUnitCreatureId("boss1") == 15990 then
-		StartPhase2(self)
-		self:UnregisterShortTermEvents()
+		--]]
 	end
 end
 
@@ -370,5 +330,27 @@ function mod:UNIT_HEALTH(uId)
 	if not self.vb.warnedAdds and self:GetUnitCreatureId(uId) == 15990 and UnitHealth(uId) / UnitHealthMax(uId) <= 0.48 then
 		self.vb.warnedAdds = true
 		warnAddsSoon:Show()
+	end
+end
+
+function mod:CHAT_MSG_RAID_BOSS_EMOTE(msg)
+	if msg == L.Phase2 or msg:find(L.Phase2) then
+		self:SetStage(2)
+		warnPhase2:Show()
+		warnPhase2:Play("ptwo")
+
+		timerFrostBlast:Start()
+		timerFissureCD:Start()
+		timerManaBomb:Start()
+		timerMCCD:Start()
+		warnMindControlSoon:Schedule(85)
+	
+		if self.Options.EqUneqWeaponsKT and self:IsDps() then
+			self:Schedule(60, UnWKT, self)
+			self:Schedule(60.5, UnWKT, self)
+		end
+		if self.Options.RangeFrame then
+			DBM.RangeCheck:Show(11)
+		end
 	end
 end

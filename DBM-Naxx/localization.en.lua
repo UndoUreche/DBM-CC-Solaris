@@ -387,5 +387,6 @@ L:SetMiscLocalization({
 --	YellMC1		= "Your soul is bound to me, now!",
 --	YellMC2		= "There will be no escape!",
 	setMissing	= "ATTENTION! DBM automatic weapon unequipping/equipping will not work until you create a equipment set named pve",
-	EqUneqLineDescription	= "Automatic Equip/Unequip"
+	EqUneqLineDescription	= "Automatic Equip/Unequip",
+	Phase2		= "Kel'Thuzad strikes!"
 })
