@@ -388,5 +388,6 @@ L:SetMiscLocalization({
 --	YellMC2		= "There will be no escape!",
 	setMissing	= "ATTENTION! DBM automatic weapon unequipping/equipping will not work until you create a equipment set named pve",
 	EqUneqLineDescription	= "Automatic Equip/Unequip",
-	Phase2		= "Kel'Thuzad strikes!"
+	Phase2		= "Kel'Thuzad strikes!",
+	Guardians	= "Master, I require aid!"
 })
