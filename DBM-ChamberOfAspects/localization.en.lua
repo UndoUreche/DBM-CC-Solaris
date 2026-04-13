@@ -58,9 +58,9 @@ L:SetWarningLocalization({
 	WarningWhelpsSoon		= "Tenebron Whelps Soon",
 	WarningPortalSoon		= "Shadron Portal Soon",
 	WarningReflectSoon		= "Vesperon Reflect Soon",
-	WarningVesperonPortal	= "Vesperon's portal",
-	WarningTenebronPortal	= "Tenebron's portal",
-	WarningShadronPortal	= "Shadron's portal"
+	WarningVesperonPortal		= "Vesperon's portal",
+	WarningTenebronPortal		= "Tenebron's portal",
+	WarningShadronPortal		= "Shadron's portal"
 })
 
 L:SetTimerLocalization({
@@ -68,9 +68,9 @@ L:SetTimerLocalization({
 	TimerShadron			= "Shadron arrives",
 	TimerVesperon			= "Vesperon arrives",
 	TimerTenebronWhelps		= "Tenebron Whelps",
+	TimerTenebronPortal		= "Tenebron Portal",
 	TimerShadronPortal		= "Shadron Portal",
-	TimerVesperonPortal		= "Vesperon Portal",
-	TimerVesperonPortal2	= "Vesperon Portal 2"
+	TimerVesperonPortal		= "Vesperon Portal"
 })
 
 L:SetOptionLocalization({
@@ -81,7 +81,7 @@ L:SetOptionLocalization({
 	TimerTenebronWhelps		= "Show timer for Tenebron Whelps",
 	TimerShadronPortal		= "Show timer for Shadron Portal",
 	TimerVesperonPortal		= "Show timer for Vesperon Portal",
-	TimerVesperonPortal2	= "Show timer for Vesperon Portal 2",
+	TimerTenebronPortal		= "Show timer for Tenebron Portal",
 	WarningFireWall			= "Show special warning for Fire Wall",
 	WarningTenebron			= "Announce Tenebron incoming",
 	WarningShadron			= "Announce Shadron incoming",
@@ -95,12 +95,14 @@ L:SetOptionLocalization({
 })
 
 L:SetMiscLocalization({
-	YellSarthPull	= "It is my charge to watch over these eggs. I will see you burn before any harm comes to them!",
+	YellSarthPull		= "It is my charge to watch over these eggs. I will see you burn before any harm comes to them!",
 	Wall			= "The lava surrounding %s churns!",
 	Portal			= "%s begins to open a Twilight Portal!",
-	NameTenebron	= "Tenebron",
+	Eggs			= "Tenebron begins to hatch eggs in the Twilight!",
+	Disciple		= "You pose no threat, lesser beings! Give me your worst!",
+	NameTenebron		= "Tenebron",
 	NameShadron		= "Shadron",
-	NameVesperon	= "Vesperon",
+	NameVesperon		= "Vesperon",
 	FireWallOn		= "Fire Wall: %s",
 	VoidZoneOn		= "Shadow Fissure: %s",
 	VoidZones		= "Shadow Fissure fails (this try): %s",
