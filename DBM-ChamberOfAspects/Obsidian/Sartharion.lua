@@ -213,6 +213,13 @@ function mod:UNIT_DIED(args)
 	elseif cid == 30449 then -- vesperon
 		timerVesperonPortal:Cancel()
 		warnVesperonPortalSoon:Cancel()
+	
+	elseif cid == 31219 then -- vesperon acolyte
+		self:SendSync("VesperonAcolyte")
+
+	elseif cid == 31218 then -- shadron acolyte
+		self:SendSync("ShadronAcolyte")		
+
 	end
 end
 
@@ -236,5 +243,12 @@ function mod:OnSync(event)
 	elseif event == "ShadronPortal" then
 		specWarnShadronPortal:Show()
 		specWarnShadronPortal:Play("newportal")
+	elseif event == "VesperonAcolyte" then
+		timerVesperonPortal:Start(30)
+		warnVesperonPortalSoon:Schedule(25)
+	elseif event == "ShadronAcolyte" then
+		timerShadronPortal:Start(30)
+		warnShadronPortalSoon:Schedule(25
+)
 	end
 end
