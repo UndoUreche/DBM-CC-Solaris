@@ -8,12 +8,15 @@ mod:RegisterCombat("combat_yell", L.Yell)
 
 mod:RegisterEventsInCombat(
 	"SPELL_CAST_START 28089",
+	"SPELL_CAST_SUCCESS 28134",
 	"CHAT_MSG_RAID_BOSS_EMOTE",
 	"UNIT_AURA player"
 )
 
 local warnShiftSoon			= mod:NewPreWarnAnnounce(28089, 5, 3)
 local warnThrowSoon			= mod:NewSoonAnnounce(28338, 1)
+
+local warnPowerSurge			= mod:NewSpecialWarningDefensive(54529, nil, nil, "Tank", 3, 2)
 
 local warnChargeChanged			= mod:NewSpecialWarning("WarningChargeChanged", nil, nil, nil, 3, 2, nil, nil, 28089)
 local yellShift				= mod:NewShortPosYell(28089, DBM_CORE_L.AUTO_YELL_CUSTOM_POSITION)
@@ -95,6 +98,13 @@ do
 			currentCharge = charge
 		end
 	end
+end
+
+function mod:SPELL_CAST_SUCCESS(args)
+	if args.spellId == 28134 and DBM:IsTanking("player", DBM:GetUnitIdFromCID(15929, false)) then
+		warnPowerSurge:Show()
+		warnChargeChanged:Play("defensive")
+	end	
 end
 
 function mod:CHAT_MSG_RAID_BOSS_EMOTE(msg)
