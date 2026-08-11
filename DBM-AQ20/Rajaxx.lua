@@ -1,60 +1,45 @@
 local mod	= DBM:NewMod("Rajaxx", "DBM-AQ20", 1)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20220518110528")
+mod:SetRevision(("$Revision: 171 $"):sub(12, -3))
 mod:SetCreatureID(15341)
+mod:RegisterCombat("yell", L.Wave1)
+mod:SetMinCombatTime(60)
 
-mod:SetModelID(15341)
-mod:RegisterCombat("combat")
-
-mod:RegisterEvents(--An exception to not use incombat events, cause boss might not engage until after his waves
-	"SPELL_AURA_APPLIED 25471",
-	"SPELL_CAST_SUCCESS 26550 25599",
+mod:RegisterEvents(
+	"SPELL_AURA_APPLIED",
+	"SPELL_CAST_SUCCESS",
 	"CHAT_MSG_MONSTER_YELL"
 )
 
-local warnWave			= mod:NewAnnounce("WarnWave", 2)
-local warnOrder			= mod:NewTargetNoFilterAnnounce(25471)
-local warnCloud			= mod:NewSpellAnnounce(26550)
-local warnThundercrash	= mod:NewSpellAnnounce(25599)
+local warnWave		= mod:NewAnnounce("WarnWave", 2)
+local warnOrder		= mod:NewTargetAnnounce(25471)
+local warnCloud		= mod:NewSpellAnnounce(26550)
+local warnCrash		= mod:NewSpellAnnounce(25599)
 
-local specWarnOrder		= mod:NewSpecialWarningYou(25471, nil, nil, nil, 1, 2)
-local yellOrder			= mod:NewYell(25471)
+local specWarnOrder	= mod:NewSpecialWarningYou(25471)
 
-local timerOrder		= mod:NewTargetTimer(10, 25471, nil, nil, nil, 3)
-local timerCloud		= mod:NewBuffActiveTimer(15, 26550, nil, nil, nil, 3)--? Good color?
+local timerOrder	= mod:NewTargetTimer(10, 25471)
+local timerCrash	= mod:NewCastTimer(21, 25599)
+local timerCloud	= mod:NewBuffActiveTimer(15, 26550)
 
-local timerThundercrashCD	= mod:NewCDTimer(21, 25599, nil, nil, nil, 3)
-
-do
-	local AttackOrder = DBM:GetSpellInfo(25471)
-	function mod:SPELL_AURA_APPLIED(args)
-		--if args.spellId == 25471 then
-		if args.spellName == AttackOrder then
-			timerOrder:Start(args.destName)
-			if args:IsPlayer() then
-				specWarnOrder:Show()
-				specWarnOrder:Play("targetyou")
-				yellOrder:Yell()
-			else
-				warnOrder:Show(args.destName)
-			end
+function mod:SPELL_AURA_APPLIED(args)
+	if args.spellId == 25471 then
+		warnOrder:Show(args.destName)
+		timerOrder:Start(args.destName)
+		if args:IsPlayer() then
+			specWarnOrder:Show()
 		end
 	end
 end
 
-do
-	local LightningCloud, Thundercrash = DBM:GetSpellInfo(26550), DBM:GetSpellInfo(25599)
-	function mod:SPELL_CAST_SUCCESS(args)
-		--if args.spellId == 26550 then
-		if args.spellName == LightningCloud then
-			warnCloud:Show()
-			timerCloud:Start()
-		--elseif args.spellId == 25599 then
-		elseif args.spellName == Thundercrash then
-			warnThundercrash:Show()
-			timerThundercrashCD:Start()
-		end
+function mod:SPELL_CAST_SUCCESS(args)
+	if args.spellId == 26550 then
+		warnCloud:Show()
+		timerCloud:Start()
+	elseif args.spellId == 25599 then
+		warnCrash:Show()
+		timerCrash:Start()
 	end
 end
 
@@ -73,12 +58,13 @@ function mod:CHAT_MSG_MONSTER_YELL(msg)--some of these yells have line breaks th
 		self:SendSync("Wave", 7)
 	elseif msg == L.Wave8 or msg:find(L.Wave8) then
 		self:SendSync("Wave", 8)
+		
+		timerCrash:Start(12)
 	end
 end
 
-function mod:OnSync(msg, count)
---	if DBM:GetCurrentArea() ~= 509 OR DBM:GetCurrentArea() ~= 3429 then return end--Block syncs if not in the zone
+function mod:OnSync(msg, arg)
 	if msg == "Wave" then
-		warnWave:Show(count)
+		warnWave:Show(arg)
 	end
 end

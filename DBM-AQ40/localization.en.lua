@@ -159,13 +159,15 @@ L:SetWarningLocalization({
 })
 
 L:SetTimerLocalization({
-	TimerSubmerge		= "Forced Submerge",
+	TimerSubmerge		= "Submerge",
+	TimerForcedSubmerge	= "Forced Submerge",
 	TimerEmerge			= "Emerge"
 })
 
 L:SetOptionLocalization({
 	WarnSubmerge		= "Show warning for submerge",
-	TimerSubmerge		= "Show timer for when submerge will be forced. Note: He can still submerge at any time what so ever if his target leaves melee range.",
+	TimerSubmerge		= "Show timer for submerge",
+	TimerForcedSubmerge	= "Show timer for when submerge will be forced. Note: He can still submerge at any time what so ever if his target leaves melee range.",
 	WarnEmerge			= "Show warning for emerge",
 	TimerEmerge			= "Show timer for emerge"
 })
