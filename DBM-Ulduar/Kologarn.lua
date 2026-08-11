@@ -140,6 +140,8 @@ function mod:UNIT_DIED(args)
 		end
 	elseif self:GetCIDFromGUID(args.destGUID) == 32933 then		-- left arm
 		timerRespawnLeftArm:Start()
+		timerNextShockwave:Cancel()
+		
 		if not self.vb.disarmActive then
 			self.vb.disarmActive = true
 			if self:IsDifficulty("normal10") then

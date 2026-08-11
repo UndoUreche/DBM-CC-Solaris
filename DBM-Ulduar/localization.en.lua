@@ -264,7 +264,7 @@ L:SetGeneralLocalization({
 })
 
 L:SetWarningLocalization({
-	WarnSimulKill		= "First add down - Resurrection in ~12 seconds"
+	WarnSimulKill		= "Add down - Resurrection in ~11 seconds"
 })
 
 L:SetTimerLocalization({
@@ -287,7 +287,9 @@ L:SetMiscLocalization({
 	EmoteLGift			= "begins to grow!", -- A |cFF00FFFFLifebinder's Gift|r begins to grow!
 	TrashRespawnTimer	= "Freya trash respawn",
 	YellPullNormal		= "The Conservatory must be protected!",
-	YellPullHard		= "Elders grant me your strength!"
+	YellPullHard		= "Elders grant me your strength!",
+	Ress				= "With the help of its allies the %s regenerates back to life.",
+	EmoteIronRoot		= "Freya casts "
 })
 
 ----------------------
