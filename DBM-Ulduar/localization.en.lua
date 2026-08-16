@@ -325,12 +325,14 @@ L:SetWarningLocalization({
 
 L:SetTimerLocalization({
 	TimerHardmode	= "Hard mode - Self-destruct",
+	TimeToPhase2	= "Phase 1",
 	TimeToPhase2	= "Phase 2",
 	TimeToPhase3	= "Phase 3",
 	TimeToPhase4	= "Phase 4"
 })
 
 L:SetOptionLocalization({
+	TimeToPhase1			= "Show timer for Phase 1",
 	TimeToPhase2			= "Show timer for Phase 2",
 	TimeToPhase3			= "Show timer for Phase 3",
 	TimeToPhase4			= "Show timer for Phase 4",
