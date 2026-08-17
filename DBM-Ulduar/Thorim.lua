@@ -15,13 +15,16 @@ mod:RegisterEventsInCombat(
 	"SPELL_AURA_APPLIED_DOSE 62279",
 	"SPELL_AURA_REMOVED 62507",
 	"SPELL_DAMAGE 62017",
+	"SPELL_MISSED 62017",
 	"CHAT_MSG_MONSTER_YELL"
 )
 
 -- General
-local enrageTimerStage1				= mod:NewBerserkTimer(300, nil, DBM_CORE_L.GENERIC_TIMER_BERSERK..": "..DBM_CORE_L.SCENARIO_STAGE:format(1)) -- REVIEW! Need log to validate, only used Wowhead as reference
-local enrageTimerStage2				= mod:NewBerserkTimer(300, nil, DBM_CORE_L.GENERIC_TIMER_BERSERK..": "..DBM_CORE_L.SCENARIO_STAGE:format(2)) -- REVIEW! Need log to validate, only used Wowhead as reference
+local enrageTimerStage1				= mod:NewBerserkTimer(300, nil, DBM_CORE_L.GENERIC_TIMER_BERSERK..": "..DBM_CORE_L.SCENARIO_STAGE:format(1))
+local enrageTimerStage2				= mod:NewBerserkTimer(300, nil, DBM_CORE_L.GENERIC_TIMER_BERSERK..": "..DBM_CORE_L.SCENARIO_STAGE:format(2))
 mod:AddRangeFrameOption("8")
+
+local timerStart					= mod:NewTimer(20, "TimeToPhase1", nil, nil, nil, 6)
 
 -- Stage One
 mod:AddTimerLine(DBM_CORE_L.SCENARIO_STAGE:format(1))
@@ -33,7 +36,7 @@ local yellRuneDetonation			= mod:NewYell(62526)
 local specWarnLightningShock		= mod:NewSpecialWarningMove(62017, nil, nil, nil, 1, 2)
 
 local timerStormhammerCast			= mod:NewCastTimer(2, 62042, nil, nil, nil, 3)
-local timerStormhammerCD			= mod:NewCDTimer(14.2, 62042, nil, nil, nil, 3, nil, nil, true) -- ~5s variance. Added "keep" arg (25 man NM log 2022/07/10 || 25 man HM log 2022/07/17 || 25m Lordaeron 2022/10/09) - 16.2, 15.5, 16.8, 19.4, 17.8, 15.5, 16.8 || 16.9, 17.7, 18.0, 14.8 || 15.1, 16.2, 17.0, 14.2, 16.1, 15.6, 15.8
+local timerStormhammerCD			= mod:NewNextTimer(13.2, 62042, nil, nil, nil, 3)
 
 mod:AddSetIconOption("SetIconOnRuneDetonation", 62527, false, false, {7})
 
@@ -41,24 +44,25 @@ mod:AddSetIconOption("SetIconOnRuneDetonation", 62527, false, false, {7})
 mod:AddTimerLine(DBM_CORE_L.SCENARIO_STAGE:format(2))
 local warnPhase2					= mod:NewPhaseAnnounce(2, 1, nil, nil, nil, nil, nil, 2)
 local warnLightningCharge			= mod:NewSpellAnnounce(62466, 2)
+local warnChainLightning			= mod:NewSpellAnnounce(64390, 2)
 
 local specWarnUnbalancingStrikeSelf	= mod:NewSpecialWarningDefensive(62130, nil, nil, nil, 1, 2)
 local specWarnUnbalancingStrike		= mod:NewSpecialWarningTaunt(62130, nil, nil, nil, 1, 2)
 
-local timerLightningCharge			= mod:NewCDTimer(15.2, 62466, nil, nil, nil, 3) -- ~2s variance. (25 man NM log 2022/07/10 || 25 man HM log 2022/07/17 || 25 man Lordaeron 20222/10/30) - ? || ? || 16.7, 15.3, 16.1, 15.9
-local timerUnbalancingStrike		= mod:NewCDTimer(19.6, 62130, nil, "Tank", nil, 5, nil, DBM_COMMON_L.TANK_ICON) -- ~12s variance (25 man NM log 2022/07/10 || 25 man HM log 2022/07/17) - 24.9, 31.4, 31.8, 26.7 || 27.7, 28.5, 19.6, 26.5, 21.5, 28.6, 21.1, 28.5, 26.9
-local timerChainLightning			= mod:NewNextTimer(10.2, 64390) -- ~5s variance (25 man NM log 2022/07/10 || 25 man HM log 2022/07/17) - 14.5, 13.3, 13.8, 14.7, 10.3, 14.8, 10.3, 13.3, 12.4 || 12.3, 10.2, 14.4, 14.9, 12.5, 11.0, 14.4, 12.2, 13.4, 12.3, 11.6, 12.8, 10.6, 12.2, 10.3, 14.1
+local timerLightningCharge			= mod:NewNextTimer(10, 62466, nil, nil, nil, 3)
+local timerUnbalancingStrike		= mod:NewCDTimer(20, 62130, nil, "Tank", nil, 5, nil, DBM_COMMON_L.TANK_ICON) 
+local timerChainLightning			= mod:NewNextTimer(15, 64390) 
 
-mod:AddBoolOption("AnnounceFails", false, "announce", nil, nil, nil, 62466)
+--mod:AddBoolOption("AnnounceFails", false, "announce", nil, nil, nil, 62466)
 
 -- Hard Mode
 mod:AddTimerLine(DBM_COMMON_L.HEROIC_ICON..DBM_CORE_L.HARD_MODE)
 local specWarnHardModeFailed		= mod:NewSpecialWarningEnd(62507, nil, nil, nil, 1, 2)
 
-local timerHardmode					= mod:NewTimer(150, "TimerHardmode", "Interface\\Icons\\achievement_boss_thorim", nil, nil, 0, nil, nil, nil, nil, nil, nil, nil, 62507) -- 25 man NM log review (2022/07/10), 2:30 from 62507 SPELL_AURA_APPLIED to SPELL_AURA_REMOVED
-local timerFrostNova				= mod:NewNextTimer(10.4, 62605, nil, nil, nil, 2, nil, DBM_COMMON_L.MAGIC_ICON) -- ~10s variance (25 man HM log 2022/07/17) - 16.0, 13.1, 16.6, 11.8, 14.4, 13.6, 20.3, 10.4, 19.0, 18.3, 19.8, 13.0, 12.4
+local timerHardmode					= mod:NewTimer(150, "TimerHardmode", "Interface\\Icons\\achievement_boss_thorim", nil, nil, 0, nil, nil, nil, nil, nil, nil, nil, 62507) 
+local timerFrostNova				= mod:NewCDTimer(20, 62605, nil, nil, nil, 2, nil, DBM_COMMON_L.MAGIC_ICON) 
 local timerFrostNovaCast			= mod:NewCastTimer(2.5, 62605, nil, nil, nil, 2, nil, DBM_COMMON_L.MAGIC_ICON)
-local timerFBVolley					= mod:NewCDTimer(8.0, 62604) -- ~8s variance (25 man HM log 2022/07/17) - 8.6, 15.1, 9.3, 14.3, 9.6, 8.0, 9.9, 13.4, 8.0, 9.8, 16.0, 12.3, 9.5, 16.2, 9.9, 8.1, 11.4, 8.0, 9.0
+local timerFBVolley					= mod:NewCDTimer(13, 62604) 
 
 --mod:GroupSpells(62042, 62470) -- Stormhammer, Deafening Thunder
 mod:GroupSpells(62526, 62527) -- Rune of Detonation
@@ -68,6 +72,10 @@ local lastcharge = {}
 function mod:OnCombatStart()
 	self:SetStage(1)
 	enrageTimerStage1:Start()
+	
+	timerStormhammerCD:Schedule(20, 8)
+	timerStart:Start()
+	
 	if self.Options.RangeFrame then
 		DBM.RangeCheck:Show(8)
 	end
@@ -83,7 +91,7 @@ function mod:OnCombatEnd()
 	if self.Options.RangeFrame then
 		DBM.RangeCheck:Hide()
 	end
-	if self.Options.AnnounceFails and DBM:GetRaidRank() >= 1 then
+	--[[if self.Options.AnnounceFails and DBM:GetRaidRank() >= 1 then
 		local lcharge = ""
 		for k, _ in pairs(lastcharge) do
 			table.insert(sortedFailsC, k)
@@ -94,7 +102,7 @@ function mod:OnCombatEnd()
 		end
 		SendChatMessage(L.Charge:format(lcharge), "RAID")
 		table.wipe(sortedFailsC)
-	end
+	end]]
 end
 
 function mod:SPELL_CAST_START(args)
@@ -106,6 +114,7 @@ function mod:SPELL_CAST_START(args)
 		timerFrostNova:Start()
 	elseif args:IsSpellID(64390, 62131) then	-- Chain Lightning by Thorim
 		timerChainLightning:Start()
+		warnChainLightning:Show()
 	end
 end
 
@@ -146,7 +155,7 @@ function mod:SPELL_AURA_APPLIED(args)
 		elseif self:CheckNearby(10, args.destName) then
 			specWarnRuneDetonation:Show(args.destName)
 			specWarnRuneDetonation:Play("runaway")
-		elseif self:CheckBossDistance(args.sourceGUID, true, 1180) then	--Within Scroll of Stamina range (33) -- CheckBossDistance prone to fail since boss frame is only created on Stage 2 and the fallback would require raidtarget to be Thorim, which there is really no point in. Even if it fails 99% of the time, it returns true regardless so keep it
+		elseif self:CheckBossDistance(args.sourceGUID, true, 1180) then	
 			warnRuneDetonation:Show(args.destName)
 		end
 		if self.Options.SetIconOnRuneDetonation then
@@ -179,28 +188,40 @@ function mod:SPELL_DAMAGE(_, _, _, _, destName, destFlags, spellId)
 			specWarnLightningShock:Show()
 			specWarnLightningShock:Play("runaway")
 		end
-	elseif spellId == 62466 and self.Options.AnnounceFails and DBM:GetRaidRank() >= 1 and DBM:GetRaidUnitId(destName) ~= "none" and destName then
+	--[[elseif spellId == 62466 and self.Options.AnnounceFails and DBM:GetRaidRank() >= 1 and DBM:GetRaidUnitId(destName) ~= "none" and destName then
 		lastcharge[destName] = (lastcharge[destName] or 0) + 1
-		SendChatMessage(L.ChargeOn:format(destName), "RAID")
+		SendChatMessage(L.ChargeOn:format(destName), "RAID")]]
 	end
 end
+
+mod.SPELL_MISSED = mod.SPELL_DAMAGE
 
 function mod:CHAT_MSG_MONSTER_YELL(msg)
 	if msg == L.YellPhase2 or msg:find(L.YellPhase2) then		-- Bossfight (tank and spank)
 		self:SendSync("Phase2")
 	-- elseif msg == L.YellKill or msg:find(L.YellKill) then
 	--	enrageTimer:Stop()
+	elseif msg == L.YellHm or msg:find(L.YellHm) then
+		self:SendSync("Hm")
 	end
 end
 
 function mod:OnSync(event)
 	if event == "Phase2" and self.vb.phase < 2 then
 		self:SetStage(2)
+		
 		warnPhase2:Show()
 		warnPhase2:Play("ptwo")
+		
 		enrageTimerStage1:Stop()
 		timerHardmode:Stop()
-		enrageTimerStage2:Start(300)
-		timerLightningCharge:Start(35.6) -- (S3 VOD review 2022/07/15, reconfirmed with S3 FM HM log 2022/07/17 || 25m Lordaeron 2022/10/09) - 36 || 35.6
+		
+		enrageTimerStage2:Start()
+		timerLightningCharge:Start(12.5)
+		timerChainLightning:Start(13)
+		timerUnbalancingStrike:Start(8)
+	elseif event == "Hm" then
+		timerFrostNova:Start(3)
+		timerFBVolley:Start(11)
 	end
 end

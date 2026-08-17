@@ -238,10 +238,12 @@ L:SetGeneralLocalization({
 })
 
 L:SetTimerLocalization({
+	TimeToPhase1	= "Start",
 	TimerHardmode	= "Hard mode"
 })
 
 L:SetOptionLocalization({
+	TimeToPhase1	= "Show timer for encounter start",
 	TimerHardmode	= "Show timer for hard mode",
 	AnnounceFails	= "Post player fails for $spell:62017 to raid chat<br/>(requires announce to be enabled and leader/promoted status)"
 })
@@ -249,6 +251,7 @@ L:SetOptionLocalization({
 L:SetMiscLocalization({
 	YellPhase1	= "Interlopers! You mortals who dare to interfere with my sport will pay.... Wait--you...",
 	YellPhase2	= "Impertinent whelps, you dare challenge me atop my pedestal? I will crush you myself!",
+	YellHm		= "Impossible!  Lord Thorim, I will bring your foes a frigid death!",
 	YellKill	= "Stay your arms! I yield!",
 	ChargeOn	= "Lightning Charge: %s",
 	Charge		= "Lightning Charge fails (this try): %s"
