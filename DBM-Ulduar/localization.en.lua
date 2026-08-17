@@ -378,7 +378,8 @@ L:SetOptionLocalization({
 })
 
 L:SetMiscLocalization({
-	EmoteSaroniteVapors	= "A cloud of saronite vapors coalesces nearby!"
+	EmoteSaroniteVapors	= "A cloud of saronite vapors coalesces nearby!",
+	YellStart			= "Your destruction will herald a new age of suffering!"
 })
 
 ------------------
