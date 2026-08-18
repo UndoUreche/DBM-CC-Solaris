@@ -42,6 +42,11 @@ L:SetOptionLocalization({
 	soundConcAuraMastery	= "Play $spell:31821 sound to negate the effects of $spell:63472 (only for the |cFFF48CBAPaladin|r that is the owner of $spell:19746)"
 })
 
+
+L:SetMiscLocalization({
+	Pull				= "Insolent whelps! Your blood will temper the weapons used to reclaim this world!"
+})
+
 ------------------
 --  Razorscale  --
 ------------------
@@ -399,8 +404,8 @@ L:SetWarningLocalization({
 	SpecWarnSanity					= "%d Sanity remaining",
 	SpecWarnGuardianLow				= "Stop attacking this Guardian",
 	SpecWarnMadnessOutNow			= "Induce Madness ending - Move out",
-	WarnBrainPortalSoon				= "Brain Portal in 10 seconds",
-	SpecWarnBrainPortalSoon			= "Brain Portal soon"
+	WarnBrainPortalSoon				= "Brain Portal in 5 seconds",
+	SpecWarnBrainPortal				= "Brain Portal!"
 })
 
 L:SetTimerLocalization({
@@ -414,10 +419,11 @@ L:SetOptionLocalization({
 	SpecWarnSanity					= "Show special warning when $spell:63050 is very low",
 	SpecWarnGuardianLow				= "Show special warning when Guardian (Phase 1) is low (for DPS)",
 	WarnBrainPortalSoon				= "Show pre-warning for Brain Portal",
-	SpecWarnMadnessOutNow			= "Show special warning shortly before $spell:64059 ends",
-	SpecWarnBrainPortalSoon			= "Show special warning for next Brain Portal",
+	SpecWarnMadnessOutNow			= "Show special warning shortly before $spell:64059 ends, if you are inside the brain room",
+	SpecWarnBrainPortal				= "Show special warning for Brain Portal",
 	NextPortal						= "Show timer for next Brain Portal",
 	ShowSaraHealth					= "Show health frame for Sara in Phase 1 (must be targeted or focused by at least one raid member)",
+	ShowBrainHealth					= "Show health frame for the brain in Phase 2",
 	MaladyArrow						= "Show DBM arrow when $spell:63881 is near you"
 })
 
@@ -425,6 +431,7 @@ L:SetMiscLocalization({
 	YellPull			= "The time to strike at the head of the beast will soon be upon us! Focus your anger and hatred on his minions!",
 	S1TheLucidDream		= "Stage One: The Lucid Dream",
 	Sara				= "Sara",
+	Brain				= "Brain",
 	GuardianofYoggSaron	= "Guardian of Yogg-Saron",
 	S2DescentIntoMadness= "Stage Two: Descent into Madness",
 	CrusherTentacle		= "Crusher Tentacle",

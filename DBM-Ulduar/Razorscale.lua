@@ -31,10 +31,10 @@ local specWarnDevouringFlameYou		= mod:NewSpecialWarningYou(64733, false, nil, n
 local specWarnDevouringFlameNear	= mod:NewSpecialWarningClose(64733, false, nil, nil, 1, 2)
 local yellDevouringFlame			= mod:NewYell(64733)
 
-local timerTurret1					= mod:NewTimer(54, "timerTurret1", 48642, nil, nil, 5, DBM_COMMON_L.IMPORTANT_ICON) -- 25 man log review (2022/07/10)
-local timerTurret2					= mod:NewTimer(76, "timerTurret2", 48642, nil, nil, 5, DBM_COMMON_L.IMPORTANT_ICON) -- 25 man log review (2022/07/10)
-local timerTurret3					= mod:NewTimer(97, "timerTurret3", 48642, nil, nil, 5, DBM_COMMON_L.IMPORTANT_ICON) -- 25 man log review (2022/07/10)
-local timerTurret4					= mod:NewTimer(118, "timerTurret4", 48642, nil, nil, 5, DBM_COMMON_L.IMPORTANT_ICON) -- 25 man log review (2022/07/10)
+local timerTurret1					= mod:NewTimer(34, "timerTurret1", 48642, nil, nil, 5, DBM_COMMON_L.IMPORTANT_ICON) -- 25 man log review (2022/07/10)
+local timerTurret2					= mod:NewTimer(61, "timerTurret2", 48642, nil, nil, 5, DBM_COMMON_L.IMPORTANT_ICON) -- 25 man log review (2022/07/10)
+local timerTurret3					= mod:NewTimer(88, "timerTurret3", 48642, nil, nil, 5, DBM_COMMON_L.IMPORTANT_ICON) -- 25 man log review (2022/07/10)
+local timerTurret4					= mod:NewTimer(116, "timerTurret4", 48642, nil, nil, 5, DBM_COMMON_L.IMPORTANT_ICON) -- 25 man log review (2022/07/10)
 
 -- Stage Two
 mod:AddTimerLine(DBM_CORE_L.SCENARIO_STAGE:format(2))
@@ -43,10 +43,10 @@ local warnFuseArmor					= mod:NewStackAnnounce(64771, 2, nil, "Tank")
 local specWarnFuseArmor				= mod:NewSpecialWarningStack(64771, nil, 2, nil, nil, 1, 6)
 local specWarnFuseArmorOther		= mod:NewSpecialWarningTaunt(64771, nil, nil, nil, 1, 2)
 
-local timerDeepBreathCooldown		= mod:NewCDTimer(20.1, 64021, nil, nil, nil, 5) -- ~3s variance (25 man log review 2022/07/10) - 23.0, 20.1
+local timerDeepBreathCooldown		= mod:NewNextTimer(21, 64021, nil, nil, nil, 5) -- ~3s variance (25 man log review 2022/07/10) - 23.0, 20.1
 local timerDeepBreathCast			= mod:NewCastTimer(2.5, 64021)
-local timerGrounded					= mod:NewTimer(45, "timerGrounded", nil, nil, nil, 6)
-local timerFuseArmorCD				= mod:NewCDTimer(10.1, 64771, nil, "Tank", nil, 5, nil, DBM_COMMON_L.TANK_ICON) -- 10s variance (25 man log review 2022/07/10) - 10.1, 20.1
+local timerGrounded					= mod:NewTimer(30, "timerGrounded", nil, nil, nil, 6)
+local timerFuseArmorCD				= mod:NewNextTimer(12, 64771, nil, "Tank", nil, 5, nil, DBM_COMMON_L.TANK_ICON) -- 10s variance (25 man log review 2022/07/10) - 10.1, 20.1
 
 mod:GroupSpells(63236, 64733) -- Devouring Flame (cast and damage)
 
@@ -73,17 +73,17 @@ function mod:OnCombatStart(delay)
 	enrageTimer:Start(-delay)
 	combattime = GetTime()
 	if self:IsDifficulty("normal10") then -- REVIEW. No log yet to validate this.
-		warnTurretsReadySoon:Schedule(53-delay)
-		warnTurretsReady:Schedule(73-delay)
+		warnTurretsReadySoon:Schedule(41-delay)
+		warnTurretsReady:Schedule(61-delay)
 		timerTurret1:Start(-delay)
 		timerTurret2:Start(-delay)
 	else
-		warnTurretsReadySoon:Schedule(97-delay)
-		warnTurretsReady:Schedule(118-delay)
-		timerTurret1:Start(-delay) -- 53sec
-		timerTurret2:Start(-delay) -- +20
-		timerTurret3:Start(-delay) -- +20
-		timerTurret4:Start(-delay) -- +20
+		warnTurretsReadySoon:Schedule(96-delay)
+		warnTurretsReady:Schedule(116-delay)
+		timerTurret1:Start(-delay)
+		timerTurret2:Start(-delay)
+		timerTurret3:Start(-delay)
+		timerTurret4:Start(-delay)
 	end
 end
 
@@ -109,7 +109,7 @@ function mod:SPELL_AURA_APPLIED(args)
 				if expireTime then
 					remaining = expireTime-GetTime()
 				end
-				if not UnitIsDeadOrGhost("player") and (not remaining or remaining and remaining < 12) then
+				if not UnitIsDeadOrGhost("player") and (not remaining or remaining < 15) then
 					specWarnFuseArmorOther:Show(args.destName)
 					specWarnFuseArmorOther:Play("tauntboss")
 				else
@@ -136,12 +136,15 @@ function mod:CHAT_MSG_RAID_BOSS_EMOTE(emote)
 		-- phase2
 		self:SetStage(2)
 		isGrounded = true
+		
 		timerTurret1:Stop()
 		timerTurret2:Stop()
 		timerTurret3:Stop()
 		timerTurret4:Stop()
 		timerGrounded:Stop()
-		timerFuseArmorCD:Start(19) -- REVIEW! variance? (25 man log review 2022/07/10) - 19
+		
+		timerFuseArmorCD:Start(15)
+		timerDeepBreathCooldown:Start()
 	end
 end
 
@@ -149,17 +152,17 @@ function mod:CHAT_MSG_MONSTER_YELL(msg)
 	if isGrounded and (msg == L.YellAir or msg == L.YellAir2) and GetTime() - combattime > 30 then
 		isGrounded = false -- warmane resets the timers idk why
 		if self:IsDifficulty("normal10") then -- not sure?
-			warnTurretsReadySoon:Schedule(23)
-			warnTurretsReady:Schedule(43)
-			timerTurret1:Start(23)
-			timerTurret2:Start(43)
+		warnTurretsReadySoon:Schedule(41)
+		warnTurretsReady:Schedule(61)
+			timerTurret1:Start()
+			timerTurret2:Start()
 		else
-			warnTurretsReadySoon:Schedule(123)
-			warnTurretsReady:Schedule(133)
-			timerTurret1:Start(70)
-			timerTurret2:Start(91)
-			timerTurret3:Start(112)
-			timerTurret4:Start(133)
+			warnTurretsReadySoon:Schedule(96)
+			warnTurretsReady:Schedule(116)
+			timerTurret1:Start()
+			timerTurret2:Start()
+			timerTurret3:Start()
+			timerTurret4:Start()
 		end
 	elseif msg == L.YellGround then
 		timerGrounded:Start()
