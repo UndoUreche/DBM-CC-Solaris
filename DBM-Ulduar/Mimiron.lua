@@ -17,7 +17,7 @@ mod:RegisterEvents(
 mod:RegisterEventsInCombat(
 	"SPELL_CAST_START 63631 64529 62997 64570 64623 64383",
 	"SPELL_CAST_SUCCESS 63414 65192",
-	"SPELL_AURA_APPLIED 63666 65026 64529 62997 64616 64570",
+	"SPELL_AURA_APPLIED 63666 65026 64529 62997 64616 64570 64533",
 	"SPELL_AURA_REMOVED 63666 65026",
 	"CHAT_MSG_LOOT"
 )
@@ -54,9 +54,12 @@ mod:AddTimerLine(DBM_CORE_L.SCENARIO_STAGE:format(2)..": "..L.MobPhase2)
 local specWarnP3Wx2LaserBarrage		= mod:NewSpecialWarningDodge(63274, nil, nil, nil, 3, 2)
 local specWarnRocketStrike			= mod:NewSpecialWarningDodge(64402, nil, nil, nil, 2, 2)
 
+local warnHeatWave					= mod:NewSpellAnnounce(64533, 3)
+
 local timerP3Wx2LaserBarrageCast	= mod:NewCastTimer(10, 63274, nil, nil, nil, 3, nil, DBM_COMMON_L.DEADLY_ICON)
 local timerNextP3Wx2LaserBarrage	= mod:NewNextTimer(48, 63274, nil, nil, nil, 3, nil, DBM_COMMON_L.DEADLY_ICON)
-local timerRocketStrikeCD			= mod:NewNextTimer(22.5, 64402, nil, nil, nil, 3)--20-25
+local timerRocketStrikeCD			= mod:NewNextTimer(22.5, 64402, nil, nil, nil, 3)
+local timerHeatWave					= mod:NewCDTimer(10, 64533, nil, nil, nil, 3)
 
 -- Stage Three
 mod:AddTimerLine(DBM_CORE_L.SCENARIO_STAGE:format(3)..": "..L.MobPhase3)
@@ -186,6 +189,7 @@ local function NextPhase(self)
 		
 		timerNextP3Wx2LaserBarrage:Schedule(42, 33)
 		timerRocketStrikeCD:Schedule(42, 17)
+		timerHeatWave:Schedule(42, 11)
 		
 		self:Schedule(59, show_warning_for_rocket, self)
 		
@@ -378,6 +382,8 @@ function mod:SPELL_AURA_APPLIED(args)
 		specWarnDeafeningSiren:Show()
 	elseif spellId == 64570 and args:IsPlayer() then	-- Flame Suppressant (phase 1)
 		timerFlameSuppressantP1Debuff:Start()
+	elseif spellId == 64533 and args:IsPlayer()then
+		self:SendSync("HeatWave")
 	end
 end
 
@@ -444,5 +450,8 @@ end
 function mod:OnSync(event, args)
 	if event == "LootMsg" and args and self:AntiSpam(2, 1) then
 		warnLootMagneticCore:Show(args)
+	elseif event == "HeatWave" and self:AntiSpam(3, 1) then
+		warnHeatWave:Show()
+		timerHeatWave:Start()
 	end
 end
