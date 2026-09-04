@@ -19,14 +19,16 @@ mod:RegisterEventsInCombat(
 	"SPELL_CAST_SUCCESS 63414 65192",
 	"SPELL_AURA_APPLIED 63666 65026 64529 62997 64616 64570 64533",
 	"SPELL_AURA_REMOVED 63666 65026",
+	"SPELL_SUMMON 64444",
+	"UNIT_SPELLCAST_SUCCEEDED",
 	"CHAT_MSG_LOOT"
 )
 
 --General
 local timerEnrage					= mod:NewBerserkTimer(900)
 local timerP0toP1					= mod:NewTimer(8, "TimeToPhase1", nil, nil, nil, 6) -- From YellPhase1 to IEEU
-local timerP1toP2					= mod:NewTimer(42, "TimeToPhase2", nil, nil, nil, 6) -- From YellPhase2 to IEEU
-local timerP2toP3					= mod:NewTimer(18, "TimeToPhase3", nil, nil, nil, 6) -- From YellPhase3 to IEEU
+local timerP1toP2					= mod:NewTimer(42.5, "TimeToPhase2", nil, nil, nil, 6) -- From YellPhase2 to IEEU
+local timerP2toP3					= mod:NewTimer(17, "TimeToPhase3", nil, nil, nil, 6) -- From YellPhase3 to IEEU
 local timerP3toP4					= mod:NewTimer(27, "TimeToPhase4", nil, nil, nil, 6) -- From YellPhase4 to IEEU
 
 mod:AddRangeFrameOption("6")
@@ -67,6 +69,7 @@ local warnLootMagneticCore			= mod:NewAnnounce("MagneticCore", 1, 64444, nil, ni
 local warnBombBotSpawn				= mod:NewAnnounce("WarnBombSpawn", 3, 63811, nil, nil, nil, 63811)
 
 local timerBombBotSpawn				= mod:NewNextTimer(15, 63811, nil, nil, nil, 1)
+local timerDowned					= mod:NewBuffActiveTimer(20, 64444, nil, nil, nil, 1)
 
 mod:AddBoolOption("AutoChangeLootToFFA", true, nil, nil, nil, nil, 64444)
 
@@ -108,13 +111,12 @@ mod:GroupSpells(64623, 65333) -- Frost Bomb, Frost Bomb Explosion
 local lootmethod, _, masterlooterRaidID
 mod.vb.hardmode = false
 mod.vb.napalmShellIcon = 7
-local spinningUp = DBM:GetSpellInfo(63414)
-local lastSpinUp = 0
-mod.vb.is_spinningUp = false
 local napalmShellTargets = {}
-mod.vb.rocketStrikeReset =   {0, 3.5, 0, 3, 0, 3, 6, 0, 3, 0, 3, 0} --unit cast events are unreliable (could use a sync, but it's still dangerous). Using theater scheduling instead
+mod.vb.is_spinningUp = false
+mod.vb.rocketStrikeReset =   {0, 3.5, 0, 3, 0, 3, 6, 0, 3, 0, 3, 0} --unit cast events are unreliable. Using theater scheduling, and adjusting with unitCast
 mod.vb.rocketStrikeResetP4 = {0, 1, 2, 3, 4, 5, 5, 6, 0, 1, 2, 3, 3}
 mod.vb.barrageWave = 1
+mod.vb.lastRocketWarn = 0
 
 local function ResetRange(self)
 	if self.Options.RangeFrame then
@@ -144,6 +146,8 @@ end
 
 local function show_warning_for_rocket(self)
 	
+	mod.vb.lastRocketWarn = GetTime()
+	
 	specWarnRocketStrike:Show()
 	specWarnRocketStrike:Play("watchstep")
 	
@@ -155,14 +159,6 @@ local function show_warning_for_rocket(self)
 		timerRocketStrikeCD:Start(20.5)
 		self:Schedule(20.5, show_warning_for_rocket, self)
 	end
-end
-
-local function show_warning_for_boom_bot(self)
-	
-	warnBombBotSpawn:Show()
-	timerBombBotSpawn:Start()
-	
-	self:Schedule(15, show_warning_for_boom_bot, self)
 end
 
 local function NextPhase(self)
@@ -218,8 +214,7 @@ local function NextPhase(self)
 		
 		timerP2toP3:Start()
 		
-		timerBombBotSpawn:Schedule(19, 17)
-		self:Schedule(35, show_warning_for_boom_bot, self)
+		timerBombBotSpawn:Schedule(18, 16)
 		
 		if self.Options.HealthFrame then
 			DBM.BossHealth:Clear()
@@ -235,7 +230,6 @@ local function NextPhase(self)
 		end
 		
 		timerBombBotSpawn:Cancel()
-		self:Unschedule(show_warning_for_boom_bot)
 		
 		mod.vb.barrageWave = 1
 		
@@ -338,7 +332,6 @@ function mod:SPELL_CAST_SUCCESS(args)
 		self.vb.is_spinningUp = true
 		timerP3Wx2LaserBarrageCast:Schedule(4)
 		self:Schedule(0.15, show_warning_for_spinup, self)	-- wait 0.15 and then announce it, otherwise it will sometimes fail
-		lastSpinUp = GetTime()
 		
 		timerRocketStrikeCD:Cancel()
 		self:Unschedule(show_warning_for_rocket)
@@ -447,11 +440,45 @@ function mod:CHAT_MSG_LOOT(msg)
 	end
 end
 
+function mod:SPELL_SUMMON(args)
+	if args:IsSpellID(64444) then
+		timerDowned:Schedule(3)
+	end
+end
+
+function mod:UNIT_SPELLCAST_SUCCEEDED(_, spellName)
+	if spellName == GetSpellInfo(63811) then
+		self:SendSync("BombBot")
+	elseif spellName == GetSpellInfo(63041) then
+		self:SendSync("Rocket")
+	end
+end
+
 function mod:OnSync(event, args)
 	if event == "LootMsg" and args and self:AntiSpam(2, 1) then
 		warnLootMagneticCore:Show(args)
 	elseif event == "HeatWave" and self:AntiSpam(3, 1) then
 		warnHeatWave:Show()
 		timerHeatWave:Start()
+	elseif event == "BombBot" and self:AntiSpam(3, 1) then
+		warnBombBotSpawn:Show()
+		timerBombBotSpawn:Start()
+	elseif event == "Rocket" and self:AntiSpam(3, 1) then
+		
+		if GetTime() - mod.vb.lastRocketWarn > 5 then
+			specWarnRocketStrike:Show()
+			specWarnRocketStrike:Play("watchstep")
+		end
+		
+		self:Unschedule(show_warning_for_rocket)
+		timerRocketStrikeCD:Cancel()
+		
+		if self.vb.phase == 2 then
+			timerRocketStrikeCD:Start()
+			self:Schedule(22.5, show_warning_for_rocket, self)
+		else
+			timerRocketStrikeCD:Start(20.5)
+			self:Schedule(20.5, show_warning_for_rocket, self)
+		end
 	end
 end
