@@ -418,11 +418,8 @@ function mod:CHAT_MSG_MONSTER_YELL(msg)
 		self:Schedule(7, Flames, self)
 		warnFlamesSoon:Schedule(2)
 		
-		if self:IsDifficulty("normal10") then
-			timerEnrage:Start(480) 
-		else
-			timerEnrage:Start(600)
-		end
+		timerEnrage:Start(600)
+
 	elseif msg == L.YellPhase2 or msg:find(L.YellPhase2) then -- register Phase 2
 		NextPhase(self)
 	elseif msg == L.YellPhase3 or msg:find(L.YellPhase3) then -- register Phase 3
