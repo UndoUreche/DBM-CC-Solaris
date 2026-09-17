@@ -76,14 +76,15 @@ function mod:OnCombatStart(delay)
 		warnTurretsReadySoon:Schedule(41-delay)
 		warnTurretsReady:Schedule(61-delay)
 		timerTurret1:Start(-delay)
-		timerTurret2:Start(-delay)
+		timerTurret2:Schedule(34, 27-delay)
 	else
 		warnTurretsReadySoon:Schedule(96-delay)
 		warnTurretsReady:Schedule(116-delay)
+		
 		timerTurret1:Start(-delay)
-		timerTurret2:Start(-delay)
-		timerTurret3:Start(-delay)
-		timerTurret4:Start(-delay)
+		timerTurret2:Schedule(34, 27-delay)
+		timerTurret3:Schedule(61, 27-delay)
+		timerTurret4:Schedule(88, 28-delay)
 	end
 end
 
@@ -151,18 +152,20 @@ end
 function mod:CHAT_MSG_MONSTER_YELL(msg)
 	if isGrounded and (msg == L.YellAir or msg == L.YellAir2) and GetTime() - combattime > 30 then
 		isGrounded = false -- warmane resets the timers idk why
+		timerDeepBreathCooldown:Cancel()
+		
 		if self:IsDifficulty("normal10") then -- not sure?
-		warnTurretsReadySoon:Schedule(41)
-		warnTurretsReady:Schedule(61)
+			warnTurretsReadySoon:Schedule(41)
+			warnTurretsReady:Schedule(61)
 			timerTurret1:Start()
-			timerTurret2:Start()
+			timerTurret2:Schedule(34, 27)
 		else
 			warnTurretsReadySoon:Schedule(96)
 			warnTurretsReady:Schedule(116)
 			timerTurret1:Start()
-			timerTurret2:Start()
-			timerTurret3:Start()
-			timerTurret4:Start()
+			timerTurret2:Schedule(34, 27)
+			timerTurret3:Schedule(61, 27)
+			timerTurret4:Schedule(88, 28)
 		end
 	elseif msg == L.YellGround then
 		timerGrounded:Start()

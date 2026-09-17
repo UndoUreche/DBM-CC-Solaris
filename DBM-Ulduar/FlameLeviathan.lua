@@ -14,7 +14,6 @@ mod:RegisterEventsInCombat(
 )
 
 local warnHodirsFury			= mod:NewTargetAnnounce(62297, 3)
-local warnPursueTarget			= mod:NewAnnounce("PursueWarn", 2, 62374, nil, nil, nil, 62374)
 local warnNextPursueSoon		= mod:NewAnnounce("warnNextPursueSoon", 3, 62374, nil, nil, nil, 62374)
 
 local specWarnSystemOverload	= mod:NewSpecialWarningSpell(62475, nil, nil, nil, 1, 12)
@@ -96,7 +95,6 @@ function mod:SPELL_AURA_APPLIED(args)
 		warnNextPursueSoon:Schedule(25)
 		timerPursued:Start(target)
 		
-		warnPursueTarget:Show(target)
 		if target == UnitName("player") then
 			specWarnPursue:Show()
 			specWarnPursue:Play("justrun")

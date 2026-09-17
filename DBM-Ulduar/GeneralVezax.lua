@@ -101,7 +101,10 @@ function mod:SPELL_CAST_SUCCESS(args)
 		if args:IsPlayer() or self:CheckNearby(11, args.destName) then
 			specWarnShadowCrash:Show()
 			specWarnShadowCrash:Play("runaway")
-			yellShadowCrash:Yell()
+			
+			if args:IsPlayer() then
+				yellShadowCrash:Yell()
+			end
 		else
 			warnShadowCrash:Show(args.destName)
 		end

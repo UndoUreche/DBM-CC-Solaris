@@ -162,26 +162,91 @@ function mod:UNIT_HEALTH(uId)
 	if cid == 32871 and UnitHealth(uId) / UnitHealthMax(uId) <= 0.23 and not self.vb.warned_preP2 then
 		self:SendSync("Phase2")
 		
-	elseif cid == 32955 and UnitHealth(uId) / UnitHealthMax(uId) <= 0.25 and not warned_star[guid] then
-		self:SendSync("Star", guid)
+	elseif cid == 32955 then
+		local starHpPct = UnitHealth(uId) / UnitHealthMax(uId)
+				
+		self:SendSync("Star", guid, starHpPct)
 	end
 end
 
 --[[
-function mod:UNIT_SPELLCAST_SUCCEEDED(_, spellName)
-	if spellName == GetSpellInfo(65256) then -- Self Stun (Combat End)
-		DBM:EndCombat(self)
-	end
-end]]
+mod:RegisterOnUpdateHandler(
 
-function mod:OnSync(event, guid)
+function(self)
+	if not self:IsInCombat() then 
+		return 
+	end
+		
+	for uId in DBM:GetGroupMembers() do
+		local target = uId .."target"
+
+		if self:GetUnitCreatureId(target) == 32955 then
+			
+			local targetGUID = UnitGUID(target)
+
+			if not stars[targetGUID] then
+				stars[targetGUID] = L.CollapsingStar .. " " .. star_num
+				
+				do
+					local last = 100
+					
+					local function getStarPercent()
+						local trackingGUID = targetGUID
+
+						for uId in DBM:GetGroupMembers() do
+							local unitId = uId .. "target"
+							
+							if trackingGUID == UnitGUID(unitId) and mod:GetCIDFromGUID(trackingGUID) == 32955 then
+								
+								last = math.floor(UnitHealth(unitId)/UnitHealthMax(unitId) * 100)
+								stars_hp[trackingGUID] = last
+								
+								return last
+							end
+						end
+						
+						return stars_hp[trackingGUID]
+					end
+					
+					DBM.BossHealth:AddBoss(getStarPercent, stars[targetGUID])
+				end
+				
+				star_num = star_num + 1
+			end
+		end
+	end
+end
+
+, 0.1)
+--]]
+
+function mod:OnSync(event, guid, starHpPct)
 
 	if event == "Phase2" and not self.vb.warned_preP2 then
 		self.vb.warned_preP2 = true
 		warnPhase2Soon:Show()
 		
-	elseif event == "Star" and not warned_star[guid]then
-		warned_star[guid] = true
-		specwarnStarLow:Show()
+	elseif event == "Star" then
+		starHpPct = tonumber(starHpPct)
+		
+		if not warned_star[guid] and starHpPct <= 0.25 then
+			warned_star[guid] = true
+			specwarnStarLow:Show()
+		end
+		
+		if not stars[guid] then
+			
+			local function getStarPercent()				
+				return stars_hp[guid]
+			end
+			
+			stars_hp[guid] = 100
+			star_num = star_num + 1
+			
+			stars[guid] = L.CollapsingStar .. " " .. star_num
+			DBM.BossHealth:AddBoss(getStarPercent, stars[guid])
+		else
+			stars_hp[guid] = starHpPct * 100
+		end
 	end
 end
