@@ -5,6 +5,7 @@ mod:SetRevision("20230221142915")
 mod:SetCreatureID(33288)
 mod:RegisterCombat("combat_yell", L.YellPull)
 mod:SetUsedIcons(1, 2, 3, 4, 5, 6, 7, 8)
+mod:SetWipeTime(20)
 
 mod:RegisterEventsInCombat(
 	"SPELL_CAST_START 64059 64189 63138 63830 63802 64145",
